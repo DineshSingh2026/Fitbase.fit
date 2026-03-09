@@ -1,5 +1,5 @@
-/* BodyBank PWA Service Worker - v1.0 */
-const CACHE_NAME = 'bodybank-v3';
+/* BodyBank PWA Service Worker - v1.1 (network-first for HTML so updates show immediately) */
+const CACHE_NAME = 'bodybank-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -48,29 +48,43 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Fetch: network-first for API, cache-first for static
+// Fetch: network-only for API, network-first for navigations (HTML), cache-first for other static
 self.addEventListener('fetch', (e) => {
-  const u = new URL(e.request.url);
-  if (u.pathname.startsWith('/api/')) {
-    // API: network only
-    return;
-  }
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  const url = new URL(req.url);
 
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request).then((res) => {
-        if (!res || res.status !== 200 || res.type !== 'basic') return res;
+  // Let API requests go straight to network
+  if (url.pathname.startsWith('/api/')) return;
+  if (req.method !== 'GET') return;
+
+  const isNavigation = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+
+  // HTML / navigations: network-first so users always get latest UI after refresh
+  if (isNavigation) {
+    e.respondWith(
+      fetch(req).then((res) => {
+        if (!res || res.status !== 200) return res;
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
         return res;
       }).catch(() => {
-        if (e.request.mode === 'navigate') {
-          return caches.match('/index.html').then((r) => r || new Response('Offline', { status: 503, statusText: 'Offline' }));
-        }
-        return new Response('', { status: 503, statusText: 'Offline' });
-      });
+        // Offline fallback to cached page if available
+        return caches.match(req).then((cached) => cached || caches.match('/index.html'));
+      })
+    );
+    return;
+  }
+
+  // Other static assets: cache-first with background fill of cache
+  e.respondWith(
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        if (!res || res.status !== 200 || res.type !== 'basic') return res;
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        return res;
+      }).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
     })
   );
 });
