@@ -21,11 +21,15 @@ const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
+const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
+const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  webPush.setVapidDetails('mailto:support@bodybank.fit', VAPID_PUBLIC, VAPID_PRIVATE);
+  try {
+    webPush.setVapidDetails('mailto:support@bodybank.fit', VAPID_PUBLIC, VAPID_PRIVATE);
+  } catch (e) {
+    console.warn('VAPID keys invalid or malformed - push notifications disabled. Error:', e.message);
+  }
 }
 
 async function sendPushToUser(userId, payload) {
