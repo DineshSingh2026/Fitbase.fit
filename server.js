@@ -1773,6 +1773,15 @@ app.get('/api/superadmin/shared', async (req, res) => {
 });
 
 // ============ SERVE FRONTEND ============
+// PWA: serve service worker and manifest with no-cache so updates apply quickly
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
