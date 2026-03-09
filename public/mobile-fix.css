@@ -1,0 +1,53 @@
+/* GLOBAL RESET */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* FIX iOS / Add-to-Home-Screen spacing */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* MAIN CONTENT AREA */
+.main-content {
+  padding-bottom: 90px; /* prevents bottom nav overlap */
+}
+
+/* BOTTOM NAVIGATION (always fixed) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #111;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  z-index: 9999;
+}
+
+/* PREVENT BOUNCE SCROLL ON MOBILE */
+body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* DASHBOARD CARD SPACING */
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* QUICK ACCESS GRID */
+.quick-access {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
