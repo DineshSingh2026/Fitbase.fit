@@ -493,16 +493,44 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-sidebar-icon{font-size:18px;opacity:.9;flex-shrink:0}
 .admin-section-page{padding:24px 0}
 .admin-section-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gold);margin-bottom:24px;text-transform:uppercase}
-.admin-section-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
-.admin-section-card{display:flex;flex-direction:column;align-items:flex-start;padding:24px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px;cursor:pointer;transition:all .25s;text-decoration:none;color:inherit;min-height:120px;box-sizing:border-box}
-.admin-section-card:hover{background:rgba(200,164,78,0.08);border-color:rgba(200,164,78,0.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+/* Admin back button */
+.admin-section-back{display:flex;align-items:center;margin-bottom:16px;width:100%}
+.admin-section-back .admin-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .2s;min-height:40px}
+.admin-section-back .admin-back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+/* Admin home - premium luxury styling */
+.admin-home-hero{margin-bottom:28px;padding:0 2px;border-bottom:1px solid rgba(200,164,78,0.12);padding-bottom:20px}
+.admin-home-hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,38px);letter-spacing:4px;color:var(--cream);margin-bottom:12px;text-transform:uppercase;background:linear-gradient(135deg,#f2ece0 0%,#c8a44e 50%,#bfb9ab 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
+.admin-home-hero p{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500;margin:0;line-height:1.5}
+.admin-home-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:600px}
+.admin-home-card{display:flex;align-items:center;gap:18px;padding:18px 22px;background:linear-gradient(145deg,rgba(255,255,255,0.05) 0%,rgba(255,255,255,0.02) 100%);border:1px solid rgba(200,164,78,0.2);border-radius:12px;cursor:pointer;transition:all .3s cubic-bezier(0.4,0,0.2,1);text-decoration:none;color:inherit;min-height:76px;box-sizing:border-box;box-shadow:0 2px 12px rgba(0,0,0,0.15)}
+.admin-home-card:hover{background:linear-gradient(145deg,rgba(200,164,78,0.12) 0%,rgba(200,164,78,0.05) 100%);border-color:rgba(200,164,78,0.45);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.25),0 0 0 1px rgba(200,164,78,0.1)}
+.admin-home-card:focus{outline:2px solid var(--gold);outline-offset:2px}
+.admin-home-card-icon{width:44px;height:44px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(200,164,78,0.18) 0%,rgba(200,164,78,0.06) 100%);border:1px solid rgba(200,164,78,0.25);border-radius:11px;font-size:20px;flex-shrink:0}
+.admin-home-card-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;justify-content:center}
+.admin-home-card-title{font-size:14px;font-weight:700;letter-spacing:1px;color:var(--cream);display:block;margin:0;line-height:1.3}
+.admin-home-card-desc{font-size:12px;color:var(--creamd);line-height:1.5;opacity:.9;display:block;margin:0;letter-spacing:0.3px}
+.admin-home-pwa-wrap{margin-top:28px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.06)}
+.admin-home-pwa-link{display:inline-flex;align-items:center;gap:10px;background:none;border:none;padding:0;color:var(--gold);font-size:14px;font-weight:600;letter-spacing:0.5px;text-decoration:none;cursor:pointer;transition:color .2s}
+.admin-home-pwa-link:hover{color:var(--goldb);text-decoration:underline}
+.admin-home-pwa-icon{font-size:18px;opacity:.9}
+.admin-home-pwa-text{letter-spacing:0.5px}
+.admin-home-pwa-hint{color:var(--muted);font-weight:400;font-size:12px}
+.admin-section-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.admin-section-card{display:flex;flex-direction:column;align-items:flex-start;padding:18px 20px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;transition:all .25s;text-decoration:none;color:inherit;min-height:88px;box-sizing:border-box}
+.admin-section-card:hover{background:rgba(200,164,78,0.08);border-color:rgba(200,164,78,0.4);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25)}
 .admin-section-card:focus{outline:2px solid var(--gold);outline-offset:2px}
-.admin-section-card-icon{font-size:28px;margin-bottom:12px;opacity:.9}
-.admin-section-card-title{font-size:16px;font-weight:700;letter-spacing:0.5px;color:var(--cream);margin-bottom:6px}
-.admin-section-card-desc{font-size:13px;color:var(--muted);line-height:1.5}
+.admin-section-card-icon{font-size:22px;margin-bottom:12px;opacity:.9}
+.admin-section-card-title{font-size:14px;font-weight:700;letter-spacing:0.5px;color:var(--cream);margin-bottom:8px;display:block;line-height:1.3}
+.admin-section-card-desc{font-size:12px;color:var(--muted);line-height:1.5;display:block;letter-spacing:0.2px}
 @media(max-width:767px){
-  .admin-section-cards{grid-template-columns:1fr}
-  .admin-section-card{min-height:100px;padding:20px}
+  .admin-home-cards{grid-template-columns:1fr;gap:10px;max-width:100%}
+  .admin-home-card{padding:14px 18px;min-height:64px;gap:14px}
+  .admin-home-card-icon{width:36px;height:36px;min-width:36px;min-height:36px;font-size:16px}
+  .admin-home-card-title{font-size:13px}
+  .admin-home-card-desc{font-size:11px}
+  .admin-section-cards{grid-template-columns:1fr;gap:10px}
+  .admin-section-card{min-height:80px;padding:16px 18px}
+  .admin-section-card-icon{font-size:20px}
 }
 @media(min-width:768px){
   .admin-sidebar{display:flex;top:72px;height:calc(100dvh - 72px);padding-top:0}
@@ -513,7 +541,8 @@ body.admin-dashboard-open .wa-float{display:none!important}
 @media(max-width:767px){
   .admin-body{margin-left:0;padding-bottom:max(80px,calc(70px + env(safe-area-inset-bottom)))}
   .admin-bottom-nav{display:flex}
-  .admin-top-hamburger{display:flex}
+  .admin-top-hamburger{display:none}
+  .admin-mobile-nav-bar{display:none}
 }
 .admin-panel::-webkit-scrollbar{width:8px;height:8px}
 .admin-panel::-webkit-scrollbar-track{background:transparent}
@@ -583,7 +612,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-top-hamburger{display:none}
 .admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(32px,env(safe-area-inset-bottom));min-width:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;box-sizing:border-box}
 .admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
-.admin-tab-content-wrap{flex:1;min-height:0;max-height:calc(100dvh - 220px);overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);padding:16px;touch-action:pan-x pan-y}
+.admin-tab-content-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);padding:20px;touch-action:pan-x pan-y;display:flex;flex-direction:column}
 .admin-tab-content-wrap::-webkit-scrollbar{width:8px;height:8px}
 .admin-tab-content-wrap::-webkit-scrollbar-track{background:transparent}
 .admin-tab-content-wrap::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
@@ -598,9 +627,9 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-stat-item .num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:1px;line-height:1}
 .admin-stat-item .lbl{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500}
 .admin-stats-sep{width:1px;height:36px;background:linear-gradient(180deg,transparent,rgba(200,164,78,0.4),transparent)}
-.admin-current-section-wrap{margin-bottom:20px;padding:10px 0;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.admin-back-to-section{display:none;padding:8px 14px;border:1px solid var(--bdr);border-radius:8px;background:rgba(200,164,78,0.08);color:var(--gold);font-size:13px;font-weight:600;letter-spacing:0.5px;text-decoration:none;transition:all .2s;flex-shrink:0}
-.admin-back-to-section:hover,.admin-back-to-section:focus{background:rgba(200,164,78,0.15);border-color:rgba(200,164,78,0.4)}
+.admin-current-section-wrap{margin-bottom:16px;padding:8px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:40px}
+.admin-back-to-section{display:none;padding:8px 16px;border:1px solid rgba(200,164,78,0.4);border-radius:8px;background:rgba(200,164,78,0.08);color:var(--gold);font-size:12px;font-weight:600;letter-spacing:1px;text-decoration:none;transition:all .2s;flex-shrink:0;min-height:40px;align-items:center}
+.admin-back-to-section:hover,.admin-back-to-section:focus{background:rgba(200,164,78,0.12);border-color:var(--gold)}
 .admin-back-to-section.visible{display:inline-flex;align-items:center;gap:6px}
 .admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
 @media(max-width:768px){.admin-current-section{font-size:16px;letter-spacing:1.5px}}
@@ -608,17 +637,17 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-subsection-wrap:last-child{margin-bottom:0}
 .admin-subsection-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
 
-.admin-mobile-nav-bar{display:none}
+.admin-mobile-nav-bar{display:none!important}
 @media(max-width:768px){
-  .admin-mobile-nav-bar{position:sticky;top:0;z-index:10;background:rgba(200,164,78,0.12);border:2px solid var(--gold);border-radius:12px;margin-left:-20px;margin-right:-20px;padding:14px 20px;margin-bottom:16px;flex-shrink:0}
+  .admin-mobile-nav-bar{display:none!important}
   .admin-mobile-nav-bar .admin-mobile-nav-label{font-size:16px;font-weight:700;color:var(--gold);letter-spacing:1px}
   .admin-hamburger-btn{width:52px;height:52px;border-width:2px;border-color:var(--gold)}
   .admin-hamburger-btn span{background:var(--gold)}
-  .admin-tab-content-wrap{height:55dvh;max-height:55dvh;min-height:280px;overflow-y:scroll;overflow-x:scroll;padding:12px;margin:0 -20px;border-radius:10px;border-color:rgba(200,164,78,0.25);-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+  .admin-tab-content-wrap{flex:1;min-height:200px;overflow-y:auto;overflow-x:auto;padding:16px;margin:0;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
 }
 @media(max-width:600px){
   .admin-mobile-nav-bar{margin-left:-12px;margin-right:-12px;padding:12px 16px}
-  .admin-tab-content-wrap{height:50dvh;max-height:50dvh;min-height:240px;margin:0 -12px}
+  .admin-tab-content-wrap{padding:14px}
 }
 @media(max-width:480px){
   .admin-body{padding:12px 10px 72px}
@@ -627,7 +656,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .admin-stat-item .num{font-size:28px}
   .admin-stat-item .lbl{font-size:12px}
   .admin-mobile-nav-bar{margin-left:-10px;margin-right:-10px;padding:10px 12px}
-  .admin-tab-content-wrap{height:55dvh;max-height:55dvh;min-height:200px;margin:0 -10px;padding:10px}
+  .admin-tab-content-wrap{padding:12px;min-height:180px}
   .admin-table{font-size:13px}
   .admin-table th,.admin-table td{padding:10px 8px;font-size:13px}
 }
@@ -636,7 +665,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .admin-welcome h1{font-size:22px}
   .admin-stat-item .num{font-size:24px}
   .admin-mobile-nav-bar{margin-left:-8px;margin-right:-8px;padding:8px 10px}
-  .admin-tab-content-wrap{min-height:180px;margin:0 -8px;padding:8px}
+  .admin-tab-content-wrap{padding:10px;min-height:160px}
   .admin-table th,.admin-table td{padding:8px 6px;font-size:12px}
 }
 .admin-hamburger-btn{display:flex;flex-direction:column;justify-content:center;gap:6px;width:48px;height:48px;min-width:44px;min-height:44px;padding:10px;background:transparent;border:1px solid var(--bdr);border-radius:10px;cursor:pointer;transition:all .2s;position:relative;flex-shrink:0}
@@ -1662,9 +1691,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span>AI Assist</span>
       </button>
       <button class="admin-logout" onclick="logoutAdmin()">Logout</button>
-      <button class="admin-top-hamburger admin-hamburger-btn" id="adminTopHamburger" onclick="toggleAdminNavDrawer()" aria-label="Open sections menu" title="Sections">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
   <div class="admin-layout">
@@ -1737,23 +1763,44 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- SECTION PAGES (card-based) -->
     <div class="admin-tab-content active" id="tab-dashboard-section">
       <div class="admin-section-page">
-        <h1 class="admin-section-title">Dashboard</h1>
-        <div class="admin-section-cards">
-          <a class="admin-section-card" href="#" onclick="switchTab('requests');return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128203;</span>
-            <span class="admin-section-card-title">Audit Forms</span>
-            <span class="admin-section-card-desc">Create and review client audits</span>
+        <div class="admin-home-hero">
+          <h1>Command Centre</h1>
+          <p>Your clients, forms, and analytics at a glance.</p>
+        </div>
+        <div class="admin-home-cards">
+          <a class="admin-home-card" href="#" onclick="switchToSection('clients');return false">
+            <span class="admin-home-card-icon" aria-hidden="true">&#128101;</span>
+            <div class="admin-home-card-body"><span class="admin-home-card-title">Clients</span><span class="admin-home-card-desc">Sign-ups, tribe, progress</span></div>
           </a>
-          <a class="admin-section-card" href="#" onclick="switchTab('signups');return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128231;</span>
-            <span class="admin-section-card-title">Pending Sign-ups</span>
-            <span class="admin-section-card-desc">Approve or reject new client sign-ups</span>
+          <a class="admin-home-card" href="#" onclick="switchToSection('training');return false">
+            <span class="admin-home-card-icon" aria-hidden="true">&#127947;</span>
+            <div class="admin-home-card-body"><span class="admin-home-card-title">Training</span><span class="admin-home-card-desc">Workout logs</span></div>
+          </a>
+          <a class="admin-home-card" href="#" onclick="switchToSection('forms');return false">
+            <span class="admin-home-card-icon" aria-hidden="true">&#128203;</span>
+            <div class="admin-home-card-body"><span class="admin-home-card-title">Forms</span><span class="admin-home-card-desc">Audit, Part-2, Check-in</span></div>
+          </a>
+          <a class="admin-home-card" href="#" onclick="switchToSection('analytics');return false">
+            <span class="admin-home-card-icon" aria-hidden="true">&#128200;</span>
+            <div class="admin-home-card-body"><span class="admin-home-card-title">Analytics</span><span class="admin-home-card-desc">Insights &amp; export</span></div>
+          </a>
+          <a class="admin-home-card" href="#" onclick="switchToSection('messages');return false">
+            <span class="admin-home-card-icon" aria-hidden="true">&#128172;</span>
+            <div class="admin-home-card-body"><span class="admin-home-card-title">Messages</span><span class="admin-home-card-desc">Chats &amp; meetings</span></div>
+          </a>
+        </div>
+        <div class="admin-home-pwa-wrap pwa-add-homescreen">
+          <a class="admin-home-pwa-link" href="#" onclick="handlePwaAddToHomescreen();return false" aria-label="Add to Home Screen">
+            <span class="admin-home-pwa-icon" aria-hidden="true">&#128260;</span>
+            <span class="admin-home-pwa-text">Add to Home Screen</span>
+            <span class="admin-home-pwa-hint">— Install app for quick access</span>
           </a>
         </div>
       </div>
     </div>
     <div class="admin-tab-content" id="tab-clients-section">
       <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <h1 class="admin-section-title">Clients</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('signups');return false">
@@ -1776,6 +1823,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <div class="admin-tab-content" id="tab-forms-section">
       <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <h1 class="admin-section-title">Forms</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('requests');return false">
@@ -1798,6 +1846,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <div class="admin-tab-content" id="tab-training-section">
       <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <h1 class="admin-section-title">Training</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('workouts');return false">
@@ -1810,6 +1859,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <div class="admin-tab-content" id="tab-analytics-section">
       <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <h1 class="admin-section-title">Analytics</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('insights');return false">
@@ -1822,6 +1872,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <div class="admin-tab-content" id="tab-messages-section">
       <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <h1 class="admin-section-title">Messages</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('messages-meetings');return false">
@@ -2024,9 +2075,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Primary navigation">
       <div class="admin-bottom-nav-inner">
-        <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Dashboard">
+        <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Home">
           <span class="admin-bottom-nav-icon" aria-hidden="true">&#128202;</span>
-          <span class="admin-bottom-nav-label">Dashboard</span>
+          <span class="admin-bottom-nav-label">Home</span>
         </button>
         <button type="button" class="admin-bottom-nav-item" data-section="clients" onclick="switchToSection('clients');return false" aria-label="Clients">
           <span class="admin-bottom-nav-icon" aria-hidden="true">&#128101;</span>
@@ -2039,10 +2090,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
           <span class="admin-bottom-nav-icon" aria-hidden="true">&#128172;</span>
           <span class="admin-bottom-nav-label">Messages</span>
-        </button>
-        <button type="button" class="admin-bottom-nav-item admin-bottom-nav-menu" data-section="menu" onclick="toggleAdminNavDrawer();return false" aria-label="Open menu" aria-expanded="false">
-          <span class="admin-bottom-nav-icon" aria-hidden="true">&#9776;</span>
-          <span class="admin-bottom-nav-label">Menu</span>
         </button>
       </div>
     </nav>
@@ -3621,10 +3668,10 @@ function switchToSection(section) {
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
   var bottomNav = document.getElementById('adminBottomNav');
   if (bottomNav) {
-    var menuActive = (section === 'forms' || section === 'analytics');
+    var navSection = (section === 'forms' || section === 'analytics') ? 'dashboard' : section;
     bottomNav.querySelectorAll('.admin-bottom-nav-item').forEach(function(btn) {
       var s = btn.getAttribute('data-section');
-      btn.classList.toggle('active', s === section || (menuActive && s === 'menu'));
+      btn.classList.toggle('active', s === navSection);
     });
   }
   var sectionLink = document.querySelector('.admin-sidebar-link[data-section="' + section + '"]');
@@ -3648,10 +3695,10 @@ function switchTab(tab) {
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
   var bottomNav = document.getElementById('adminBottomNav');
   if (bottomNav) {
-    var menuActive = (section === 'forms' || section === 'analytics');
+    var navSection = (section === 'forms' || section === 'analytics') ? 'dashboard' : section;
     bottomNav.querySelectorAll('.admin-bottom-nav-item').forEach(function(btn) {
       var s = btn.getAttribute('data-section');
-      btn.classList.toggle('active', s === section || (menuActive && s === 'menu'));
+      btn.classList.toggle('active', s === navSection);
     });
   }
   const tabBtn = document.querySelector('.admin-tab[data-tab="' + tab + '"]');
