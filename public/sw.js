@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker - v1.1 (network-first for HTML so updates show immediately) */
-const CACHE_NAME = 'bodybank-v4';
+const CACHE_NAME = 'bodybank-v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
