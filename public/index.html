@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#060606">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,10 +28,13 @@
   --goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);
   --cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;
   --bdr:rgba(200,164,78,0.2);
+  --safe-top:env(safe-area-inset-top);
 }
 *{margin:0;padding:0;box-sizing:border-box}
+/* Reset */
+html,body{margin:0;padding:0;height:100%}
 /* Universal PWA safe-area fix */
-html{height:100%;scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
 body{
   background:var(--black);
   color:var(--cream);
@@ -40,13 +43,12 @@ body{
   line-height:1.6;
   overflow-x:hidden;
   -webkit-font-smoothing:antialiased;
-  margin:0;
-  padding-top:max(env(safe-area-inset-top),20px);
+  padding-top:var(--safe-top);
   min-height:100dvh;
   box-sizing:border-box;
 }
-.app,.dashboard,.main-container,.layout,.wrapper,.admin-panel,.admin-layout,.superadmin-panel,.user-panel{min-height:100dvh;padding-top:max(env(safe-area-inset-top),20px);box-sizing:border-box}
-header,nav,.navbar,.topbar,.admin-top,.user-top,.superadmin-top{padding-top:max(env(safe-area-inset-top),12px)}
+.app,.dashboard,.main-container,.layout,.admin-panel,.admin-layout,.superadmin-panel,.user-panel{padding-top:calc(var(--safe-top) + 10px);min-height:100dvh;box-sizing:border-box}
+header,nav,.navbar,.topbar,.admin-top,.user-top,.superadmin-top{position:sticky;top:0;z-index:1000;padding-top:max(var(--safe-top),12px)}
 .full-height,.page{min-height:100dvh}
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
 
@@ -1111,7 +1113,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-nav-drawer .drawer-close{background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center}
 .user-nav-drawer .drawer-nav{display:flex;flex-direction:column;padding:20px}
 .user-nav-drawer .drawer-nav .user-nav-item{display:flex;align-items:center;padding:16px 20px;margin-bottom:8px;font-size:15px;min-height:48px}
-.user-panel .back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;transition:all .2s}
+.user-section-back{display:flex;align-items:center;margin-bottom:20px;width:100%;}
+.user-section-back .back-btn{margin-bottom:0}
+.user-panel .back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;transition:all .2s;min-height:44px}
 .user-panel .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb);color:var(--goldb)}
 /* Breadcrumbs */
 .user-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:24px;flex-wrap:wrap}
@@ -1327,12 +1331,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="drawer-header"><span class="drawer-title">Menu</span><button class="drawer-close" onclick="closeUserNavDrawer()" aria-label="Close menu">&times;</button></div>
     <div class="drawer-nav">
       <div class="user-nav-item active" onclick="switchUserTab('home');closeUserNavDrawer()">Home</div>
-      <div class="user-nav-item" onclick="switchUserTab('profile');closeUserNavDrawer()">My Profile</div>
       <div class="user-nav-item" onclick="switchUserTab('workout');closeUserNavDrawer()">My Workout</div>
-      <div class="user-nav-item" onclick="switchUserTab('messages');closeUserNavDrawer()">Messages</div>
-      <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
-      <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
       <div class="user-nav-item" onclick="switchUserTab('progress');closeUserNavDrawer()">My Progress</div>
+      <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
+      <div class="user-nav-item" onclick="switchUserTab('messages');closeUserNavDrawer()">Messages</div>
+      <div class="user-nav-item" onclick="switchUserTab('profile');closeUserNavDrawer()">My Profile</div>
+      <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
       <div class="user-nav-item pwa-add-homescreen" onclick="handlePwaAddToHomescreen();closeUserNavDrawer()">Add to Home Screen</div>
     </div>
   </div>
@@ -1364,12 +1368,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </button>
       <div class="user-nav">
         <div class="user-nav-item active" onclick="switchUserTab('home')">Home</div>
-        <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
         <div class="user-nav-item" onclick="switchUserTab('workout')">My Workout</div>
-        <div class="user-nav-item" onclick="switchUserTab('messages')">Messages</div>
-          <div class="user-nav-item" onclick="switchUserTab('contact')">Contact Us</div>
-        <div class="user-nav-item" onclick="switchUserTab('checkin')"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
         <div class="user-nav-item" onclick="switchUserTab('progress')">My Progress</div>
+        <div class="user-nav-item" onclick="switchUserTab('checkin')"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
+        <div class="user-nav-item" onclick="switchUserTab('messages')">Messages</div>
+        <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
+        <div class="user-nav-item" onclick="switchUserTab('contact')">Contact Us</div>
       </div>
       <button class="user-logout" id="userLogoutBtn" onclick="logoutUser()">Logout</button>
     </div>
@@ -1448,18 +1452,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="user-streak-bar"><div class="user-streak-fill" id="userStreakFill" style="width:0%"></div></div>
         </div>
         <div class="welcome-cards">
-          <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-title">My Profile</div><div class="wc-desc">View & update your information</div></div>
           <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div>
-          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-title">Messages</div><div class="wc-desc">Chat with your coach</div></div>
-          <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div>
-          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Weekly check-in form</div></div>
           <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics & view analytics</div></div>
+          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Weekly check-in form</div></div>
+          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-title">Messages</div><div class="wc-desc">Chat with your coach</div></div>
+          <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-title">My Profile</div><div class="wc-desc">View & update your information</div></div>
+          <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div>
         </div>
       </div>
     </div>
 
     <!-- MY PROFILE -->
     <div class="user-section" id="usec-profile">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <h2>My Profile</h2>
       <div id="profileAvatarSkeleton" class="skeleton-wrapper" style="display:none">
         <div class="skeleton skeleton-avatar"></div>
@@ -1494,6 +1499,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- MY WORKOUT -->
     <div class="user-section" id="usec-workout">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <h2>My Workout</h2>
       <div class="form-section-title">Log your session</div>
       <div class="form-group"><label>Workout Name <span class="req">*</span></label><input type="text" class="form-input" id="wkName" placeholder="e.g. Upper body, Cardio"><span class="form-hint">Name this training session</span></div>
@@ -1515,6 +1521,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- MESSAGES (single chat with coach, no subject) -->
     <div class="user-section" id="usec-messages">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div class="chat-header-strip">
         <h2>Messages</h2>
         <p class="chat-header-desc">Chat with your coach. Just type and send.</p>
@@ -1530,6 +1537,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- CONTACT US -->
     <div class="user-section" id="usec-contact">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <h2>Contact Us</h2>
 
       <div class="form-section-title">Schedule a meeting</div>
@@ -1562,7 +1570,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- SUNDAY CHECK-IN -->
     <div class="user-section" id="usec-checkin">
-      <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <h2 class="sunday-checkin-title">Sunday Check-in <span class="req">*</span></h2>
       <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
       <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
@@ -1587,7 +1595,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
     <div class="user-section" id="usec-progress">
-      <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <h2>My Progress</h2>
       <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
       <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
@@ -3986,7 +3994,7 @@ function switchUserTab(tab) {
   closeUserNavDrawer();
   document.querySelectorAll('.user-nav-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-section').forEach(function(s) { s.classList.remove('active'); });
-  var tabs = ['home', 'profile', 'workout', 'messages', 'contact', 'checkin', 'progress'];
+  var tabs = ['home', 'workout', 'progress', 'checkin', 'messages', 'profile', 'contact'];
   var idx = tabs.indexOf(tab);
   var topNav = document.querySelectorAll('.user-nav .user-nav-item');
   var drawerNav = document.querySelectorAll('.drawer-nav .user-nav-item');
@@ -5478,6 +5486,21 @@ if ('serviceWorker' in navigator) {
     }).catch(function() {});
   });
 }
+
+function applySafeAreaFix() {
+  try {
+    var el = document.createElement('div');
+    el.style.cssText = 'position:absolute;padding-top:env(safe-area-inset-top);visibility:hidden;pointer-events:none';
+    document.body.appendChild(el);
+    var safeTop = getComputedStyle(el).paddingTop;
+    document.body.removeChild(el);
+    document.documentElement.style.setProperty('--safe-top', (safeTop && safeTop !== '0px') ? safeTop : '20px');
+  } catch (e) {
+    document.documentElement.style.setProperty('--safe-top', '20px');
+  }
+}
+window.addEventListener('load', applySafeAreaFix);
+window.addEventListener('resize', applySafeAreaFix);
 </script>
 </body>
 </html>
