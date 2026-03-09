@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BodyBank">
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/img/bodybank-logo-short.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <!-- Google tag (gtag.js) - GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
 <script>
@@ -485,6 +485,11 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-notify-wrap{position:relative;flex-shrink:0}
 .admin-notify-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s;font-size:18px}
 .admin-notify-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.app-refresh-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s}
+.app-refresh-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.app-refresh-btn svg{width:18px;height:18px;display:block}
+.app-refresh-btn.is-spinning svg{animation:appSpin .8s linear infinite}
+@keyframes appSpin{to{transform:rotate(360deg)}}
 .admin-notify-btn .count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e05050;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
 .admin-notify-btn .count.has-count,.user-notify-wrap .count.has-count{display:flex}
 .admin-notify-panel{display:none;position:absolute;top:100%;right:0;margin-top:8px;width:380px;max-width:calc(100vw - 32px);max-height:420px;background:var(--dark2);border:1px solid var(--bdr);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:50;overflow:hidden;flex-direction:column;flex:1 1 auto}
@@ -1266,6 +1271,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
       </div>
+      <button type="button" class="app-refresh-btn" onclick="refreshApp(this)" title="Refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
       <div class="user-nav">
         <div class="user-nav-item active" onclick="switchUserTab('home')">Home</div>
         <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
@@ -1492,6 +1503,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
       </div>
+      <button type="button" class="app-refresh-btn" onclick="refreshApp(this)" title="Refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+          <path d="M21 3v6h-6"/>
+        </svg>
+      </button>
       <button type="button" class="admin-ai-assist-top-btn" id="adminAiAssistTopBtn" onclick="toggleAdminAiAssistPanel()" aria-label="Open AI Assist" title="AI Assist – ask questions about your data">
         <img src="AI%20assist.jpg" alt="" width="20" height="20">
         <span>AI Assist</span>
@@ -5169,6 +5186,22 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   }
   setTimeout(updatePwaVisibility, 500);
 })();
+
+// App refresh (works well in standalone PWA)
+async function refreshApp(btn) {
+  try {
+    if (btn && btn.classList) btn.classList.add('is-spinning');
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    }
+  } catch (e) {
+    // ignore
+  } finally {
+    // small delay so spinner is visible, then reload
+    setTimeout(function() { window.location.reload(); }, 120);
+  }
+}
 
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {

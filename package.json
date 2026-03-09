@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
     "test": "node tests/e2e-flow.js",
+    "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js"
   },
   "engines": {
@@ -24,5 +25,8 @@
     "pg": "^8.18.0",
     "sql.js": "^1.14.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.34.5"
   }
 }

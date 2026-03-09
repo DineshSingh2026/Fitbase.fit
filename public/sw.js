@@ -1,10 +1,11 @@
 /* BodyBank PWA Service Worker - v1.0 */
-const CACHE_NAME = 'bodybank-v2';
+const CACHE_NAME = 'bodybank-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/img/bodybank-logo-short.png'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 // Install: precache core assets
