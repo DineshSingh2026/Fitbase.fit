@@ -29,8 +29,20 @@
   --cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;
   --bdr:rgba(200,164,78,0.2);
 }
-*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
-body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-weight:300;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body{
+  background:var(--black);
+  color:var(--cream);
+  font-family:'Outfit',sans-serif;
+  font-weight:300;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  margin:0;
+  min-height:100dvh;
+  padding-top:env(safe-area-inset-top);
+}
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
 
 /* NAV */
@@ -70,7 +82,16 @@ body.site-nav-hidden nav#nv{display:none !important}
 .pwa-ios-modal .pwa-ios-close{padding:12px 28px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer}
 
 /* HERO */
-.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;position:relative;padding:130px 48px 100px;overflow:hidden}
+.hero{
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  position:relative;
+  padding:calc(130px + env(safe-area-inset-top)) 48px 100px;
+  overflow:hidden;
+}
 .hero-bg{position:absolute;inset:0;background:var(--black);background-image:url('/img/hero-bg.jpg.jpeg');background-size:cover;background-position:center;background-repeat:no-repeat}
 @media(min-width:901px){.hero-bg{background-position:center top}}
 .hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,6,6,0.5),rgba(6,6,6,0.85));pointer-events:none}
