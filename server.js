@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
@@ -20,6 +21,32 @@ const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
+const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '';
+
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webPush.setVapidDetails('mailto:support@bodybank.fit', VAPID_PUBLIC, VAPID_PRIVATE);
+}
+
+async function sendPushToUser(userId, payload) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const rows = await queryAll('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);
+    const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    for (const sub of rows) {
+      try {
+        await webPush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh, auth: sub.auth }
+        }, body, { TTL: 86400 });
+      } catch (e) {
+        if (e.statusCode === 410 || e.statusCode === 404) {
+          await run('DELETE FROM push_subscriptions WHERE endpoint = ?', [sub.endpoint]);
+        }
+      }
+    }
+  } catch (e) { /* ignore */ }
+}
 
 const app = express();
 
@@ -293,6 +320,30 @@ async function initDB() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_progress_logs_user_id ON progress_logs(user_id)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_progress_logs_created_at ON progress_logs(created_at)`).catch(() => {});
+
+  // Daily check-ins (micro-goals: steps, water, protein, sleep)
+  await pool.query(`CREATE TABLE IF NOT EXISTS daily_checkins (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    checkin_date DATE NOT NULL,
+    steps INTEGER,
+    water_ml INTEGER,
+    protein_g INTEGER,
+    sleep_hours REAL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date)`); } catch (e) { /* ignore */ }
+
+  // Push notification subscriptions
+  await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT,
+    auth TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`); } catch (e) { /* ignore */ }
 
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
@@ -942,6 +993,9 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     );
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
+    if (isAdmin && thread.user_id) {
+      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
+    }
     res.status(201).json(msg);
   } catch (e) {
     console.error('Send message error:', e.message);
@@ -973,6 +1027,142 @@ app.get('/api/sunday-checkin/:id', async (req, res) => {
   const row = await queryOne("SELECT * FROM sunday_checkins WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
+});
+
+// ============ DAILY CHECK-IN (micro-goals: steps, water, protein, sleep) ============
+app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { steps, water_ml, protein_g, sleep_hours } = req.body || {};
+    const today = new Date().toISOString().slice(0, 10);
+    const id = uuidv4();
+    await run(
+      `INSERT INTO daily_checkins (id, user_id, checkin_date, steps, water_ml, protein_g, sleep_hours)
+       VALUES (?, ?, ?::date, ?, ?, ?, ?)
+       ON CONFLICT (user_id, checkin_date) DO UPDATE SET
+         steps = COALESCE(EXCLUDED.steps, daily_checkins.steps),
+         water_ml = COALESCE(EXCLUDED.water_ml, daily_checkins.water_ml),
+         protein_g = COALESCE(EXCLUDED.protein_g, daily_checkins.protein_g),
+         sleep_hours = COALESCE(EXCLUDED.sleep_hours, daily_checkins.sleep_hours)`,
+      [id, userId, today, steps != null ? steps : null, water_ml != null ? water_ml : null, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
+    );
+    const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    res.json(row || { id, user_id: userId, checkin_date: today, steps, water_ml, protein_g, sleep_hours });
+  } catch (e) {
+    if (e.code === '23505') {
+      const today = new Date().toISOString().slice(0, 10);
+      await run(
+        `UPDATE daily_checkins SET steps = COALESCE(?, steps), water_ml = COALESCE(?, water_ml), protein_g = COALESCE(?, protein_g), sleep_hours = COALESCE(?, sleep_hours) WHERE user_id = ? AND checkin_date = ?::date`,
+        [req.body?.steps ?? null, req.body?.water_ml ?? null, req.body?.protein_g ?? null, req.body?.sleep_hours ?? null, req.user.id, today]
+      );
+      const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
+      return res.json(row);
+    }
+    console.error('Daily check-in error:', e.message);
+    res.status(500).json({ error: 'Failed to save check-in' });
+  }
+});
+
+app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
+    res.json(row || { checkin_date: today });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load check-in' });
+  }
+});
+
+app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 14`,
+      [req.user.id]
+    );
+    const today = new Date().toISOString().slice(0, 10);
+    let streak = 0;
+    const dates = new Set(rows.map(r => r.checkin_date));
+    for (let d = new Date(); ; d.setDate(d.getDate() - 1)) {
+      const ds = d.toISOString().slice(0, 10);
+      if (!dates.has(ds)) break;
+      streak++;
+    }
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekData = rows.filter(r => new Date(r.checkin_date) >= weekStart);
+    const avgSteps = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.steps || 0), 0) / weekData.length) : null;
+    const avgWater = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.water_ml || 0), 0) / weekData.length) : null;
+    const avgProtein = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.protein_g || 0), 0) / weekData.length) : null;
+    const avgSleep = weekData.length ? (weekData.reduce((s, r) => s + (r.sleep_hours || 0), 0) / weekData.length).toFixed(1) : null;
+    res.json({ streak, weekly: { avgSteps, avgWater, avgProtein, avgSleep }, days: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load streak' });
+  }
+});
+
+// ============ TODAY DASHBOARD ============
+app.get('/api/today', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const today = new Date().toISOString().slice(0, 10);
+    const [checkin, meetings, workouts, lastMessageRow] = await Promise.all([
+      queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]),
+      queryAll("SELECT * FROM meetings WHERE user_id = ? AND status != 'cancelled' ORDER BY meeting_date ASC, time_slot ASC", [userId]),
+      queryAll('SELECT * FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]),
+      queryOne('SELECT tm.body, tm.created_at, tm.sender_role, mt.id as thread_id FROM thread_messages tm JOIN message_threads mt ON mt.id = tm.thread_id WHERE mt.user_id = ? ORDER BY tm.created_at DESC LIMIT 1', [userId])
+    ]);
+    const lastMessage = lastMessageRow ? { body: lastMessageRow.body, created_at: lastMessageRow.created_at, sender_role: lastMessageRow.sender_role, thread_id: lastMessageRow.thread_id } : null;
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekStartStr = weekStart.toISOString();
+    const sundayRows = await queryAll("SELECT id, created_at FROM sunday_checkins WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1", [userId, weekStartStr]);
+    const pendingCheckin = sundayRows.length === 0;
+    const upcomingMeetings = (meetings || []).filter(m => new Date(m.meeting_date + 'T12:00:00') >= new Date()).slice(0, 1);
+    res.json({
+      checkin: checkin || null,
+      nextMeeting: upcomingMeetings[0] || null,
+      lastWorkout: workouts && workouts[0] ? workouts[0] : null,
+      lastMessage: lastMessage || null,
+      pendingSundayCheckin: pendingCheckin
+    });
+  } catch (e) {
+    console.error('Today API error:', e.message);
+    res.status(500).json({ error: 'Failed to load today data' });
+  }
+});
+
+// ============ PUSH NOTIFICATIONS (opt-in) ============
+app.post('/api/push/subscribe', verifyToken, rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { endpoint, keys } = req.body || {};
+    if (!endpoint || !keys) return res.status(400).json({ error: 'Subscription required' });
+    const id = uuidv4();
+    await run('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?, ?)',
+      [id, req.user.id, endpoint, keys.p256dh || null, keys.auth || null]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to subscribe' });
+  }
+});
+
+app.delete('/api/push/subscribe', verifyToken, async (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (endpoint) {
+      await run('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [req.user.id, endpoint]);
+    } else {
+      await run('DELETE FROM push_subscriptions WHERE user_id = ?', [req.user.id]);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to unsubscribe' });
+  }
+});
+
+app.get('/api/push/vapid-public', (req, res) => {
+  res.json({ publicKey: VAPID_PUBLIC || null });
 });
 
 // ============ ADMIN: PENDING SIGNUPS & APPROVE ============

@@ -19,6 +19,24 @@ self.addEventListener('install', (e) => {
   );
 });
 
+// Push: show notification when coach replies etc.
+self.addEventListener('push', (e) => {
+  let payload = { title: 'BodyBank', body: 'New update' };
+  if (e.data) {
+    try { payload = JSON.parse(e.data.text()); } catch (_) { payload.body = e.data.text(); }
+  }
+  const opts = { body: payload.body || payload, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: payload.type || 'bodybank' };
+  e.waitUntil(self.registration.showNotification(payload.title || 'BodyBank', opts));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((c) => {
+    if (c.length) c[0].focus();
+    else if (self.clients.openWindow) self.clients.openWindow('/');
+  }));
+});
+
 // Activate: take control and prune old caches
 self.addEventListener('activate', (e) => {
   e.waitUntil(

@@ -1014,6 +1014,36 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 .user-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0}
 .user-logout:hover{background:rgba(255,80,80,0.1)}
+/* Today dashboard + micro-goals */
+.today-dash{display:flex;flex-direction:column;gap:24px;max-width:640px;margin:0 auto}
+.today-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.today-card{flex:1;min-width:200px;padding:20px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px}
+.today-card h3{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.today-card p{margin:0;font-size:14px;color:var(--creamd);line-height:1.5}
+.today-card .val{font-weight:600;color:var(--cream);margin-top:6px}
+.today-card.empty .val{color:var(--muted);font-weight:400}
+.today-card.action{cursor:pointer;transition:background .2s,border-color .2s}
+.today-card.action:hover{background:rgba(200,164,78,0.06);border-color:var(--gold)}
+.micro-goals-wrap{background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:14px;padding:24px;margin:0}
+.micro-goals-wrap h3{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.micro-goals-wrap .streak-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(200,164,78,0.2);border-radius:20px;font-size:13px;font-weight:700;color:var(--gold)}
+.micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
+@media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
+.micro-goal-field{display:flex;flex-direction:column;gap:6px}
+.micro-goal-field label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.micro-goal-field input{width:100%;padding:10px 14px;border:1px solid var(--bdr);border-radius:8px;background:rgba(0,0,0,0.3);color:var(--cream);font-size:14px}
+.micro-goal-field input::placeholder{color:var(--muted)}
+.micro-goals-submit{width:100%;padding:12px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s}
+.micro-goals-submit:hover{opacity:.95}
+.weekly-recap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr)}
+.weekly-recap-item{flex:1;min-width:100px;text-align:center;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px}
+.weekly-recap-item .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
+.weekly-recap-item .num{font-size:18px;font-weight:700;color:var(--gold)}
+.push-enable-wrap{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.3);border-radius:10px;margin-top:16px;flex-wrap:wrap}
+.push-enable-wrap p{margin:0;flex:1;min-width:200px;font-size:13px;color:var(--creamd)}
+.push-enable-btn{padding:10px 20px;background:linear-gradient(135deg,#00b4d8,#0096c7);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:12px;letter-spacing:.5px;cursor:pointer}
+.push-enable-btn:hover{opacity:.9}
+.push-enable-btn:disabled{opacity:.5;cursor:not-allowed}
 .user-hamburger{display:none;background:none;border:none;color:var(--gold);cursor:pointer;padding:12px;min-width:48px;min-height:48px;justify-content:center;align-items:center;border-radius:8px;transition:background .3s}
 .user-hamburger:hover{background:rgba(200,164,78,0.1)}
 .user-hamburger span{display:block;width:22px;height:2px;background:var(--gold);margin:4px 0;border-radius:1px;transition:transform .3s}
@@ -1291,13 +1321,68 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
   <div class="user-body">
 
-    <!-- HOME -->
+    <!-- HOME (Today dashboard + micro-goals) -->
     <div class="user-section active" id="usec-home">
       <div class="user-welcome">
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Start your fitness journey.</p>
+
+        <!-- Today dashboard -->
+        <div class="today-dash" id="todayDash">
+          <div class="today-row">
+            <div class="today-card" onclick="switchUserTab('messages');return false">
+              <h3>Last message</h3>
+              <p id="todayLastMsg" class="val empty">—</p>
+            </div>
+            <div class="today-card" onclick="switchUserTab('contact');return false">
+              <h3>Next call</h3>
+              <p id="todayNextCall" class="val empty">—</p>
+            </div>
+            <div class="today-card action" id="todayCheckinCard" onclick="switchUserTab('checkin');return false" style="display:none">
+              <h3>Pending</h3>
+              <p class="val" style="color:var(--gold)">Sunday check-in due</p>
+            </div>
+          </div>
+
+          <!-- Micro-goals: daily check-in + streaks -->
+          <div class="micro-goals-wrap">
+            <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
+            <form id="microGoalsForm" onsubmit="submitMicroGoals();return false">
+              <div class="micro-goals-grid">
+                <div class="micro-goal-field">
+                  <label>Steps</label>
+                  <input type="number" id="microSteps" placeholder="e.g. 8000" min="0">
+                </div>
+                <div class="micro-goal-field">
+                  <label>Water (ml)</label>
+                  <input type="number" id="microWater" placeholder="e.g. 2000" min="0">
+                </div>
+                <div class="micro-goal-field">
+                  <label>Protein (g)</label>
+                  <input type="number" id="microProtein" placeholder="e.g. 120" min="0">
+                </div>
+                <div class="micro-goal-field">
+                  <label>Sleep (hrs)</label>
+                  <input type="number" id="microSleep" placeholder="e.g. 7.5" min="0" step="0.5">
+                </div>
+              </div>
+              <button type="submit" class="micro-goals-submit">Save today</button>
+            </form>
+            <div class="weekly-recap" id="weeklyRecap">
+              <div class="weekly-recap-item"><span class="lbl">Avg steps</span><span class="num" id="recapSteps">—</span></div>
+              <div class="weekly-recap-item"><span class="lbl">Avg water</span><span class="num" id="recapWater">—</span></div>
+              <div class="weekly-recap-item"><span class="lbl">Avg protein</span><span class="num" id="recapProtein">—</span></div>
+              <div class="weekly-recap-item"><span class="lbl">Avg sleep</span><span class="num" id="recapSleep">—</span></div>
+            </div>
+            <div class="push-enable-wrap" id="pushEnableWrap">
+              <p>Get workout &amp; check-in reminders, and know when your coach replies.</p>
+              <button type="button" class="push-enable-btn" id="pushEnableBtn" onclick="enablePushNotifications()">Enable notifications</button>
+            </div>
+          </div>
+        </div>
+
         <div class="user-stats-row" id="userStatsRow">
           <div class="user-stat-card"><div class="stat-num" id="statWorkouts">—</div><div class="stat-lbl">Workouts this week</div></div>
           <div class="user-stat-card"><div class="stat-num" id="statNextCall">—</div><div class="stat-lbl">Next scheduled call</div></div>
@@ -3809,6 +3894,8 @@ function openUserDashboard(user) {
   if (logoutBtn) logoutBtn.style.display = '';
   lockBodyScroll();
   loadUserStats();
+  loadTodayDashboard();
+  loadMicroGoals();
   loadProfile();
   loadWorkoutHistory();
   if (typeof loadNotifications === 'function') loadNotifications();
@@ -3853,7 +3940,7 @@ function switchUserTab(tab) {
   if (sec) sec.classList.add('active');
   var logoutBtn = document.getElementById('userLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = tab === 'home' ? '' : 'none';
-  if (tab === 'home') loadUserStats();
+  if (tab === 'home') { loadUserStats(); loadTodayDashboard(); loadMicroGoals(); }
   if (tab === 'progress') {
     var proDate = document.getElementById('proDate');
     if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
@@ -3909,6 +3996,125 @@ async function loadUserStats() {
   if (el = document.getElementById('statNextCall')) el.textContent = nextCallStr;
   if (el = document.getElementById('statLastActive')) el.textContent = daysSinceStr;
   if (el = document.getElementById('userStreakFill')) el.style.width = streakPct + '%';
+}
+
+// Today dashboard
+async function loadTodayDashboard() {
+  if (!window.currentUser) return;
+  try {
+    var data = await apiCall('GET', '/api/today');
+    var el;
+    if (el = document.getElementById('todayLastMsg')) {
+      if (data.lastMessage) {
+        var body = (data.lastMessage.body || '').slice(0, 60);
+        if (data.lastMessage.body && data.lastMessage.body.length > 60) body += '…';
+        el.textContent = body || '—';
+        el.classList.remove('empty');
+      } else el.textContent = '—';
+    }
+    if (el = document.getElementById('todayNextCall')) {
+      if (data.nextMeeting) {
+        var d = new Date(data.nextMeeting.meeting_date + 'T12:00:00');
+        el.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + (data.nextMeeting.time_slot || '');
+        el.classList.remove('empty');
+      } else el.textContent = 'None';
+    }
+    if (el = document.getElementById('todayCheckinCard')) el.style.display = data.pendingSundayCheckin ? 'block' : 'none';
+  } catch (e) {}
+}
+
+// Micro-goals: daily check-in + streaks
+async function loadMicroGoals() {
+  if (!window.currentUser) return;
+  try {
+    var [today, streak] = await Promise.all([
+      apiCall('GET', '/api/daily-checkin/today'),
+      apiCall('GET', '/api/daily-checkin/streak')
+    ]);
+    var el;
+    if (today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null)) {
+      if (el = document.getElementById('microSteps')) el.value = today.steps != null ? today.steps : '';
+      if (el = document.getElementById('microWater')) el.value = today.water_ml != null ? today.water_ml : '';
+      if (el = document.getElementById('microProtein')) el.value = today.protein_g != null ? today.protein_g : '';
+      if (el = document.getElementById('microSleep')) el.value = today.sleep_hours != null ? today.sleep_hours : '';
+    }
+    if (streak && (el = document.getElementById('microStreakBadge'))) {
+      el.textContent = (streak.streak || 0) + ' day streak';
+    }
+    if (streak && streak.weekly) {
+      var w = streak.weekly;
+      if (el = document.getElementById('recapSteps')) el.textContent = w.avgSteps != null ? w.avgSteps : '—';
+      if (el = document.getElementById('recapWater')) el.textContent = w.avgWater != null ? w.avgWater : '—';
+      if (el = document.getElementById('recapProtein')) el.textContent = w.avgProtein != null ? w.avgProtein : '—';
+      if (el = document.getElementById('recapSleep')) el.textContent = w.avgSleep != null ? w.avgSleep : '—';
+    }
+  } catch (e) {}
+}
+
+async function submitMicroGoals() {
+  if (!window.currentUser) return;
+  var steps = parseInt(document.getElementById('microSteps').value, 10);
+  var water = parseInt(document.getElementById('microWater').value, 10);
+  var protein = parseInt(document.getElementById('microProtein').value, 10);
+  var sleep = parseFloat(document.getElementById('microSleep').value);
+  var body = {};
+  if (!isNaN(steps)) body.steps = steps;
+  if (!isNaN(water)) body.water_ml = water;
+  if (!isNaN(protein)) body.protein_g = protein;
+  if (!isNaN(sleep)) body.sleep_hours = sleep;
+  if (Object.keys(body).length === 0) return;
+  try {
+    await apiCall('POST', '/api/daily-checkin', body);
+    loadMicroGoals();
+    showPopup('Saved', 'Daily check-in saved.', '', 'OK', null, 'success');
+  } catch (e) {
+    showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
+  }
+}
+
+// Push notifications (opt-in)
+async function enablePushNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    showPopup('Not supported', 'Push notifications are not supported in this browser.', '', 'OK', null, 'error');
+    return;
+  }
+  var btn = document.getElementById('pushEnableBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  try {
+    var perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+      return;
+    }
+    var keyRes = await apiCall('GET', '/api/push/vapid-public');
+    var publicKey = keyRes && keyRes.publicKey;
+    if (!publicKey) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+      showPopup('Setup required', 'Push notifications are not configured. Add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to the server.', '', 'OK', null, 'error');
+      return;
+    }
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    var subJson = sub.toJSON ? sub.toJSON() : { endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } };
+    await apiCall('POST', '/api/push/subscribe', { endpoint: subJson.endpoint, keys: subJson.keys || {} });
+    if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
+    showPopup('Enabled', 'You will get reminders and coach replies.', '', 'OK', null, 'success');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+    showPopup('Error', e.message || 'Failed to enable.', '', 'OK', null, 'error');
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var output = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; i++) output[i] = rawData.charCodeAt(i);
+  return output;
 }
 
 // Progress (Client Progress Analytics)
