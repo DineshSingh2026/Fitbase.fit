@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#060606">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BodyBank">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/img/bodybank-logo-short.png">
 <!-- Google tag (gtag.js) - GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
 <script>
@@ -53,6 +56,18 @@ body.site-nav-hidden nav#nv{display:none !important}
 .mm a{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center}
 .mm a:hover{color:var(--gold)}
 .mm-c{position:absolute;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:30px;cursor:pointer;padding:8px;min-width:44px;min-height:44px}
+
+/* PWA Add to Home Screen */
+.pwa-add-homescreen.standalone-hidden{display:none !important}
+.admin-nav-link.pwa-add-homescreen,.user-nav-drawer .user-nav-item.pwa-add-homescreen,.mm .pwa-add-homescreen{cursor:pointer;flex-shrink:0}
+.mm .pwa-add-homescreen{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center;background:none;border:none;width:100%;justify-content:center;font:inherit}
+.mm .pwa-add-homescreen:hover{color:var(--gold)}
+.pwa-ios-modal{position:fixed;inset:0;z-index:100020;background:rgba(6,6,6,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));padding-top:max(24px,env(safe-area-inset-top))}
+.pwa-ios-modal.hidden{display:none}
+.pwa-ios-modal h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);margin-bottom:20px;text-align:center}
+.pwa-ios-modal ol{color:var(--creamd);font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:24px;max-width:320px;text-align:left}
+.pwa-ios-modal ol li{margin-bottom:8px}
+.pwa-ios-modal .pwa-ios-close{padding:12px 28px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer}
 
 /* HERO */
 .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;position:relative;padding:130px 48px 100px;overflow:hidden}
@@ -1228,6 +1243,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
       <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
       <div class="user-nav-item" onclick="switchUserTab('progress');closeUserNavDrawer()">My Progress</div>
+      <div class="user-nav-item pwa-add-homescreen" onclick="handlePwaAddToHomescreen();closeUserNavDrawer()">Add to Home Screen</div>
     </div>
   </div>
   <div class="user-top">
@@ -1495,6 +1511,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
+        <a class="admin-sidebar-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128260;</span>Add to Home Screen</a>
       </nav>
     </aside>
   <div class="admin-body">
@@ -1533,6 +1550,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </a>
         <a class="admin-nav-link" href="#" data-section="messages" onclick="switchToSection('messages');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128172;</span>Messages
+        </a>
+        <a class="admin-nav-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();closeAdminNavDrawer();return false" aria-label="Add to Home Screen">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#128260;</span>Add to Home Screen
         </a>
       </nav>
     </div>
@@ -2057,6 +2077,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
   <a href="#contact" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Contact us</a>
   <a href="#" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();openModal('loginModal');return false;">Login</a>
+  <a href="#" class="pwa-add-homescreen" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();handlePwaAddToHomescreen();return false;">Add to Home Screen</a>
+</div>
+
+<!-- PWA iOS Add to Home Screen Instructions -->
+<div class="pwa-ios-modal hidden" id="pwaIosModal" role="dialog" aria-labelledby="pwaIosTitle" aria-modal="true">
+  <h3 id="pwaIosTitle">Add BodyBank to Home Screen</h3>
+  <ol>
+    <li>Tap the <strong>Share</strong> button (square with arrow pointing up) at the bottom of Safari</li>
+    <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
+    <li>Tap <strong>Add</strong> in the top-right corner</li>
+  </ol>
+  <button type="button" class="pwa-ios-close" onclick="document.getElementById('pwaIosModal').classList.add('hidden')">Got it</button>
 </div>
 
 <!-- LOGIN MODAL -->
@@ -5093,6 +5125,65 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   restoreSession();
 })();
 
+// PWA Add to Home Screen
+(function() {
+  var deferredPrompt = null;
+  function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || (navigator.standalone === true)
+      || (document.referrer && document.referrer.indexOf('android-app://') === 0);
+  }
+  function isIos() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+  function updatePwaVisibility() {
+    var els = document.querySelectorAll('.pwa-add-homescreen');
+    var hide = isStandalone();
+    els.forEach(function(el) { el.classList.toggle('standalone-hidden', hide); });
+  }
+  window.handlePwaAddToHomescreen = function() {
+    if (isStandalone()) return;
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r) {
+        if (r.outcome === 'accepted') { deferredPrompt = null; updatePwaVisibility(); }
+      });
+      return;
+    }
+    if (isIos()) {
+      document.getElementById('pwaIosModal').classList.remove('hidden');
+    }
+  };
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  window.addEventListener('appinstalled', function() {
+    deferredPrompt = null;
+    updatePwaVisibility();
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updatePwaVisibility);
+  } else {
+    updatePwaVisibility();
+  }
+  setTimeout(updatePwaVisibility, 500);
+})();
+
+// PWA Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
+      reg.addEventListener('updatefound', function() {
+        var w = reg.installing;
+        w.addEventListener('statechange', function() {
+          if (w.state === 'installed' && navigator.serviceWorker.controller) window.location.reload();
+        });
+      });
+    }).catch(function() {});
+  });
+}
 </script>
 </body>
 </html>
