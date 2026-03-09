@@ -1355,6 +1355,12 @@ app.get('/api/stats', async (req, res) => {
   const active = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='active'");
   const completed = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'");
   const total = await queryAll("SELECT COUNT(*) as c FROM tribe_members");
+  const [workouts] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
+  const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
+  const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
+  const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND approval_status='pending'");
+  const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
+  const [threadCount] = await queryAll("SELECT COUNT(*) as c FROM message_threads");
 
   const num = (v) => (v === undefined || v === null ? 0 : parseInt(String(v), 10) || 0);
   res.json({
@@ -1362,8 +1368,40 @@ app.get('/api/stats', async (req, res) => {
     active_members: num(active[0]?.c),
     completed: num(completed[0]?.c),
     total_members: num(total[0]?.c),
-    success_rate: 92
+    success_rate: 92,
+    workouts: num(workouts?.c),
+    forms: num(formsTotal?.c),
+    check_ins: num(sundayCheckins[0]?.c),
+    pending_signups: num(pendingSignups[0]?.c),
+    messages: num(contactMsgs[0]?.c) + num(threadCount[0]?.c)
   });
+});
+
+// ============ ADMIN: RECENT ACTIVITY (for dashboard live activity) ============
+app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const limit = 10;
+    const activities = [];
+    const sc = await queryAll('SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT ?', [limit]);
+    (sc || []).forEach(r => activities.push({ name: r.full_name || 'Unknown', type: 'Check-in', status: 'NEW', created_at: r.created_at }));
+    const wl = await queryAll(
+      `SELECT u.first_name, u.last_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id ORDER BY w.created_at DESC LIMIT ?`,
+      [limit]
+    );
+    (wl || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'User', type: 'Workout logged', status: 'DONE', created_at: r.created_at }));
+    const cm = await queryAll('SELECT name, created_at FROM contact_messages ORDER BY created_at DESC LIMIT ?', [limit]);
+    (cm || []).forEach(r => activities.push({ name: r.name || 'Unknown', type: 'Message', status: 'UNREAD', created_at: r.created_at }));
+    const ps = await queryAll(
+      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND approval_status='pending' ORDER BY created_at DESC LIMIT ?",
+      [limit]
+    );
+    (ps || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'New user', type: 'Sign-up', status: 'PENDING', created_at: r.created_at }));
+    activities.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    res.json(activities.slice(0, limit));
+  } catch (e) {
+    console.error('[recent-activity]', e.message);
+    res.status(500).json([]);
+  }
 });
 
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============

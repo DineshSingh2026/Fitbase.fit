@@ -494,7 +494,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-section-page{padding:24px 0}
 .admin-section-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--gold);margin-bottom:24px;text-transform:uppercase}
 /* Admin back button */
-.admin-section-back{display:flex;align-items:center;margin-bottom:16px;width:100%}
+.admin-section-back{display:flex;align-items:center;margin-bottom:10px;width:100%}
 .admin-section-back .admin-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .2s;min-height:40px}
 .admin-section-back .admin-back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 /* Admin home - premium luxury styling */
@@ -551,8 +551,50 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-panel::-webkit-scrollbar-corner{background:transparent}
 .admin-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;padding-top:max(24px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));border-bottom:1px solid var(--bdr);background:var(--black);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap;flex-shrink:0;min-height:44px}
 .admin-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0;min-width:0}
-.admin-top-left img{height:38px;mix-blend-mode:lighten;flex-shrink:0}
-.admin-badge{padding:4px 12px;border-radius:4px;background:rgba(200,164,78,0.15);color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;flex-shrink:0}
+.admin-logo-link{display:flex;align-items:center;text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px}
+.admin-logo-img{height:clamp(40px,10vw,48px);width:auto;display:block;object-fit:contain;max-height:48px}
+.admin-logo-body{color:#fff}
+.admin-logo-bank{color:var(--gold)}
+.admin-ai-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--gold);border-radius:8px;background:transparent;color:var(--cream);font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;flex-shrink:0}
+.admin-ai-btn:hover{background:rgba(200,164,78,0.1)}
+.admin-ai-plus{font-size:14px;color:var(--gold)}
+.admin-dash-page{padding:0;max-width:100%}
+.admin-welcome-card{background:rgba(26,26,26,0.95);border-radius:12px;border-left:3px solid var(--gold);padding:16px 18px;margin-bottom:16px}
+.admin-welcome-title{font-size:22px;font-weight:700;color:var(--gold);margin:0 0 6px}
+.admin-welcome-date{font-size:13px;color:var(--creamd);margin:0}
+.admin-summary-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+.admin-summary-card{background:rgba(26,26,26,0.95);border-radius:12px;padding:14px;min-height:72px;display:flex;flex-direction:column;justify-content:center}
+.admin-summary-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:8px}
+.admin-summary-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;font-weight:700}
+.admin-summary-num.num-gold{color:var(--gold)}
+.admin-summary-num.num-green{color:var(--gold)}
+.admin-summary-num.num-orange{color:#f59e0b}
+.admin-summary-num.num-pink{color:#ec4899}
+.admin-quick-access{margin-bottom:18px}
+.admin-qa-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:10px}
+.admin-qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.admin-qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;background:rgba(26,26,26,0.95);border-radius:12px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;transition:background .2s}
+.admin-qa-btn:hover{background:rgba(40,40,40,0.98)}
+.admin-qa-icon{font-size:24px;opacity:.9}
+.admin-live-activity{}
+.admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:10px}
+.admin-la-list{display:flex;flex-direction:column;gap:0}
+.admin-la-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-la-item:last-child{border-bottom:none}
+.admin-la-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.admin-la-dot.green{background:#50c878}
+.admin-la-dot.red{background:#ec4899}
+.admin-la-dot.orange{background:#f59e0b}
+.admin-la-text{flex:1;font-size:14px;color:var(--cream)}
+.admin-la-tag{font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px}
+.admin-la-tag.new,.admin-la-tag.done{color:#50c878;background:rgba(80,200,120,0.15)}
+.admin-la-tag.unread{color:#ec4899;background:rgba(236,72,153,0.15)}
+.admin-la-tag.pending{color:#f59e0b;background:rgba(245,158,11,0.15)}
+.admin-la-loading{color:var(--muted);font-size:14px;padding:20px 0}
+@media(max-width:480px){
+  .admin-summary-num{font-size:24px}
+  .admin-qa-btn{padding:14px 8px;font-size:10px}
+}
 .admin-top-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
 .admin-notify-wrap{position:relative;flex-shrink:0}
 .admin-notify-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s;font-size:18px}
@@ -602,17 +644,11 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0;white-space:nowrap}
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
 /* AI Assist button in admin top bar (web/desktop only) */
-.admin-ai-assist-top-btn{display:none;align-items:center;gap:8px;padding:8px 16px;border:1px solid rgba(0,180,216,0.5);border-radius:8px;background:rgba(0,180,216,0.12);color:var(--cream);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all .2s;flex-shrink:0;white-space:nowrap}
-.admin-ai-assist-top-btn:hover{background:rgba(0,180,216,0.2);border-color:rgba(0,180,216,0.7);color:var(--cream)}
-.admin-ai-assist-top-btn img{width:20px;height:20px;object-fit:contain;flex-shrink:0}
-.admin-ai-assist-top-btn-active{background:rgba(0,180,216,0.25);border-color:rgba(0,180,216,0.8)}
-@media(min-width:769px){
-  .admin-ai-assist-top-btn{display:inline-flex}
-}
+.admin-ai-assist-top-btn{display:none}
 .admin-top-hamburger{display:none}
-.admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(32px,env(safe-area-inset-bottom));min-width:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;box-sizing:border-box}
+.admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
 .admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
-.admin-tab-content-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);padding:20px;touch-action:pan-x pan-y;display:flex;flex-direction:column}
+.admin-tab-content-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);padding:20px;touch-action:pan-y;display:flex;flex-direction:column}
 .admin-tab-content-wrap::-webkit-scrollbar{width:8px;height:8px}
 .admin-tab-content-wrap::-webkit-scrollbar-track{background:transparent}
 .admin-tab-content-wrap::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
@@ -627,12 +663,12 @@ body.admin-dashboard-open .wa-float{display:none!important}
 .admin-stat-item .num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:1px;line-height:1}
 .admin-stat-item .lbl{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500}
 .admin-stats-sep{width:1px;height:36px;background:linear-gradient(180deg,transparent,rgba(200,164,78,0.4),transparent)}
-.admin-current-section-wrap{margin-bottom:16px;padding:8px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:40px}
-.admin-back-to-section{display:none;padding:8px 16px;border:1px solid rgba(200,164,78,0.4);border-radius:8px;background:rgba(200,164,78,0.08);color:var(--gold);font-size:12px;font-weight:600;letter-spacing:1px;text-decoration:none;transition:all .2s;flex-shrink:0;min-height:40px;align-items:center}
+.admin-current-section-wrap{margin-bottom:12px;padding:6px 0;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:0}
+.admin-back-to-section{display:none;padding:4px 10px;border:1px solid rgba(200,164,78,0.35);border-radius:999px;background:transparent;color:var(--gold);font-size:11px;font-weight:500;letter-spacing:0.5px;text-decoration:none;transition:all .2s;flex-shrink:0;min-height:0;align-items:center;opacity:0.85}
 .admin-back-to-section:hover,.admin-back-to-section:focus{background:rgba(200,164,78,0.12);border-color:var(--gold)}
 .admin-back-to-section.visible{display:inline-flex;align-items:center;gap:6px}
-.admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
-@media(max-width:768px){.admin-current-section{font-size:16px;letter-spacing:1.5px}}
+.admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+@media(max-width:768px){.admin-current-section{font-size:18px;letter-spacing:1.5px}}
 .admin-subsection-wrap{margin-bottom:28px}
 .admin-subsection-wrap:last-child{margin-bottom:0}
 .admin-subsection-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
@@ -650,7 +686,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .admin-tab-content-wrap{padding:14px}
 }
 @media(max-width:480px){
-  .admin-body{padding:12px 10px 72px}
+  .admin-body{padding:max(10px,env(safe-area-inset-top)) 10px max(72px,calc(68px + env(safe-area-inset-bottom)));padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
   .admin-welcome h1{font-size:26px}
   .admin-welcome p{font-size:13px}
   .admin-stat-item .num{font-size:28px}
@@ -661,7 +697,8 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .admin-table th,.admin-table td{padding:10px 8px;font-size:13px}
 }
 @media(max-width:360px){
-  .admin-body{padding:10px 8px 64px}
+  .admin-body{padding:max(8px,env(safe-area-inset-top)) 8px max(68px,calc(64px + env(safe-area-inset-bottom)));padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
+  .admin-top{padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));gap:4px}
   .admin-welcome h1{font-size:22px}
   .admin-stat-item .num{font-size:24px}
   .admin-mobile-nav-bar{margin-left:-8px;margin-right:-8px;padding:8px 10px}
@@ -696,13 +733,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-nav-link-icon{font-size:18px;opacity:.9;flex-shrink:0}
 .admin-drawer-section{margin-bottom:20px}
 .admin-drawer-section-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 24px 8px}
-.admin-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:max(70px,calc(66px + env(safe-area-inset-bottom)));background:var(--dark2);border-top:1px solid var(--bdr);z-index:100;padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
-.admin-bottom-nav-inner{display:flex;align-items:stretch;justify-content:space-around;height:66px;max-width:100%}
-.admin-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;min-height:44px;padding:8px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.admin-bottom-nav{display:flex!important;position:fixed!important;top:auto!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;min-width:100vw;height:max(72px,calc(68px + env(safe-area-inset-bottom)));background:rgba(20,20,20,0.98);border-top:1px solid var(--bdr);border-radius:16px 16px 0 0;z-index:9999;padding:0;padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);box-shadow:0 -4px 24px rgba(0,0,0,0.3);flex-shrink:0;margin:0;box-sizing:border-box}
+.admin-bottom-nav-inner{display:flex;align-items:stretch;justify-content:space-between;width:100%;height:100%;min-width:0;padding:0 4px;box-sizing:border-box}
+.admin-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;min-height:44px;padding:6px 2px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:9px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box}
 .admin-bottom-nav-item:hover,.admin-bottom-nav-item:focus{color:var(--cream);outline:none}
 .admin-bottom-nav-item.active{color:var(--gold)}
-.admin-bottom-nav-icon{display:block;font-size:22px;line-height:1;margin-bottom:4px}
-.admin-bottom-nav-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
+.admin-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:20px;height:2px;background:var(--gold);border-radius:1px}
+.admin-bottom-nav-icon{display:block;font-size:18px;line-height:1;margin-bottom:2px;flex-shrink:0}
+.admin-bottom-nav-label{display:block;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
 .admin-tabs{display:none;gap:0;border-bottom:1px solid var(--bdr);margin-bottom:28px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
 .admin-tabs::-webkit-scrollbar{height:6px}
 .admin-tabs::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
@@ -853,8 +891,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 @media(max-width:900px){
   .admin-stats{gap:24px}
   .admin-stats-sep{display:none}
-  .admin-top{padding:12px 20px;padding-top:max(12px,env(safe-area-inset-top))}
-  .admin-body{padding:24px 20px}
+  .admin-top{padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .admin-body{padding:20px 16px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
   .tribe-grid{grid-template-columns:1fr}
   .admin-table{font-size:12px}
   .admin-table th,.admin-table td{padding:10px 10px}
@@ -862,13 +900,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 @media(max-width:768px){
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
-  .admin-body{padding:max(20px,env(safe-area-inset-top)) 16px 24px;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
-  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top))}
-  .admin-current-section-wrap{margin-bottom:12px;padding:6px 0;flex-shrink:0}
-  .admin-section-page{padding-top:16px}
-  .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 0;margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
+  .admin-body{padding:max(12px,env(safe-area-inset-top)) 12px max(80px,calc(72px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
+  .admin-current-section-wrap{margin-bottom:8px;padding:4px 0;flex-shrink:0}
+  .admin-section-page{padding-top:8px}
+  .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:8px 0 0;margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
-  .admin-top-left img{height:32px}
+  .admin-top-left img{height:44px}
   .admin-top-right{justify-content:flex-end;flex-wrap:nowrap;gap:10px}
   .admin-notify-btn{width:40px;height:40px;font-size:16px}
   .admin-logout{padding:8px 14px;font-size:11px}
@@ -880,7 +918,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-cp-detail #adminCpShareWrap .form-submit{width:100%;margin-top:0}
   .admin-cp-detail #adminCpShareUrlWrap{margin-top:12px!important}
   .admin-cp-detail #adminCpKpis{position:static;width:100%;margin-top:12px!important}
-  .admin-current-section-wrap{padding-bottom:10px}
+  .admin-current-section-wrap{padding-bottom:6px}
   .admin-tab-content{padding:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px;margin-left:0;margin-right:0;width:100%;padding:0;min-width:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap .admin-table,.admin-tab-content-wrap .insights-table-wrap .admin-table{width:100%!important;min-width:0!important;table-layout:fixed}
@@ -916,13 +954,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-tab-content-wrap .tribe-detail .label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);flex-shrink:0}
   .admin-tab-content-wrap .tribe-detail .val{color:var(--cream);font-weight:500;text-align:right;word-break:break-word}
   .admin-h-scroll-ctrl{display:none}
-  .admin-tab-content-wrap .admin-welcome{margin-bottom:20px}
-  .admin-tab-content-wrap .admin-stats{margin-bottom:24px}
+  .admin-tab-content-wrap .admin-welcome{margin-bottom:16px}
+  .admin-tab-content-wrap .admin-stats{margin-bottom:18px}
+  .admin-dash-page .admin-welcome-card{padding:14px 16px;margin-bottom:14px}
+  .admin-dash-page .admin-summary-cards{gap:8px;margin-bottom:14px}
+  .admin-dash-page .admin-summary-card{padding:12px;min-height:68px}
+  .admin-dash-page .admin-quick-access{margin-bottom:14px}
+  .admin-dash-page .admin-qa-grid{gap:8px}
+  .admin-dash-page .admin-qa-btn{padding:14px 8px;gap:6px}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
-  .admin-body{padding:max(16px,env(safe-area-inset-top)) 16px 80px;box-sizing:border-box}
-  .admin-top{padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));gap:8px}
+  .admin-body{padding:max(10px,env(safe-area-inset-top)) 12px max(80px,calc(72px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
+  .admin-top{padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:6px}
   .admin-table{font-size:14px}
   .admin-table th,.admin-table td{font-size:14px}
   .admin-welcome h1{font-size:32px}
@@ -933,7 +977,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .part2-link-row{flex-direction:column}
   .part2-link-input{min-width:0;width:100%;font-size:16px}
   .part2-link-label,.part2-copy-btn{font-size:13px}
-  .admin-top-left img{height:28px}
+  .admin-top-left img{height:40px}
   .admin-badge{padding:3px 8px;font-size:10px}
   .admin-top-right{flex-wrap:nowrap;gap:8px}
   .admin-notify-btn{width:36px;height:36px;font-size:14px}
@@ -946,11 +990,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
 }
 @media(max-width:480px){
-  .admin-tab-content-wrap .tribe-card{padding:16px;border-radius:12px}
+  .admin-top{padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top));padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+  .admin-tab-content-wrap{padding:6px 0 0}
+  .admin-tab-content-wrap .tribe-card{padding:14px;border-radius:12px}
   .admin-tab-content-wrap .tribe-name{font-size:22px}
   .admin-tab-content-wrap .tribe-meta{font-size:12px}
   .admin-tab-content-wrap .tribe-detail .label{font-size:10px}
   .admin-tab-content-wrap .tribe-detail .val{font-size:13px}
+  .admin-dash-page .admin-welcome-card{padding:12px 14px;margin-bottom:12px}
+  .admin-dash-page .admin-summary-cards{gap:8px;margin-bottom:12px}
+  .admin-dash-page .admin-summary-card{padding:10px;min-height:64px}
+  .admin-current-section-wrap{margin-bottom:6px;padding:2px 0}
+  .admin-section-page{padding-top:4px}
 }
 
 /* SUPERADMIN DASHBOARD - single page, responsive, no full-page horizontal scroll */
@@ -1658,8 +1709,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <div class="admin-panel" id="adminPanel">
   <div class="admin-top">
     <div class="admin-top-left">
-      <img src="data:image/png;base64,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" alt="BodyBank" class="nav-logo-img">
-      <span class="admin-badge">Admin</span>
+      <a href="#" class="admin-logo-link" onclick="switchToSection('dashboard');return false">
+        <img src="img/logo.png" alt="BodyBank" class="admin-logo-img" decoding="async">
+      </a>
     </div>
     <div class="admin-top-right">
       <div class="admin-notify-wrap">
@@ -1685,10 +1737,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
           <path d="M21 3v6h-6"/>
         </svg>
-      </button>
-      <button type="button" class="admin-ai-assist-top-btn" id="adminAiAssistTopBtn" onclick="toggleAdminAiAssistPanel()" aria-label="Open AI Assist" title="AI Assist – ask questions about your data">
-        <img src="AI%20assist.jpg" alt="" width="20" height="20">
-        <span>AI Assist</span>
       </button>
       <button class="admin-logout" onclick="logoutAdmin()">Logout</button>
     </div>
@@ -1762,46 +1810,39 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content-wrap">
     <!-- SECTION PAGES (card-based) -->
     <div class="admin-tab-content active" id="tab-dashboard-section">
-      <div class="admin-section-page">
-        <div class="admin-home-hero">
-          <h1>Command Centre</h1>
-          <p>Your clients, forms, and analytics at a glance.</p>
+      <div class="admin-dash-page">
+        <div class="admin-welcome-card">
+          <h2 class="admin-welcome-title">Welcome back <span aria-hidden="true">👋</span></h2>
+          <p class="admin-welcome-date" id="adminWelcomeDate">Monday · 9 March 2026</p>
         </div>
-        <div class="admin-home-cards">
-          <a class="admin-home-card" href="#" onclick="switchToSection('clients');return false">
-            <span class="admin-home-card-icon" aria-hidden="true">&#128101;</span>
-            <div class="admin-home-card-body"><span class="admin-home-card-title">Clients</span><span class="admin-home-card-desc">Sign-ups, tribe, progress</span></div>
-          </a>
-          <a class="admin-home-card" href="#" onclick="switchToSection('training');return false">
-            <span class="admin-home-card-icon" aria-hidden="true">&#127947;</span>
-            <div class="admin-home-card-body"><span class="admin-home-card-title">Training</span><span class="admin-home-card-desc">Workout logs</span></div>
-          </a>
-          <a class="admin-home-card" href="#" onclick="switchToSection('forms');return false">
-            <span class="admin-home-card-icon" aria-hidden="true">&#128203;</span>
-            <div class="admin-home-card-body"><span class="admin-home-card-title">Forms</span><span class="admin-home-card-desc">Audit, Part-2, Check-in</span></div>
-          </a>
-          <a class="admin-home-card" href="#" onclick="switchToSection('analytics');return false">
-            <span class="admin-home-card-icon" aria-hidden="true">&#128200;</span>
-            <div class="admin-home-card-body"><span class="admin-home-card-title">Analytics</span><span class="admin-home-card-desc">Insights &amp; export</span></div>
-          </a>
-          <a class="admin-home-card" href="#" onclick="switchToSection('messages');return false">
-            <span class="admin-home-card-icon" aria-hidden="true">&#128172;</span>
-            <div class="admin-home-card-body"><span class="admin-home-card-title">Messages</span><span class="admin-home-card-desc">Chats &amp; meetings</span></div>
-          </a>
+        <div class="admin-summary-cards">
+          <div class="admin-summary-card"><span class="admin-summary-lbl">MEMBERS</span><span class="admin-summary-num num-gold" id="dashMembers">24</span></div>
+          <div class="admin-summary-card"><span class="admin-summary-lbl">CHECK-INS</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
+          <div class="admin-summary-card"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
+          <div class="admin-summary-card"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
         </div>
-        <div class="admin-home-pwa-wrap pwa-add-homescreen">
-          <a class="admin-home-pwa-link" href="#" onclick="handlePwaAddToHomescreen();return false" aria-label="Add to Home Screen">
-            <span class="admin-home-pwa-icon" aria-hidden="true">&#128260;</span>
-            <span class="admin-home-pwa-text">Add to Home Screen</span>
-            <span class="admin-home-pwa-hint">— Install app for quick access</span>
-          </a>
+        <div class="admin-quick-access">
+          <h3 class="admin-qa-title">QUICK ACCESS</h3>
+          <div class="admin-qa-grid">
+            <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#9634;</span>Sign-ups</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128339;</span>Check-Ins</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#9782;</span>Workouts</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#9633;</span>Audits</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('messages-meetings');return false"><span class="admin-qa-icon">&#9680;</span>Meetings</a>
+            <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#9685;</span>Analytics</a>
+          </div>
+        </div>
+        <div class="admin-live-activity">
+          <h3 class="admin-la-title">LIVE ACTIVITY</h3>
+          <div class="admin-la-list" id="adminLiveActivityList">
+            <p class="admin-la-loading">Loading…</p>
+          </div>
         </div>
       </div>
     </div>
     <div class="admin-tab-content" id="tab-clients-section">
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
-        <h1 class="admin-section-title">Clients</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('signups');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128231;</span>
@@ -1824,7 +1865,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-forms-section">
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
-        <h1 class="admin-section-title">Forms</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('requests');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128203;</span>
@@ -1847,7 +1887,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-training-section">
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
-        <h1 class="admin-section-title">Training</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('workouts');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#127947;</span>
@@ -1860,7 +1899,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-analytics-section">
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
-        <h1 class="admin-section-title">Analytics</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('insights');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128200;</span>
@@ -1873,7 +1911,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-messages-section">
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
-        <h1 class="admin-section-title">Messages</h1>
         <div class="admin-section-cards">
           <a class="admin-section-card" href="#" onclick="switchTab('messages-meetings');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128172;</span>
@@ -2073,27 +2110,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     </div><!-- .admin-tab-content-wrap -->
 
-    <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Primary navigation">
-      <div class="admin-bottom-nav-inner">
-        <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Home">
-          <span class="admin-bottom-nav-icon" aria-hidden="true">&#128202;</span>
-          <span class="admin-bottom-nav-label">Home</span>
-        </button>
-        <button type="button" class="admin-bottom-nav-item" data-section="clients" onclick="switchToSection('clients');return false" aria-label="Clients">
-          <span class="admin-bottom-nav-icon" aria-hidden="true">&#128101;</span>
-          <span class="admin-bottom-nav-label">Clients</span>
-        </button>
-        <button type="button" class="admin-bottom-nav-item" data-section="training" onclick="switchToSection('training');return false" aria-label="Training">
-          <span class="admin-bottom-nav-icon" aria-hidden="true">&#127947;</span>
-          <span class="admin-bottom-nav-label">Training</span>
-        </button>
-        <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
-          <span class="admin-bottom-nav-icon" aria-hidden="true">&#128172;</span>
-          <span class="admin-bottom-nav-label">Messages</span>
-        </button>
-      </div>
-    </nav>
-
     <div class="admin-ai-assist-panel" id="adminAiAssistPanel" role="dialog" aria-label="AI Assist chat" aria-hidden="true">
       <div class="admin-ai-assist-header">
         <div class="admin-ai-assist-header-title">
@@ -2119,6 +2135,30 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
   </div>
   </div>
+  <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Bottom navigation">
+    <div class="admin-bottom-nav-inner">
+      <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Home">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9632;</span>
+        <span class="admin-bottom-nav-label">Home</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-section="clients" onclick="switchToSection('clients');return false" aria-label="Clients">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9830;</span>
+        <span class="admin-bottom-nav-label">Clients</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-section="forms" onclick="switchToSection('forms');return false" aria-label="Forms">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9633;</span>
+        <span class="admin-bottom-nav-label">Forms</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9650;</span>
+        <span class="admin-bottom-nav-label">Messages</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-section="ai" onclick="toggleAdminAiAssistPanel();return false" aria-label="AI">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9733;</span>
+        <span class="admin-bottom-nav-label">AI</span>
+      </button>
+    </div>
+  </nav>
 </div>
 
 <!-- SUPERADMIN DASHBOARD (single-page, all data + filters + CSV + share) -->
@@ -2931,7 +2971,7 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
@@ -3120,6 +3160,39 @@ async function loadStats() {
   const activeEl = document.getElementById('statActive');
   if (pendingEl) pendingEl.textContent = data.pending_requests ?? 0;
   if (activeEl) activeEl.textContent = data.active_members ?? 0;
+  const dashMembers = document.getElementById('dashMembers');
+  const dashCheckins = document.getElementById('dashCheckins');
+  const dashPending = document.getElementById('dashPending');
+  const dashMessages = document.getElementById('dashMessages');
+  if (dashMembers) dashMembers.textContent = data.active_members ?? 0;
+  if (dashCheckins) dashCheckins.textContent = data.check_ins ?? 0;
+  if (dashPending) dashPending.textContent = (data.pending_signups ?? 0) + (data.pending_requests ?? 0);
+  if (dashMessages) dashMessages.textContent = data.messages ?? 0;
+  const dateEl = document.getElementById('adminWelcomeDate');
+  if (dateEl) {
+    const d = new Date();
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    dateEl.textContent = days[d.getDay()] + ' · ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  }
+}
+async function loadLiveActivity() {
+  const listEl = document.getElementById('adminLiveActivityList');
+  if (!listEl) return;
+  try {
+    const data = await apiCall('GET', '/api/admin/recent-activity');
+    if (!Array.isArray(data) || data.length === 0) {
+      listEl.innerHTML = '<p class="admin-la-loading">No recent activity.</p>';
+      return;
+    }
+    const dotClass = { 'NEW': 'green', 'DONE': 'green', 'UNREAD': 'red', 'PENDING': 'orange' };
+    listEl.innerHTML = data.slice(0, 8).map(function(a) {
+      const dc = dotClass[a.status] || 'green';
+      return '<div class="admin-la-item"><span class="admin-la-dot ' + dc + '" aria-hidden="true"></span><span class="admin-la-text">' + escapeHtml(a.name) + ' — ' + escapeHtml(a.type || '') + '</span><span class="admin-la-tag ' + (a.status || '').toLowerCase() + '">' + escapeHtml(a.status || '') + '</span></div>';
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = '<p class="admin-la-loading">Could not load activity.</p>';
+  }
 }
 
 async function loadRequests() {
