@@ -460,7 +460,20 @@ body.admin-dashboard-open .wa-float{display:none!important}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--black)}::-webkit-scrollbar-thumb{background:var(--goldd);border-radius:3px}
 
 /* ADMIN DASHBOARD - Compatible all mobile devices & browsers */
-.admin-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow:hidden;flex-direction:column;scroll-behavior:smooth}
+.admin-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:300;
+  background:var(--black);
+  overflow:hidden;
+  flex-direction:column;
+  scroll-behavior:smooth;
+  padding-top:env(safe-area-inset-top);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+  padding-bottom:env(safe-area-inset-bottom);
+}
 .admin-panel.open{display:flex}
 .admin-layout{display:flex;flex:1;min-height:0;position:relative}
 .admin-sidebar{display:none;position:fixed;top:0;left:0;width:270px;height:100vh;height:100dvh;background:var(--dark2);border-right:1px solid var(--bdr);z-index:5;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-bottom:env(safe-area-inset-bottom)}
@@ -903,7 +916,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 
 /* SUPERADMIN DASHBOARD - single page, responsive, no full-page horizontal scroll */
-.superadmin-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow:hidden;flex-direction:column}
+.superadmin-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:300;
+  background:var(--black);
+  overflow:hidden;
+  flex-direction:column;
+  padding-top:env(safe-area-inset-top);
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+  padding-bottom:env(safe-area-inset-bottom);
+}
 .superadmin-panel.open{display:flex}
 .superadmin-top{padding:16px 24px;padding-top:max(16px,env(safe-area-inset-top));padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));border-bottom:1px solid var(--bdr);background:var(--black);flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
 .superadmin-heading{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--cream);margin:0;letter-spacing:-0.3px}
