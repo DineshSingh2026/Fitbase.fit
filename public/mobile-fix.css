@@ -117,3 +117,11 @@ main::-webkit-scrollbar,
 html, body {
   overscroll-behavior: none;
 }
+
+/* Prevent hero/landing content from being cut off on any device */
+.hero, .hero-inner, .hero-tag, .hero h1, .hero-sub {
+  overflow: visible !important;
+}
+.hero-inner {
+  min-height: 0;
+}

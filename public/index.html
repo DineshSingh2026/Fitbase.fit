@@ -111,14 +111,14 @@ body.site-nav-hidden nav#nv{display:none !important}
   justify-content:center;
   text-align:center;
   position:relative;
-  padding:calc(130px + env(safe-area-inset-top)) 48px 100px;
-  overflow:hidden;
+  padding:calc(100px + env(safe-area-inset-top,0px)) 48px calc(80px + env(safe-area-inset-bottom,0px));
+  overflow:visible;
 }
-.hero-bg{position:absolute;inset:0;background:var(--black);background-image:url('/img/hero-bg.jpg.jpeg');background-size:cover;background-position:center;background-repeat:no-repeat}
+.hero-bg{position:absolute;inset:0;background:var(--black);background-image:url('/img/hero-bg.jpg.jpeg');background-size:cover;background-position:center;background-repeat:no-repeat;overflow:hidden}
 @media(min-width:901px){.hero-bg{background-position:center top}}
 .hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,6,6,0.5),rgba(6,6,6,0.85));pointer-events:none}
-.hero-inner{position:relative;z-index:2;max-width:900px}
-.hero-tag{display:inline-block;font-size:16px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;opacity:0;animation:fsu .8s .2s forwards}
+.hero-inner{position:relative;z-index:2;max-width:900px;padding:0 0 env(safe-area-inset-bottom,0px) 0}
+.hero-tag{display:inline-block;font-size:16px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;opacity:0;animation:fsu .8s .2s forwards;overflow:visible}
 .hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(42px,9vw,120px);line-height:.95;letter-spacing:2px;margin-bottom:28px;text-transform:uppercase;opacity:0;animation:fsu .9s .35s forwards}
 .hero h1 .w{color:var(--cream)}.hero h1 .g{color:var(--gold)}
 .hero-sub{font-size:clamp(17px,1.7vw,20px);color:var(--creamd);max-width:640px;margin:0 auto 40px;line-height:1.7;opacity:0;animation:fsu .9s .5s forwards}
@@ -375,7 +375,7 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .nav-login-btn.desktop-only{display:none !important}
   .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
   .nav-logo-img{height:46px}
-  .hero{padding:80px 24px 80px;min-height:auto}
+  .hero{padding:calc(100px + env(safe-area-inset-top,0px)) 24px calc(60px + env(safe-area-inset-bottom,0px));min-height:min(var(--app-height),720px)}
   .hero-sub{font-size:18px}
   .sec{padding:64px 24px}
   .sec-label{font-size:13px}
@@ -409,7 +409,8 @@ body.admin-dashboard-open .wa-float{display:none!important}
 }
 @media(max-width:600px){
   body{font-size:17px}
-  .hero h1{font-size:46px;letter-spacing:1px}.hero{padding:75px 18px 70px;min-height:auto}
+  .hero h1{font-size:46px;letter-spacing:1px}
+  .hero{padding:calc(95px + env(safe-area-inset-top,0px)) 18px calc(50px + env(safe-area-inset-bottom,0px));min-height:auto}
   .hero-tag{font-size:17px;letter-spacing:3px;margin-bottom:18px}
   .hero-sub{font-size:18px;margin-bottom:28px}
   .btn-p,.btn-s{padding:16px 28px;font-size:14px;min-height:48px;letter-spacing:0.8px}
@@ -442,7 +443,8 @@ body.admin-dashboard-open .wa-float{display:none!important}
   .fs{gap:10px}
 }
 @media(max-width:480px){
-  .hero{padding:70px 14px 60px}.hero h1{font-size:40px}
+  .hero{padding:calc(90px + env(safe-area-inset-top,0px)) 14px calc(50px + env(safe-area-inset-bottom,0px))}
+  .hero h1{font-size:40px}
   .hero-sub{font-size:18px}
   .sec{padding:40px 14px}.sec-heading{font-size:32px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
   .fail-item{padding:16px 0}
