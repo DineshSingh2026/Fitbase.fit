@@ -1378,7 +1378,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .today-card.action:hover{background:rgba(200,164,78,0.06);border-color:var(--gold)}
 .micro-goals-wrap{background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:14px;padding:24px;margin:0}
 .micro-goals-wrap h3{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:10px}
-.micro-goals-wrap .streak-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(200,164,78,0.2);border-radius:20px;font-size:13px;font-weight:700;color:var(--gold)}
+.micro-goals-wrap .streak-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(200,164,78,0.2);border-radius:20px;font-size:13px;font-weight:700;color:var(--gold);transition:background .3s,box-shadow .3s,transform .15s}
+.micro-goals-wrap .streak-badge[data-tier="fire"]{background:rgba(255,100,50,0.25);box-shadow:0 0 12px rgba(255,140,0,0.2)}
+.micro-goals-wrap .streak-badge[data-tier="rocket"]{background:linear-gradient(135deg,rgba(200,164,78,0.3),rgba(255,180,50,0.15));box-shadow:0 0 16px rgba(200,164,78,0.25)}
+.micro-goals-wrap .streak-badge[data-tier="diamond"]{background:linear-gradient(135deg,rgba(180,220,255,0.2),rgba(200,164,78,0.2));box-shadow:0 0 20px rgba(200,164,78,0.35)}
+.micro-goals-wrap .streak-badge[data-tier="legend"]{background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(200,164,78,0.25));box-shadow:0 0 24px rgba(255,215,0,0.4);animation:streakGlow 2s ease-in-out infinite alternate}
+@keyframes streakGlow{from{box-shadow:0 0 20px rgba(255,215,0,0.3)}to{box-shadow:0 0 28px rgba(255,215,0,0.5)}}
 .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
 @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
 .micro-goal-field{display:flex;flex-direction:column;gap:6px}
@@ -1629,8 +1634,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .fitchef-credit p + p{margin-top:6px}
 
 </style>
-<link rel="stylesheet" href="/mobile-fix.css">
-<link rel="stylesheet" href="/ios-pwa-fix.css">
+<link rel="stylesheet" href="/mobile-fix.css?v=11">
+<link rel="stylesheet" href="/ios-pwa-fix.css?v=11">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -2607,7 +2612,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="nav-right">
     <span class="nav-tagline">Lifestyle Management</span>
     <a href="#" class="nav-cta nav-login-btn desktop-only" onclick="openModal('loginModal');return false;">Login</a>
-    <button class="nt" id="navHamburger" onclick="lockBodyScroll();document.getElementById('mo').classList.add('open')" aria-label="Open menu"><span></span><span></span><span></span></button>
+    <button class="nt" id="navHamburger" onclick="var m=document.getElementById('mo');m.classList.toggle('open');m.classList.contains('open')?lockBodyScroll():unlockBodyScroll()" aria-label="Toggle menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 
@@ -4535,7 +4540,18 @@ async function loadMicroGoals() {
       if (el = document.getElementById('microSleep')) el.value = today.sleep_hours != null ? today.sleep_hours : '';
     }
     if (streak && (el = document.getElementById('microStreakBadge'))) {
-      el.textContent = (streak.streak || 0) + ' day streak';
+      var n = streak.streak || 0;
+      var tier = 'seed';
+      var emoji = '\uD83C\uDF31';
+      if (n >= 100) { emoji = '\uD83D\uDC51'; tier = 'legend'; }
+      else if (n >= 50) { emoji = '\uD83D\uDC8E'; tier = 'diamond'; }
+      else if (n >= 21) { emoji = '\uD83D\uDE80'; tier = 'rocket'; }
+      else if (n >= 7) { emoji = '\uD83D\uDD25\uD83D\uDD25'; tier = 'fire'; }
+      else if (n >= 3) { emoji = '\uD83D\uDD25'; tier = 'fire'; }
+      else if (n >= 1) { emoji = '\uD83D\uDCAA'; tier = 'seed'; }
+      el.textContent = emoji + ' ' + n + ' day streak';
+      el.removeAttribute('data-tier');
+      el.setAttribute('data-tier', tier);
     }
     if (streak && streak.weekly) {
       var w = streak.weekly;

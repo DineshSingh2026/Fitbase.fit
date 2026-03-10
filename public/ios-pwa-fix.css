@@ -54,10 +54,40 @@
     }
   }
 
-  /* 9. Bottom navs — extend to safe area */
+  /* 9. Bottom navs — extend to safe area + equal spacing, fit width on iOS */
   .admin-bottom-nav,
   .user-bottom-nav {
     padding-bottom: var(--safe-bottom);
+    width: 100% !important;
+    min-width: 100%;
+    max-width: 100%;
+    left: 0 !important;
+    right: 0 !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  .admin-bottom-nav-inner,
+  .user-bottom-nav-inner {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0;
+    flex: 1;
+    justify-content: space-between !important;
+    padding-left: max(4px, var(--safe-left));
+    padding-right: max(4px, var(--safe-right));
+    box-sizing: border-box;
+    gap: 0;
+  }
+  .admin-bottom-nav-item,
+  .user-bottom-nav-item {
+    flex: 1 1 0% !important;
+    width: 0;
+    min-width: 0 !important;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
   /* 9. Admin summary/quick-access — margin fallback for grid gap */

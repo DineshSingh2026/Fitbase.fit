@@ -191,8 +191,14 @@ async function runTests() {
   assert(stats.status === 200 && stats.body && Number.isFinite(Number(stats.body.pending_requests)), 'Stats');
   console.log(stats.status === 200 ? '  OK' : '  FAIL');
 
+  /* Admin/superadmin login for auth-required endpoints (e.g. notifications) */
+  const adminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const adminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
+  const adminLogin = await request('POST', '/api/auth/login', { email: adminEmail, password: adminPass });
+  const adminToken = adminLogin.body?.token || null;
+
   console.log('=== E2E: Admin – notifications ===');
-  const notif = await request('GET', '/api/notifications');
+  const notif = await request('GET', '/api/notifications', null, adminToken ? { auth: { token: adminToken } } : {});
   assert(notif.status === 200 && Array.isArray(notif.body), 'Notifications');
   console.log(notif.status === 200 ? '  OK' : '  FAIL');
 

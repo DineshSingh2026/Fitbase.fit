@@ -2,6 +2,17 @@
 
 **Repo:** [Bodybank.fit](https://github.com/DineshSingh2026/Bodybank.fit) — ready for manual deploy. Use branch **`main`**. Render will use `render.yaml` from the repo root.
 
+## Cache busting — users see new version after deploy
+
+**On each deploy**, bump the app version so users/admins get the latest UI instead of cached old versions:
+
+1. **`public/sw.js`** — change `CACHE_NAME` (e.g. `bodybank-v11` → `bodybank-v12`)
+2. **All HTML files** that link CSS — change `?v=11` → `?v=12` in:
+   - `public/index.html` (2 links)
+   - `public/tribe-stories.html`, `public/our-story.html`, `public/part2-form.html`, `public/progress-report.html` (2 links each)
+
+The service worker will then install the new version, clear old caches, and the page will auto-reload (or users can tap the refresh button). CSS cache-bust ensures styles update immediately.
+
 ## Before deploying
 
 1. **Copy environment file**
