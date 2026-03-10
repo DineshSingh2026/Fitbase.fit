@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Seed scheduled messages for Indian clients (IST).
- * Weekly schedule: Sunday–Saturday at specified IST times.
+ * Seed scheduled messages using each client's local timezone.
+ * Weekly schedule: Sunday–Saturday at specified local times for each user.
  * Run: node scripts/seed-indian-client-messages.js [weeksAhead]
  * Default: schedules for the next 1 week. Use weeksAhead=2 to schedule 2 weeks, etc.
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
+const { getUserTimezone, getLocalDateParts, addDaysToDateString, localDateTimeToUtcIso } = require('../utils/timezone');
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 
-// Day 0=Sunday, 1=Monday, ... 6=Saturday. Time in "HH:MM" 24h IST. Message text.
+// Day 0=Sunday, 1=Monday, ... 6=Saturday. Time in "HH:MM" 24h local time. Message text.
 const SCHEDULE = [
   { day: 0, time: '09:00', msg: 'Sunday CHECK-IN today' },
   { day: 0, time: '11:00', msg: 'Drink ORS / Hydrate well' },
@@ -42,13 +43,6 @@ function toPg(sql) {
   return sql.replace(/\?/g, () => `$${++i}`);
 }
 
-/** Build ISO timestamp for date (YYYY-MM-DD) + time (HH:MM) in IST. Returns ISO string for DB. */
-function istToUTC(dateStr, timeHHMM) {
-  const [hh, mm] = timeHHMM.split(':').map(Number);
-  const d = new Date(dateStr + 'T' + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + ':00+05:30');
-  return d.toISOString();
-}
-
 async function main() {
   const weeksAhead = parseInt(process.argv[2] || '1', 10) || 1;
   const pool = new Pool({ connectionString: DATABASE_URL });
@@ -76,43 +70,37 @@ async function main() {
   const adminId = admin.id;
 
   const users = await queryAll(
-    "SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)"
+    "SELECT id, country, timezone FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)"
   );
   if (users.length === 0) {
     console.log('No approved users. Scheduling messages anyway (they will be created per-user when users exist).');
   }
 
-  const userIds = users.map((u) => u.id);
-  const today = new Date();
-  const dayOfWeek = today.getUTCDay();
-  const daysUntilNextSunday = dayOfWeek === 0 ? 7 : (7 - dayOfWeek) % 7;
-  const nextSunday = new Date(today);
-  nextSunday.setUTCDate(today.getUTCDate() + daysUntilNextSunday);
-  nextSunday.setUTCHours(0, 0, 0, 0);
   let inserted = 0;
 
-  for (let w = 0; w < weeksAhead; w++) {
-    const weekStart = new Date(nextSunday);
-    weekStart.setUTCDate(nextSunday.getUTCDate() + w * 7);
+  for (const user of users) {
+    const timeZone = getUserTimezone(user);
+    const localToday = getLocalDateParts(new Date(), timeZone);
+    const daysUntilNextSunday = localToday.weekday === 0 ? 7 : 7 - localToday.weekday;
+    const nextSundayDate = addDaysToDateString(localToday.date, daysUntilNextSunday);
 
-    for (const s of SCHEDULE) {
-      const date = new Date(weekStart);
-      date.setUTCDate(weekStart.getUTCDate() + s.day);
-      const dateStr = date.toISOString().slice(0, 10);
-      const scheduledAt = istToUTC(dateStr, s.time);
+    for (let w = 0; w < weeksAhead; w++) {
+      const weekStartDate = addDaysToDateString(nextSundayDate, w * 7);
 
-      for (const uid of userIds) {
+      for (const s of SCHEDULE) {
+        const scheduledDate = addDaysToDateString(weekStartDate, s.day);
+        const scheduledAt = localDateTimeToUtcIso(scheduledDate, s.time, timeZone);
         const id = uuidv4();
         await run(
           'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',
-          [id, adminId, uid, s.msg, scheduledAt, 'pending']
+          [id, adminId, user.id, s.msg, scheduledAt, 'pending']
         );
         inserted++;
       }
     }
   }
 
-  console.log(`✅ Inserted ${inserted} scheduled messages for ${userIds.length} user(s) over ${weeksAhead} week(s).`);
+  console.log(`✅ Inserted ${inserted} scheduled messages for ${users.length} user(s) over ${weeksAhead} week(s).`);
   await pool.end();
 }
 

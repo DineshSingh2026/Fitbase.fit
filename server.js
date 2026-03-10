@@ -11,6 +11,7 @@ const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrS
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
+const { inferTimezoneFromCountry, getUserTimezone, extractLocalDateTimeParts, localDateTimeToUtcIso } = require('./utils/timezone');
 
 // ============ CONFIG ============
 const PORT = process.env.PORT || 3000;
@@ -125,6 +126,30 @@ async function queryOne(sql, params = []) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+function normalizeGeoFields(country, timezone) {
+  const cleanCountry = String(country || '').trim();
+  const cleanTimezone = String(timezone || '').trim() || inferTimezoneFromCountry(cleanCountry);
+  return { country: cleanCountry, timezone: cleanTimezone };
+}
+
+async function syncUserCountryAndTimezone(userId, email) {
+  if (!userId || !email) return;
+  try {
+    const audit = await queryOne(
+      "SELECT country FROM audit_requests WHERE LOWER(email) = ? AND COALESCE(TRIM(country), '') <> '' ORDER BY created_at DESC LIMIT 1",
+      [String(email).trim().toLowerCase()]
+    );
+    if (!audit || !audit.country) return;
+    const inferredTimezone = inferTimezoneFromCountry(audit.country);
+    await run(
+      "UPDATE users SET country = COALESCE(NULLIF(country, ''), ?), timezone = COALESCE(NULLIF(timezone, ''), ?) WHERE id = ?",
+      [audit.country, inferredTimezone || '', userId]
+    );
+  } catch (e) {
+    console.warn('Failed to sync user country/timezone:', e.message);
+  }
+}
+
 // ============ DATABASE ============
 async function initDB() {
   pool = new Pool({ connectionString: DATABASE_URL });
@@ -144,12 +169,16 @@ async function initDB() {
     first_name TEXT DEFAULT '',
     last_name TEXT DEFAULT '',
     phone TEXT DEFAULT '',
+    country TEXT DEFAULT '',
+    timezone TEXT DEFAULT '',
     profile_picture TEXT DEFAULT '',
     role TEXT DEFAULT 'user',
     approval_status TEXT DEFAULT 'approved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`ALTER TABLE users ADD COLUMN approval_status TEXT DEFAULT 'approved'`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -170,6 +199,28 @@ async function initDB() {
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query(`
+    UPDATE users u
+    SET country = src.country
+    FROM (
+      SELECT DISTINCT ON (LOWER(email)) LOWER(email) AS email_norm, country
+      FROM audit_requests
+      WHERE COALESCE(TRIM(country), '') <> ''
+      ORDER BY LOWER(email), created_at DESC
+    ) src
+    WHERE LOWER(u.email) = src.email_norm AND COALESCE(TRIM(u.country), '') = ''
+  `).catch(() => {});
+  try {
+    const geoUsers = await queryAll("SELECT id, country, timezone FROM users WHERE COALESCE(TRIM(timezone), '') = ''");
+    for (const user of geoUsers) {
+      const inferredTimezone = inferTimezoneFromCountry(user.country);
+      if (inferredTimezone) {
+        await run("UPDATE users SET timezone = ? WHERE id = ?", [inferredTimezone, user.id]);
+      }
+    }
+  } catch (e) {
+    console.warn('User timezone backfill skipped:', e.message);
+  }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS tribe_members (
     id TEXT PRIMARY KEY,
@@ -355,11 +406,14 @@ async function initDB() {
     admin_id TEXT NOT NULL,
     user_id TEXT,
     message_body TEXT NOT NULL,
-    scheduled_at TIMESTAMP NOT NULL,
+    scheduled_at TIMESTAMPTZ NOT NULL,
     status TEXT DEFAULT 'pending',
     thread_id TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  try {
+    await pool.query(`ALTER TABLE scheduled_messages ALTER COLUMN scheduled_at TYPE TIMESTAMPTZ USING scheduled_at AT TIME ZONE 'UTC'`);
+  } catch (e) { /* column may already be correct */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status_at ON scheduled_messages(status, scheduled_at)`); } catch (e) { /* ignore */ }
 
   // Create admin (in production, require ADMIN_PASS to be set and not default)
@@ -571,8 +625,10 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
       }
     }
 
+    await syncUserCountryAndTimezone(user.id, user.email);
+    user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, token });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -600,8 +656,8 @@ app.post('/api/auth/google', async (req, res) => {
       // Auto-create account (pending approval)
       const id = uuidv4();
       const hash = bcrypt.hashSync('google_' + google_id, 10);
-      await run("INSERT INTO users (id, email, password, first_name, last_name, profile_picture, role, approval_status) VALUES (?,?,?,?,?,?,?,?)",
-        [id, emailNorm, hash, given_name || '', family_name || '', picture || '', 'user', 'pending']);
+      await run("INSERT INTO users (id, email, password, first_name, last_name, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [id, emailNorm, hash, given_name || '', family_name || '', picture || '', '', '', 'user', 'pending']);
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
     const status = user.approval_status || 'approved';
@@ -615,8 +671,10 @@ app.post('/api/auth/google', async (req, res) => {
       await run("UPDATE users SET profile_picture = ? WHERE id = ?", [picture, user.id]);
       user.profile_picture = picture;
     }
+    await syncUserCountryAndTimezone(user.id, user.email);
+    user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, token });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });
@@ -625,25 +683,26 @@ app.post('/api/auth/google', async (req, res) => {
 
 app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { email, password, first_name, last_name, phone } = req.body || {};
+    const { email, password, first_name, last_name, phone, country, timezone } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const geo = normalizeGeoFields(country, timezone);
 
     const emailNorm = String(email).trim().toLowerCase();
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing && existing.approval_status === 'rejected') {
       const hash = bcrypt.hashSync(password, 10);
-      await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, approval_status = 'pending' WHERE id = ?",
-        [hash, first_name || '', last_name || '', phone || '', existing.id]);
-      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', pending_approval: true });
+      await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, country = ?, timezone = ?, approval_status = 'pending' WHERE id = ?",
+        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, existing.id]);
+      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, approval_status) VALUES (?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', 'pending']);
-    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', pending_approval: true });
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
+    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -803,17 +862,23 @@ app.delete('/api/tribe/:id', async (req, res) => {
 
 // ============ USER PROFILE ============
 app.get('/api/profile/:id', async (req, res) => {
-  const user = await queryOne("SELECT id,email,first_name,last_name,phone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
+  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
 });
 
 app.put('/api/profile/:id', async (req, res) => {
-  const { first_name, last_name, phone, email, profile_picture } = req.body || {};
+  const { first_name, last_name, phone, email, profile_picture, country, timezone } = req.body || {};
   const updates = [], values = [];
   if (first_name !== undefined) { updates.push('first_name=?'); values.push(first_name); }
   if (last_name !== undefined) { updates.push('last_name=?'); values.push(last_name); }
   if (phone !== undefined) { updates.push('phone=?'); values.push(phone); }
+  if (country !== undefined) { updates.push('country=?'); values.push(String(country || '').trim()); }
+  if (timezone !== undefined) {
+    const tzValue = String(timezone || '').trim() || inferTimezoneFromCountry(country);
+    updates.push('timezone=?');
+    values.push(tzValue || '');
+  }
   if (email !== undefined) {
     const emailNorm = String(email).trim().toLowerCase();
     const other = await queryOne("SELECT id FROM users WHERE LOWER(email) = ? AND id != ?", [emailNorm, req.params.id]);
@@ -1026,23 +1091,30 @@ app.post('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, rateL
   try {
     const { user_id, message_body, scheduled_at, broadcast } = req.body || {};
     if (!message_body || !String(message_body).trim()) return res.status(400).json({ error: 'Message body is required' });
-    const at = scheduled_at ? new Date(scheduled_at) : null;
-    if (!at || isNaN(at.getTime())) return res.status(400).json({ error: 'Valid scheduled date/time is required' });
-    if (at <= new Date()) return res.status(400).json({ error: 'Scheduled time must be in the future' });
+    const requestedSchedule = extractLocalDateTimeParts(scheduled_at);
+    const parsedAt = scheduled_at ? new Date(scheduled_at) : null;
+    if ((!requestedSchedule && (!parsedAt || isNaN(parsedAt.getTime())))) return res.status(400).json({ error: 'Valid scheduled date/time is required' });
     const adminId = req.user.id;
 
-    const userIds = broadcast === true
-      ? (await queryAll("SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")).map(u => u.id)
-      : (user_id ? [user_id] : []);
+    const targets = broadcast === true
+      ? await queryAll("SELECT id, country, timezone FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")
+      : (user_id ? await queryAll("SELECT id, country, timezone FROM users WHERE id = ?", [user_id]) : []);
 
-    if (userIds.length === 0) return res.status(400).json({ error: 'Select at least one user or use broadcast to send to all' });
+    if (targets.length === 0) return res.status(400).json({ error: 'Select at least one user or use broadcast to send to all' });
 
     const ids = [];
-    for (const uid of userIds) {
+    for (const target of targets) {
+      const targetTimezone = getUserTimezone(target);
+      const scheduledAtIso = requestedSchedule && !requestedSchedule.hasExplicitTimezone
+        ? localDateTimeToUtcIso(requestedSchedule.date, requestedSchedule.time, targetTimezone)
+        : parsedAt.toISOString();
+      if (new Date(scheduledAtIso) <= new Date()) {
+        return res.status(400).json({ error: `Scheduled time must be in the future for ${targetTimezone}` });
+      }
       const id = uuidv4();
       await run(
         'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, adminId, uid, String(message_body).trim().slice(0, 5000), at.toISOString(), 'pending']
+        [id, adminId, target.id, String(message_body).trim().slice(0, 5000), scheduledAtIso, 'pending']
       );
       ids.push(id);
     }
@@ -1259,10 +1331,11 @@ app.get('/api/admin/pending-signups', async (req, res) => {
 app.post('/api/admin/approve-user/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     await run("UPDATE users SET approval_status = 'approved' WHERE id = ?", [id]);
+    await syncUserCountryAndTimezone(user.id, user.email);
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
@@ -1284,7 +1357,7 @@ app.post('/api/admin/reject-user/:id', async (req, res) => {
 
 app.get('/api/admin/pending-signup/:id', async (req, res) => {
   try {
-    const user = await queryOne("SELECT id, email, first_name, last_name, phone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
+    const user = await queryOne("SELECT id, email, first_name, last_name, phone, country, timezone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
     if (!user) return res.status(404).json({ error: 'Not found' });
     res.json(user);
   } catch (e) {
@@ -1485,7 +1558,7 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
 app.get('/api/admin/users', async (req, res) => {
   try {
     const list = await queryAll(
-      "SELECT id, first_name, last_name, email FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
+      "SELECT id, first_name, last_name, email, country, timezone FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
     );
     res.json(list);
   } catch (e) {

@@ -88,15 +88,20 @@ async function main() {
   }
   console.log('   OK – created scheduled message id:', smId);
 
-  console.log('4. Wait 100s for scheduled time to pass and job to run (job every 60s)...');
-  await new Promise((r) => setTimeout(r, 100000));
+  console.log('4. Wait for scheduled time and worker run (polling up to 160s)...');
+  let sm = null;
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 160000) {
+    await new Promise((r) => setTimeout(r, 10000));
+    const listRes = await request('GET', '/api/scheduled-messages', null, token);
+    const list = Array.isArray(listRes.data) ? listRes.data : [];
+    sm = list.find((s) => s.id === smId) || null;
+    if (sm && sm.status === 'sent') break;
+  }
 
   console.log('5. Check scheduled message status...');
-  const listRes = await request('GET', '/api/scheduled-messages', null, token);
-  const list = Array.isArray(listRes.data) ? listRes.data : [];
-  const sm = list.find((s) => s.id === smId);
   if (!sm) {
-    console.error('   WARN: scheduled message not found in list (may have been processed)');
+    console.error('   WARN: scheduled message not found in list');
   } else if (sm.status === 'sent') {
     console.log('   OK – status is "sent"');
   } else {
