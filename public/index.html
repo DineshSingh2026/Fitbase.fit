@@ -377,10 +377,10 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
 
 @media(max-width:900px){
   body{font-size:17px;line-height:1.65}
-  nav{padding:10px 24px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}.nm{display:none}.nav-right{display:flex;align-items:center;gap:12px}.nt{display:flex;margin-right:4px}
-  .pwa-standalone nav{padding-right:max(32px,env(safe-area-inset-right))}
-  .pwa-standalone .nav-right{gap:14px}
-  .pwa-standalone .nt{margin-right:10px}
+  nav{padding:10px 28px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}.nm{display:none}.nav-right{display:flex;align-items:center;gap:14px;margin-left:auto}.nt{display:flex;margin-left:12px;padding:10px 12px;min-width:48px;min-height:48px}
+  .pwa-standalone nav{padding-right:max(36px,env(safe-area-inset-right))}
+  .pwa-standalone .nav-right{gap:16px}
+  .pwa-standalone .nt{margin-left:14px;padding:10px 14px}
   .nav-login-btn.desktop-only{display:none !important}
   .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
   .nav-logo-img{height:46px}
@@ -434,10 +434,10 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
   .fail-item h4{font-size:16px}.fail-item p{font-size:16px}
   .origin-inner p{font-size:18px}
   .fq{font-size:17px}.fa{font-size:16px}
-  nav{padding:10px 20px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}
-  .pwa-standalone nav{padding-right:max(28px,env(safe-area-inset-right))}
-  .pwa-standalone .nav-right{gap:12px}
-  .pwa-standalone .nt{margin-right:8px}
+  nav{padding:10px 24px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}
+  .pwa-standalone nav{padding-right:max(32px,env(safe-area-inset-right))}
+  .pwa-standalone .nav-right{gap:14px}
+  .pwa-standalone .nt{margin-left:12px;padding:10px 12px}
   .modal{padding:28px 20px;max-height:85vh;margin:12px;max-width:calc(100% - 24px)}
   .modal h2{font-size:28px;margin-bottom:24px}
   .login-modal h2{padding-right:40px}
@@ -455,6 +455,9 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
   .fs{gap:10px}
 }
 @media(max-width:480px){
+  nav{padding-right:max(20px,env(safe-area-inset-right))}
+  .pwa-standalone nav{padding-right:max(28px,env(safe-area-inset-right))}
+  .nt{padding:10px;min-width:46px;min-height:46px;margin-left:10px}
   .hero{padding:calc(90px + env(safe-area-inset-top,0px)) 14px calc(50px + env(safe-area-inset-bottom,0px))}
   .hero h1{font-size:40px}
   .hero-sub{font-size:18px}
@@ -2564,12 +2567,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </ul>
   <div class="nav-right">
     <span class="nav-tagline">Lifestyle Management</span>
-    <button type="button" class="nav-refresh-btn" onclick="refreshApp(this)" title="Refresh" aria-label="Refresh">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
-        <path d="M21 3v6h-6"/>
-      </svg>
-    </button>
     <a href="#" class="nav-cta nav-login-btn desktop-only" onclick="openModal('loginModal');return false;">Login</a>
     <button class="nt" id="navHamburger" onclick="lockBodyScroll();document.getElementById('mo').classList.add('open')" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
