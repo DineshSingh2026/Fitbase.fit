@@ -16,8 +16,9 @@ const testUser = {
   last_name: 'Tester',
   phone: '9998887770'
 };
+const TEST_PROFILE_PICTURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sX0Xr0AAAAASUVORK5CYII=';
 
-let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, contactId: null, checkinId: null };
+let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, contactId: null, checkinId: null, dailyCheckinId: null };
 let failures = [];
 
 function request(method, path, body = null, opts = {}) {
@@ -103,13 +104,20 @@ async function runTests() {
   const login = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
   assert(login.status === 200 && login.body?.id, 'Login should return user');
   const userId = login.body?.id || createdIds.userId;
+  const userToken = login.body?.token;
   console.log(login.status === 200 ? '  OK' : '  FAIL', login.body?.email);
 
   console.log('=== E2E: Profile get & update ===');
   const profileGet = await request('GET', `/api/profile/${userId}`);
   assert(profileGet.status === 200 && profileGet.body?.email === testUser.email, 'Profile GET');
-  const profilePut = await request('PUT', `/api/profile/${userId}`, { first_name: 'E2EUpdated', phone: '1112223334' });
+  const profilePut = await request('PUT', `/api/profile/${userId}`, {
+    first_name: 'E2EUpdated',
+    phone: '1112223334',
+    profile_picture: TEST_PROFILE_PICTURE
+  });
   assert(profilePut.status === 200, 'Profile PUT');
+  const profileAfterPut = await request('GET', `/api/profile/${userId}`);
+  assert(profileAfterPut.status === 200 && profileAfterPut.body?.profile_picture === TEST_PROFILE_PICTURE, 'Profile picture saved');
   console.log(profilePut.status === 200 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Workout log ===');
@@ -162,6 +170,17 @@ async function runTests() {
   createdIds.checkinId = checkin.body?.id;
   console.log(checkin.status === 200 ? '  OK' : '  FAIL');
 
+  console.log('=== E2E: Daily check-in ===');
+  const dailyCheckin = await request('POST', '/api/daily-checkin', {
+    steps: 10000,
+    water_ml: 2500,
+    protein_g: 180,
+    sleep_hours: 7.5
+  }, { auth: { token: userToken } });
+  assert(dailyCheckin.status === 200 && dailyCheckin.body?.id, 'Daily check-in POST');
+  createdIds.dailyCheckinId = dailyCheckin.body?.id;
+  console.log(dailyCheckin.status === 200 ? '  OK' : '  FAIL');
+
   console.log('=== E2E: Public audit form ===');
   const audit = await request('POST', '/api/audit', {
     first_name: 'Public',
@@ -202,6 +221,13 @@ async function runTests() {
   assert(notif.status === 200 && Array.isArray(notif.body), 'Notifications');
   console.log(notif.status === 200 ? '  OK' : '  FAIL');
 
+  console.log('=== E2E: Admin – daily check-ins ===');
+  const adminDailyList = await request('GET', '/api/admin/daily-checkins', null, { auth: { token: adminToken } });
+  assert(adminDailyList.status === 200 && Array.isArray(adminDailyList.body) && adminDailyList.body.some(d => d.id === createdIds.dailyCheckinId), 'Admin daily check-ins list');
+  const adminDailyDetail = await request('GET', `/api/admin/daily-checkins/${createdIds.dailyCheckinId}`, null, { auth: { token: adminToken } });
+  assert(adminDailyDetail.status === 200 && adminDailyDetail.body?.steps === 10000, 'Admin daily check-in detail');
+  console.log(adminDailyDetail.status === 200 ? '  OK' : '  FAIL');
+
   console.log('=== E2E: Admin – db-view ===');
   const dbView = await request('GET', '/api/admin/db-view');
   assert(dbView.status === 200 && dbView.body?.tables, 'DB view');
@@ -225,6 +251,8 @@ async function runTests() {
   assert(meetingRows.length === 1, 'Meeting in DB');
   const checkinRows = await queryDb('SELECT id FROM sunday_checkins WHERE id = ?', [createdIds.checkinId]);
   assert(checkinRows.length === 1, 'Sunday checkin in DB');
+  const dailyCheckinRows = await queryDb('SELECT id FROM daily_checkins WHERE id = ?', [createdIds.dailyCheckinId]);
+  assert(dailyCheckinRows.length === 1, 'Daily checkin in DB');
   const auditRows = await queryDb('SELECT id FROM audit_requests WHERE id = ?', [createdIds.auditId]);
   assert(auditRows.length === 1, 'Audit in DB');
   const part2Rows = await queryDb('SELECT id FROM part2_audit WHERE id = ?', [createdIds.part2Id]);

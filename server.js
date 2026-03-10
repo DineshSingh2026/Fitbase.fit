@@ -64,7 +64,7 @@ app.use(cors({
   origin: NODE_ENV === 'production' && ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : true,
   credentials: true
 }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '8mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -130,6 +130,27 @@ function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
   const cleanTimezone = String(timezone || '').trim() || inferTimezoneFromCountry(cleanCountry);
   return { country: cleanCountry, timezone: cleanTimezone };
+}
+
+function getDataUrlBytes(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:([\w/+.-]+);base64,(.+)$/);
+  if (!match) return null;
+  const base64 = match[2];
+  const padding = (base64.match(/=+$/) || [''])[0].length;
+  return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+function validateProfilePicture(profilePicture) {
+  if (profilePicture === undefined) return null;
+  const value = String(profilePicture || '').trim();
+  if (!value) return null;
+  if (!/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/i.test(value)) {
+    return 'Please upload a valid image file.';
+  }
+  const bytes = getDataUrlBytes(value);
+  if (!bytes) return 'Could not process this image.';
+  if (bytes > 5 * 1024 * 1024) return 'Profile photo must be 5 MB or smaller.';
+  return null;
 }
 
 async function syncUserCountryAndTimezone(userId, email) {
@@ -886,7 +907,12 @@ app.put('/api/profile/:id', async (req, res) => {
     updates.push('email=?');
     values.push(emailNorm);
   }
-  if (profile_picture !== undefined) { updates.push('profile_picture=?'); values.push(profile_picture); }
+  if (profile_picture !== undefined) {
+    const profilePictureError = validateProfilePicture(profile_picture);
+    if (profilePictureError) return res.status(400).json({ error: profilePictureError });
+    updates.push('profile_picture=?');
+    values.push(String(profile_picture || '').trim());
+  }
   if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
   values.push(req.params.id);
   try {
@@ -1254,6 +1280,40 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
   }
 });
 
+app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at,
+              u.first_name, u.last_name, u.email
+       FROM daily_checkins dc
+       LEFT JOIN users u ON u.id = dc.user_id
+       ORDER BY dc.checkin_date DESC, dc.created_at DESC
+       LIMIT 250`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('Admin daily check-ins list error:', e.message);
+    res.status(500).json({ error: 'Failed to load daily check-ins' });
+  }
+});
+
+app.get('/api/admin/daily-checkins/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne(
+      `SELECT dc.*, u.first_name, u.last_name, u.email, u.phone
+       FROM daily_checkins dc
+       LEFT JOIN users u ON u.id = dc.user_id
+       WHERE dc.id = ?`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) {
+    console.error('Admin daily check-in detail error:', e.message);
+    res.status(500).json({ error: 'Failed to load daily check-in' });
+  }
+});
+
 // ============ TODAY DASHBOARD ============
 app.get('/api/today', verifyToken, async (req, res) => {
   try {
@@ -1508,6 +1568,7 @@ app.get('/api/stats', async (req, res) => {
   const [workouts] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
   const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
   const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
+  const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
   const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND approval_status='pending'");
   const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
   const [threadCount] = await queryAll("SELECT COUNT(*) as c FROM message_threads");
@@ -1522,6 +1583,7 @@ app.get('/api/stats', async (req, res) => {
     workouts: num(workouts?.c),
     forms: num(formsTotal?.c),
     check_ins: num(sundayCheckins[0]?.c),
+    daily_checkins: num(dailyCheckins?.c),
     pending_signups: num(pendingSignups[0]?.c),
     messages: num(contactMsgs[0]?.c) + num(threadCount[0]?.c)
   });

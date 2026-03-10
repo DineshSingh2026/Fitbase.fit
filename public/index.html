@@ -866,8 +866,8 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
 .admin-back-to-section{display:none;padding:4px 10px;border:1px solid rgba(200,164,78,0.35);border-radius:999px;background:transparent;color:var(--gold);font-size:11px;font-weight:500;letter-spacing:0.5px;text-decoration:none;transition:all .2s;flex-shrink:0;min-height:0;align-items:center;opacity:0.85}
 .admin-back-to-section:hover,.admin-back-to-section:focus{background:rgba(200,164,78,0.12);border-color:var(--gold)}
 .admin-back-to-section.visible{display:inline-flex;align-items:center;gap:6px}
-.admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
-@media(max-width:768px){.admin-current-section{font-size:19px;letter-spacing:1.5px}}
+.admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;display:inline-block;line-height:1.15;padding-inline:0.08em;overflow:visible;white-space:nowrap}
+@media(max-width:768px){.admin-current-section{font-size:19px;letter-spacing:1.5px;line-height:1.18;padding-inline:0.1em}}
 .admin-subsection-wrap{margin-bottom:28px}
 .admin-subsection-wrap:last-child{margin-bottom:0}
 .admin-subsection-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
@@ -1326,9 +1326,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-section h2{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--cream);margin-bottom:24px;text-align:left;letter-spacing:-0.5px}
 .user-welcome{text-align:center;padding:56px 24px 64px;position:relative}
 .user-welcome::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(480px,95%);height:320px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(200,164,78,0.08) 0%,transparent 70%);pointer-events:none}
-.user-welcome-avatar{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:2px solid rgba(200,164,78,0.4);object-fit:cover;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.04)}
-.user-welcome-avatar-placeholder{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:2px solid rgba(200,164,78,0.3);background:linear-gradient(145deg,#0e0e0e,#080808);display:grid;place-items:center;color:var(--muted);box-shadow:0 12px 40px rgba(0,0,0,0.4);flex-shrink:0}
+.user-welcome-avatar{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:3px solid rgba(200,164,78,0.7);object-fit:cover;object-position:center;display:block;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,0.1),rgba(12,12,12,0.96));box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 4px rgba(200,164,78,0.12),0 0 24px rgba(200,164,78,0.22)}
+.user-welcome-avatar-placeholder{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:3px solid rgba(200,164,78,0.55);background:radial-gradient(circle at 50% 30%,rgba(200,164,78,0.14),rgba(14,14,14,0.96) 68%);display:grid;place-items:center;color:var(--muted);box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 4px rgba(200,164,78,0.1),0 0 24px rgba(200,164,78,0.18);flex-shrink:0}
 .user-welcome-avatar-placeholder svg{width:44px;height:44px;stroke:var(--muted);fill:none;stroke-width:1.5}
+.profile-avatar{width:120px;height:120px;border-radius:50%;border:3px solid rgba(200,164,78,0.78);object-fit:cover;object-position:center;background:radial-gradient(circle at 50% 35%,rgba(255,255,255,0.1),rgba(12,12,12,0.96));display:none;box-shadow:0 8px 24px rgba(0,0,0,0.3),0 0 0 5px rgba(200,164,78,0.12),0 0 28px rgba(200,164,78,0.22)}
+.profile-avatar-placeholder{width:120px;height:120px;border-radius:50%;border:3px solid rgba(200,164,78,0.55);background:radial-gradient(circle at 50% 30%,rgba(200,164,78,0.14),rgba(14,14,14,0.96) 68%);display:grid;place-items:center;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,0.3),0 0 0 5px rgba(200,164,78,0.1),0 0 28px rgba(200,164,78,0.18);color:var(--muted)}
+.profile-avatar-note{margin-top:10px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
 .user-welcome h1{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,56px);font-weight:800;letter-spacing:-0.02em;margin-bottom:12px;line-height:1.1}
 .user-welcome h1 .welcome-label{display:block;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;opacity:.9}
 .user-welcome h1 .welcome-name{background:linear-gradient(135deg,#f5f0e8 0%,var(--goldb) 45%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -1781,10 +1784,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div id="profileAvatarContent" style="text-align:center;margin-bottom:24px">
         <div style="position:relative;display:inline-block">
-          <img id="profAvatar" src="" alt="Profile" style="width:120px;height:120px;border-radius:50%;border:3px solid var(--gold);object-fit:cover;background:var(--dark2);display:none">
-          <div id="profAvatarPlaceholder" style="width:120px;height:120px;border-radius:50%;border:2px solid rgba(200,164,78,0.35);background:linear-gradient(145deg,#0e0e0e,#080808);display:grid;place-items:center;margin:0 auto;box-shadow:0 8px 24px rgba(0,0,0,0.3);color:var(--muted)"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <img id="profAvatar" class="profile-avatar" src="" alt="Profile">
+          <div id="profAvatarPlaceholder" class="profile-avatar-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <input type="file" id="profAvatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
           <button type="button" onclick="document.getElementById('profAvatarInput').click()" style="margin-top:12px;padding:8px 20px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:600;font-size:12px;cursor:pointer;letter-spacing:1px">Change Photo</button>
+          <div class="profile-avatar-note">JPG, PNG, WEBP or GIF up to 5 MB</div>
         </div>
       </div>
       <div id="profileFormSkeleton" class="skeleton-wrapper" style="display:none">
@@ -2059,6 +2063,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="messages-meetings" onclick="switchTab('messages-meetings')">Messages &amp; Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
+      <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
       <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
     </div>
@@ -2073,8 +2078,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
         <div class="admin-summary-cards">
           <div class="admin-summary-card"><span class="admin-summary-lbl">MEMBERS</span><span class="admin-summary-num num-gold" id="dashMembers">24</span></div>
-          <div class="admin-summary-card"><span class="admin-summary-lbl">CHECK-INS</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
-          <div class="admin-summary-card"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
+          <div class="admin-summary-card" onclick="switchTab('dailycheckin');return false" role="button" tabindex="0" aria-label="Open Daily Check-In"><span class="admin-summary-lbl">DAILY CHECK-IN</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
+          <div class="admin-summary-card" onclick="switchTab('signups');return false" role="button" tabindex="0" aria-label="Open Pending Sign-ups"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
           <div class="admin-summary-card"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
         </div>
         <div class="admin-quick-access">
@@ -2136,6 +2141,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-icon" aria-hidden="true">&#128197;</span>
             <span class="admin-section-card-title">Sunday Check-In</span>
             <span class="admin-section-card-desc">Weekly client progress check-in</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('dailycheckin');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128221;</span>
+            <span class="admin-section-card-title">Daily Check-In</span>
+            <span class="admin-section-card-desc">Daily steps, water, protein and sleep logs</span>
           </a>
         </div>
       </div>
@@ -2300,6 +2310,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th>Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+      </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
+    </div>
+
+    <!-- TAB: Daily Check-In -->
+    <div class="admin-tab-content" id="tab-dailycheckin">
+      <div class="admin-table-wrap"><table class="admin-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Date</th><th>Steps</th><th>Water (ml)</th><th>Protein (g)</th><th>Sleep (hrs)</th><th>Actions</th></tr></thead>
+        <tbody id="dailyCheckinBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
@@ -2746,6 +2769,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('sundayCheckinViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Sunday Check-in</h2>
     <div class="view-detail-body" id="sundayCheckinViewBody"></div>
+  </div>
+</div>
+
+<!-- ADMIN: Daily Check-in View Modal -->
+<div class="modal-overlay view-detail-modal" id="dailyCheckinViewModal" onclick="if(event.target===this)closeModal('dailyCheckinViewModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('dailyCheckinViewModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title">Daily Check-In</h2>
+    <div class="view-detail-body" id="dailyCheckinViewBody"></div>
   </div>
 </div>
 
@@ -3275,10 +3307,103 @@ async function loadDashboard() {
 const SESSION_KEY = 'bodybank_session';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
 const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
+const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
 function getClearedNotifyIds() { try { const s = localStorage.getItem(NOTIFY_CLEARED_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
 function setClearedNotifyIds(ids) { try { localStorage.setItem(NOTIFY_CLEARED_KEY, JSON.stringify(ids)); } catch (e) {} }
 function getBrowserNotifiedIds() { try { const s = localStorage.getItem(NOTIFY_BROWSER_SENT_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
 function setBrowserNotifiedIds(ids) { try { localStorage.setItem(NOTIFY_BROWSER_SENT_KEY, JSON.stringify(ids.slice(-200))); } catch (e) {} }
+function persistCurrentSession() { try { if (window.currentUser) localStorage.setItem(SESSION_KEY, JSON.stringify(window.currentUser)); } catch (e) {} }
+function setUserWelcomeAvatar(src) {
+  var avatar = document.getElementById('welcomeAvatar');
+  var placeholder = document.getElementById('welcomeAvatarPlaceholder');
+  if (!avatar || !placeholder) return;
+  if (src) {
+    avatar.onerror = function() {
+      avatar.removeAttribute('src');
+      avatar.style.display = 'none';
+      placeholder.style.display = 'grid';
+    };
+    avatar.src = src;
+    avatar.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    avatar.removeAttribute('src');
+    avatar.style.display = 'none';
+    placeholder.style.display = 'grid';
+  }
+}
+function setProfileAvatar(src) {
+  var avatar = document.getElementById('profAvatar');
+  var placeholder = document.getElementById('profAvatarPlaceholder');
+  if (!avatar || !placeholder) return;
+  if (src) {
+    avatar.onerror = function() {
+      avatar.removeAttribute('src');
+      avatar.style.display = 'none';
+      placeholder.style.display = 'grid';
+    };
+    avatar.src = src;
+    avatar.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    avatar.removeAttribute('src');
+    avatar.style.display = 'none';
+    placeholder.style.display = 'grid';
+  }
+}
+function getDataUrlBytes(dataUrl) {
+  var match = String(dataUrl || '').match(/^data:[\w/+.-]+;base64,(.+)$/);
+  if (!match) return 0;
+  var base64 = match[1];
+  var paddingMatch = base64.match(/=+$/);
+  var padding = paddingMatch ? paddingMatch[0].length : 0;
+  return Math.floor((base64.length * 3) / 4) - padding;
+}
+function readFileAsDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { reject(new Error('Could not read the selected image.')); };
+    reader.readAsDataURL(file);
+  });
+}
+function compressImageToDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    var objectUrl = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var canvas = document.createElement('canvas');
+        var maxSide = 1200;
+        var width = img.width || maxSide;
+        var height = img.height || maxSide;
+        var scale = Math.min(1, maxSide / Math.max(width, height));
+        canvas.width = Math.max(1, Math.round(width * scale));
+        canvas.height = Math.max(1, Math.round(height * scale));
+        var ctx = canvas.getContext('2d', { alpha: false });
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var quality = 0.9;
+        var output = canvas.toDataURL('image/jpeg', quality);
+        while (getDataUrlBytes(output) > MAX_PROFILE_PHOTO_BYTES && quality > 0.45) {
+          quality -= 0.1;
+          output = canvas.toDataURL('image/jpeg', quality);
+        }
+        URL.revokeObjectURL(objectUrl);
+        resolve(output);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Could not process this image.'));
+      }
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not process this image.'));
+    };
+    img.src = objectUrl;
+  });
+}
 
 function requestNotificationPermission() {
   if (typeof Notification === 'undefined') return;
@@ -3462,8 +3587,8 @@ async function loadStats() {
   const dashPending = document.getElementById('dashPending');
   const dashMessages = document.getElementById('dashMessages');
   if (dashMembers) dashMembers.textContent = data.active_members ?? 0;
-  if (dashCheckins) dashCheckins.textContent = data.check_ins ?? 0;
-  if (dashPending) dashPending.textContent = (data.pending_signups ?? 0) + (data.pending_requests ?? 0);
+  if (dashCheckins) dashCheckins.textContent = data.daily_checkins ?? 0;
+  if (dashPending) dashPending.textContent = data.pending_signups ?? 0;
   if (dashMessages) dashMessages.textContent = data.messages ?? 0;
   const dateEl = document.getElementById('adminWelcomeDate');
   if (dateEl) {
@@ -3656,6 +3781,41 @@ async function viewSundayCheckin(id) {
     _rowBlock('Questions', r.questions || '—') +
     _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
   openModal('sundayCheckinViewModal');
+}
+
+async function loadDailyCheckins() {
+  const tbody = document.getElementById('dailyCheckinBody');
+  if (!tbody) return;
+  const data = await apiCall('GET', '/api/admin/daily-checkins');
+  const list = data && !data.error && Array.isArray(data) ? data : [];
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No daily check-ins yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(r) {
+    var date = r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '-';
+    var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
+    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Steps">' + escapeHtml(r.steps != null ? String(r.steps) : '—') + '</td><td data-label="Water">' + escapeHtml(r.water_ml != null ? String(r.water_ml) : '—') + '</td><td data-label="Protein">' + escapeHtml(r.protein_g != null ? String(r.protein_g) : '—') + '</td><td data-label="Sleep">' + escapeHtml(r.sleep_hours != null ? String(r.sleep_hours) : '—') + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
+  }).join('');
+}
+
+async function viewDailyCheckin(id) {
+  const r = await apiCall('GET', '/api/admin/daily-checkins/' + id);
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  const body = document.getElementById('dailyCheckinViewBody');
+  if (!body) return;
+  const fullName = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
+  body.innerHTML = _row('Name', fullName) +
+    _row('Email', r.email || '—') +
+    _row('Phone', r.phone || '—') +
+    _row('Check-in date', r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'full' }) : '—') +
+    _row('Steps', r.steps != null ? r.steps : '—') +
+    _row('Water (ml)', r.water_ml != null ? r.water_ml : '—') +
+    _row('Protein (g)', r.protein_g != null ? r.protein_g : '—') +
+    _row('Sleep (hrs)', r.sleep_hours != null ? r.sleep_hours : '—') +
+    _row('Saved at', r.created_at ? new Date(r.created_at).toLocaleString() : '—');
+  openModal('dailyCheckinViewModal');
 }
 
 async function loadTribe() {
@@ -4029,8 +4189,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', insights: 'Performance Insights' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', insights: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', insights: 'Performance Insights' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', insights: 'analytics' };
 function switchToSection(section) {
   if (typeof closeAdminNavDrawer === 'function') closeAdminNavDrawer();
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -4101,6 +4261,7 @@ function switchTab(tab) {
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
   if (tab === 'sundaycheckin') loadSundayCheckins();
+  if (tab === 'dailycheckin') loadDailyCheckins();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'insights') loadPerformanceInsights();
@@ -4366,15 +4527,7 @@ document.addEventListener('click', function(e) {
 function openUserDashboard(user) {
   window.currentUser = user;
   document.getElementById('userWelcomeName').textContent = user.first_name || 'User';
-  if (user.profile_picture) {
-    const avatar = document.getElementById('welcomeAvatar');
-    avatar.src = user.profile_picture;
-    avatar.style.display = 'block';
-    document.getElementById('welcomeAvatarPlaceholder').style.display = 'none';
-  } else {
-    document.getElementById('welcomeAvatar').style.display = 'none';
-    document.getElementById('welcomeAvatarPlaceholder').style.display = 'grid';
-  }
+  setUserWelcomeAvatar(user.profile_picture || '');
   document.getElementById('userPanel').classList.add('open');
   document.body.classList.add('site-nav-hidden','user-dashboard-open');
   var logoutBtn = document.getElementById('userLogoutBtn');
@@ -4875,32 +5028,46 @@ async function loadProfile() {
   document.getElementById('profLastName').value = data.last_name || '';
   document.getElementById('profPhone').value = data.phone || '';
   document.getElementById('profEmail').value = data.email || '';
-  if (data.profile_picture) {
-    document.getElementById('profAvatar').src = data.profile_picture;
-    document.getElementById('profAvatar').style.display = 'block';
-    document.getElementById('profAvatarPlaceholder').style.display = 'none';
-  } else {
-    document.getElementById('profAvatar').style.display = 'none';
-    document.getElementById('profAvatarPlaceholder').style.display = 'grid';
+  setProfileAvatar(data.profile_picture || '');
+  setUserWelcomeAvatar(data.profile_picture || '');
+  if (window.currentUser) {
+    window.currentUser.profile_picture = data.profile_picture || '';
+    persistCurrentSession();
   }
 }
 
-function handleAvatarUpload(event) {
-  const file = event.target.files[0];
+async function handleAvatarUpload(event) {
+  var input = event.target;
+  var file = input && input.files ? input.files[0] : null;
   if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    alert('Please select an image file');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const base64 = e.target.result;
-    document.getElementById('profAvatar').src = base64;
-    document.getElementById('profAvatar').style.display = 'block';
-    document.getElementById('profAvatarPlaceholder').style.display = 'none';
+  try {
+    if (!file.type || !file.type.startsWith('image/')) {
+      throw new Error('Please choose an image file.');
+    }
+    var base64;
+    if (file.size <= MAX_PROFILE_PHOTO_BYTES) {
+      base64 = await readFileAsDataUrl(file);
+    } else {
+      base64 = await compressImageToDataUrl(file);
+    }
+    if (getDataUrlBytes(base64) > MAX_PROFILE_PHOTO_BYTES) {
+      throw new Error('Profile photo must be 5 MB or smaller.');
+    }
+    setProfileAvatar(base64);
+    setUserWelcomeAvatar(base64);
     window._pendingAvatar = base64;
-  };
-  reader.readAsDataURL(file);
+  } catch (err) {
+    showPopup('Upload Error', err.message || 'Could not upload photo.', '', 'OK', null, 'error');
+    if (window.currentUser && window.currentUser.profile_picture) {
+      setProfileAvatar(window.currentUser.profile_picture);
+      setUserWelcomeAvatar(window.currentUser.profile_picture);
+    } else {
+      setProfileAvatar('');
+      setUserWelcomeAvatar('');
+    }
+  } finally {
+    if (input) input.value = '';
+  }
 }
 
 function validateEmail(email) {
@@ -4933,14 +5100,14 @@ async function saveProfile() {
   if (data.error) { if (emailErr) { emailErr.textContent = data.error; emailErr.style.display = 'block'; document.getElementById('profEmail').classList.add('has-error'); } else alert(data.error); return; }
   window.currentUser.first_name = body.first_name;
   window.currentUser.last_name = body.last_name;
+  window.currentUser.email = body.email;
+  window.currentUser.phone = body.phone;
   if (body.profile_picture) {
     window.currentUser.profile_picture = body.profile_picture;
-    var wAvatar = document.getElementById('welcomeAvatar');
-    var wPlaceholder = document.getElementById('welcomeAvatarPlaceholder');
-    wAvatar.src = body.profile_picture;
-    wAvatar.style.display = 'block';
-    wPlaceholder.style.display = 'none';
+    setProfileAvatar(body.profile_picture);
+    setUserWelcomeAvatar(body.profile_picture);
   }
+  persistCurrentSession();
   document.getElementById('userWelcomeName').textContent = body.first_name || 'User';
   if (successEl) { successEl.style.display = 'block'; successEl.style.textAlign = 'center'; }
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.add('has-success'); });
@@ -6131,6 +6298,9 @@ window.addEventListener('resize', applySafeAreaFix);
   html.android-mobile .user-current-section{
     font-size:19px !important;
     letter-spacing:1.5px !important;
+    line-height:1.18 !important;
+    padding-inline:0.1em !important;
+    overflow:visible !important;
   }
   html.android-mobile .admin-current-subtitle,
   html.android-mobile .user-current-subtitle{
