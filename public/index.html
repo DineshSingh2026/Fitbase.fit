@@ -775,7 +775,7 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
 .admin-qa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .admin-qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;background:rgba(26,26,26,0.95);border-radius:12px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;transition:background .2s}
 .admin-qa-btn:hover{background:rgba(40,40,40,0.98)}
-.admin-qa-icon{font-size:24px;opacity:.9}
+.admin-qa-icon{display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:22px;line-height:1;opacity:.9;flex-shrink:0}
 .admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:10px}
 .admin-la-list{display:flex;flex-direction:column;gap:0}
 .admin-la-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
@@ -938,7 +938,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-bottom-nav-item:hover,.admin-bottom-nav-item:focus{color:var(--cream);outline:none}
 .admin-bottom-nav-item.active{color:var(--gold)}
 .admin-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
-.admin-bottom-nav-icon{display:block;font-size:22px;line-height:1;margin-bottom:4px;flex-shrink:0}
+.admin-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .admin-bottom-nav-label{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center}
 .admin-tabs{display:none;gap:0;border-bottom:1px solid var(--bdr);margin-bottom:28px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
 .admin-tabs::-webkit-scrollbar{height:6px}
@@ -1404,7 +1404,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
 .user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
-.user-bottom-nav-icon{display:block;font-size:22px;line-height:1;margin-bottom:4px;flex-shrink:0}
+.user-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
 /* Breadcrumbs */
 .user-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:24px;flex-wrap:wrap}
@@ -1933,23 +1933,23 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <nav class="user-bottom-nav" id="userBottomNav" aria-label="User sections">
     <div class="user-bottom-nav-inner">
       <button type="button" class="user-bottom-nav-item active" data-tab="home" onclick="switchUserTab('home')" aria-label="Home">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9632;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9733;</span>
         <span class="user-bottom-nav-label">Home</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="workout" onclick="switchUserTab('workout')" aria-label="Workout">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9830;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#128170;</span>
         <span class="user-bottom-nav-label">Workout</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="progress" onclick="switchUserTab('progress')" aria-label="Progress">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9633;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#128200;</span>
         <span class="user-bottom-nav-label">Progress</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#10003;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9989;</span>
         <span class="user-bottom-nav-label">Check-in</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9650;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
       </button>
     </div>
@@ -2075,12 +2075,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="admin-quick-access">
           <h3 class="admin-qa-title">QUICK ACCESS</h3>
           <div class="admin-qa-grid">
-            <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#9634;</span>Sign-ups</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128339;</span>Check-Ins</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#9782;</span>Workouts</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#9633;</span>Audits</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('messages-meetings');return false"><span class="admin-qa-icon">&#9680;</span>Meetings</a>
-            <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#9685;</span>Analytics</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#128100;</span>Sign-ups</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('messages-meetings');return false"><span class="admin-qa-icon">&#128226;</span>Meetings</a>
+            <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
         <div class="admin-live-activity">
@@ -2232,6 +2232,45 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Messages & Upcoming Meetings (combined) -->
     <div class="admin-tab-content" id="tab-messages-meetings">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Scheduled Messages</h3>
+        <p class="form-hint" style="margin-bottom:12px">Schedule a message to be sent to users at a specific date and time.</p>
+        <div class="admin-scheduled-form" style="margin-bottom:20px">
+          <div style="display:grid;gap:12px;max-width:560px">
+            <label class="form-label">Recipients</label>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="radio" name="schedTarget" value="user" checked>
+                <span>Specific user</span>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="radio" name="schedTarget" value="broadcast">
+                <span>All approved users</span>
+              </label>
+            </div>
+            <div id="schedUserWrap">
+              <label class="form-label">Select user</label>
+              <select id="schedUserId" class="form-input">
+                <option value="">— Select user —</option>
+              </select>
+            </div>
+            <label class="form-label">Message</label>
+            <textarea id="schedMessageBody" class="form-input" rows="4" placeholder="Type your message…"></textarea>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div>
+                <label class="form-label">Date</label>
+                <input type="date" id="schedDate" class="form-input">
+              </div>
+              <div>
+                <label class="form-label">Time</label>
+                <input type="time" id="schedTime" class="form-input">
+              </div>
+            </div>
+            <button type="button" class="form-submit" onclick="createScheduledMessage()">Schedule message</button>
+          </div>
+        </div>
+        <div id="adminScheduledList"><p class="form-hint">Loading…</p></div>
+      </div>
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Conversations</h3>
         <p class="form-hint" style="margin-bottom:12px">One chat per user. Click to open. New users appear at the bottom.</p>
@@ -2389,23 +2428,23 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Bottom navigation">
     <div class="admin-bottom-nav-inner">
       <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Home">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9632;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9733;</span>
         <span class="admin-bottom-nav-label">Home</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="clients" onclick="switchToSection('clients');return false" aria-label="Clients">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9830;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128106;</span>
         <span class="admin-bottom-nav-label">Clients</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="forms" onclick="switchToSection('forms');return false" aria-label="Forms">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9633;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128203;</span>
         <span class="admin-bottom-nav-label">Forms</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9650;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="admin-bottom-nav-label">Messages</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="ai" onclick="toggleAdminAiAssistPanel();return false" aria-label="AI">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9733;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128161;</span>
         <span class="admin-bottom-nav-label">AI</span>
       </button>
     </div>
@@ -3293,11 +3332,13 @@ async function loadNotifications() {
       if (userCountEl) { userCountEl.textContent = countEl ? countEl.textContent : ''; userCountEl.classList.add('has-count'); }
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = false; });
       updateNotifyClearBtn();
+      if (navigator.setAppBadge) navigator.setAppBadge(Math.min(filtered.length, 99)).catch(function(){});
     } else {
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = true; });
       if (countEl) countEl.classList.remove('has-count');
       if (userCountEl) userCountEl.classList.remove('has-count');
       updateNotifyClearBtn();
+      if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
     }
   } catch (e) {
     if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
@@ -3883,6 +3924,7 @@ function downloadInsightsCSV() {
 function logoutAdmin() {
   window.currentUser = null;
   if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('adminPanel').classList.remove('open');
   if (typeof closeAdminAiAssistPanel === 'function') closeAdminAiAssistPanel();
@@ -4049,7 +4091,7 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages-meetings') { loadAdminMeetings(); loadAdminThreads(); }
+  if (tab === 'messages-meetings') { loadAdminMeetings(); loadAdminThreads(); loadAdminScheduledMessages(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
@@ -4348,6 +4390,7 @@ function openUserDashboard(user) {
 function logoutUser() {
   window.currentUser = null;
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('userPanel').classList.remove('open');
   document.body.classList.remove('site-nav-hidden','user-dashboard-open');
@@ -5169,6 +5212,84 @@ async function userSendThreadMessage() {
   }
 }
 
+// ========== SCHEDULED MESSAGES ==========
+async function loadAdminScheduledMessages() {
+  var el = document.getElementById('adminScheduledList');
+  if (!el) return;
+  var userSelect = document.getElementById('schedUserId');
+  if (userSelect && userSelect.options.length <= 1) {
+    try {
+      var users = await apiCall('GET', '/api/admin/users');
+      if (Array.isArray(users)) {
+        users.forEach(function(u) {
+          var opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || u.id;
+          userSelect.appendChild(opt);
+        });
+      }
+    } catch (e) { /* ignore */ }
+  }
+  document.querySelectorAll('input[name="schedTarget"]').forEach(function(r) {
+    r.onchange = function() {
+      var wrap = document.getElementById('schedUserWrap');
+      if (wrap) wrap.style.display = r.value === 'user' ? 'block' : 'none';
+    };
+  });
+  el.innerHTML = '<p class="form-hint">Loading…</p>';
+  try {
+    var list = await apiCall('GET', '/api/scheduled-messages');
+    if (list && list.error) { el.innerHTML = '<p class="form-hint" style="color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
+    if (!Array.isArray(list)) list = [];
+    if (list.length === 0) { el.innerHTML = '<p class="form-hint">No scheduled messages.</p>'; return; }
+    el.innerHTML = '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Recipient</th><th>Message preview</th><th>Scheduled for</th><th>Status</th><th>Actions</th></tr></thead><tbody>' +
+      list.map(function(s) {
+        var name = s.first_name || s.last_name ? [s.first_name, s.last_name].filter(Boolean).join(' ') : (s.email || (s.user_id ? 'User' : '—'));
+        var preview = (s.message_body || '').slice(0, 50) + ((s.message_body || '').length > 50 ? '…' : '');
+        var when = s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : '';
+        var status = s.status || 'pending';
+        var cancelBtn = status === 'pending' ? '<button type="button" class="form-submit" style="padding:6px 12px;font-size:12px" onclick="cancelScheduledMessage(\'' + (s.id || '').replace(/'/g,"\\'") + '\')">Cancel</button>' : '';
+        return '<tr><td data-label="Recipient">' + escapeHtml(name) + '</td><td data-label="Preview">' + escapeHtml(preview) + '</td><td data-label="Scheduled">' + escapeHtml(when) + '</td><td data-label="Status">' + escapeHtml(status) + '</td><td data-label="Actions">' + cancelBtn + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  } catch (e) {
+    el.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load scheduled messages.</p>';
+  }
+}
+
+async function createScheduledMessage() {
+  var target = document.querySelector('input[name="schedTarget"]:checked');
+  var broadcast = target && target.value === 'broadcast';
+  var userId = broadcast ? null : (document.getElementById('schedUserId').value || '').trim();
+  var body = (document.getElementById('schedMessageBody').value || '').trim();
+  var dateStr = (document.getElementById('schedDate').value || '').trim();
+  var timeStr = (document.getElementById('schedTime').value || '').trim();
+  if (!body) { alert('Message is required'); return; }
+  var scheduledAt = dateStr && timeStr ? (dateStr + 'T' + timeStr) : null;
+  if (!scheduledAt) { alert('Date and time are required'); return; }
+  if (new Date(scheduledAt) <= new Date()) { alert('Scheduled time must be in the future'); return; }
+  if (!broadcast && !userId) { alert('Select a user or choose "All approved users"'); return; }
+  try {
+    var res = await apiCall('POST', '/api/scheduled-messages', { user_id: userId || undefined, message_body: body, scheduled_at: scheduledAt, broadcast: broadcast });
+    if (res && res.error) { alert(res.error); return; }
+    document.getElementById('schedMessageBody').value = '';
+    document.getElementById('schedDate').value = '';
+    document.getElementById('schedTime').value = '';
+    loadAdminScheduledMessages();
+  } catch (e) {
+    alert('Failed to schedule message.');
+  }
+}
+
+async function cancelScheduledMessage(id) {
+  if (!id || !confirm('Cancel this scheduled message?')) return;
+  try {
+    await apiCall('DELETE', '/api/scheduled-messages/' + id);
+    loadAdminScheduledMessages();
+  } catch (e) {
+    alert('Failed to cancel.');
+  }
+}
+
 // ========== ADMIN THREADS ==========
 var _adminCurrentThreadId = null;
 
@@ -5703,6 +5824,7 @@ function renderSuperadminData(data, readOnly) {
 }
 
 function logoutSuperadmin() {
+  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   document.getElementById('superadminPanel').classList.remove('open');
   document.body.classList.remove('site-nav-hidden');
   document.body.classList.remove('admin-dashboard-open');

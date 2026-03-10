@@ -349,6 +349,19 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`); } catch (e) { /* ignore */ }
 
+  // Scheduled messages (admin can schedule messages to send at specific times)
+  await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_messages (
+    id TEXT PRIMARY KEY,
+    admin_id TEXT NOT NULL,
+    user_id TEXT,
+    message_body TEXT NOT NULL,
+    scheduled_at TIMESTAMP NOT NULL,
+    status TEXT DEFAULT 'pending',
+    thread_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status_at ON scheduled_messages(status, scheduled_at)`); } catch (e) { /* ignore */ }
+
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
     console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
@@ -1004,6 +1017,70 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
   } catch (e) {
     console.error('Send message error:', e.message);
     res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// ============ SCHEDULED MESSAGES (Admin) ============
+// Create scheduled message
+app.post('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, rateLimiter(20, 60000), async (req, res) => {
+  try {
+    const { user_id, message_body, scheduled_at, broadcast } = req.body || {};
+    if (!message_body || !String(message_body).trim()) return res.status(400).json({ error: 'Message body is required' });
+    const at = scheduled_at ? new Date(scheduled_at) : null;
+    if (!at || isNaN(at.getTime())) return res.status(400).json({ error: 'Valid scheduled date/time is required' });
+    if (at <= new Date()) return res.status(400).json({ error: 'Scheduled time must be in the future' });
+    const adminId = req.user.id;
+
+    const userIds = broadcast === true
+      ? (await queryAll("SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")).map(u => u.id)
+      : (user_id ? [user_id] : []);
+
+    if (userIds.length === 0) return res.status(400).json({ error: 'Select at least one user or use broadcast to send to all' });
+
+    const ids = [];
+    for (const uid of userIds) {
+      const id = uuidv4();
+      await run(
+        'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, adminId, uid, String(message_body).trim().slice(0, 5000), at.toISOString(), 'pending']
+      );
+      ids.push(id);
+    }
+    const created = await queryAll('SELECT * FROM scheduled_messages WHERE id = ANY($1)', [ids]);
+    res.status(201).json(created.length === 1 ? created[0] : { created: ids.length, ids });
+  } catch (e) {
+    console.error('Create scheduled message error:', e.message);
+    res.status(500).json({ error: 'Failed to create scheduled message' });
+  }
+});
+
+// List scheduled messages
+app.get('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT sm.id, sm.admin_id, sm.user_id, sm.message_body, sm.scheduled_at, sm.status, sm.thread_id, sm.created_at,
+       u.first_name, u.last_name, u.email
+       FROM scheduled_messages sm
+       LEFT JOIN users u ON u.id = sm.user_id
+       ORDER BY sm.scheduled_at DESC
+       LIMIT 200`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('List scheduled messages error:', e.message);
+    res.status(500).json({ error: 'Failed to load scheduled messages' });
+  }
+});
+
+// Cancel scheduled message
+app.delete('/api/scheduled-messages/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const r = await run('UPDATE scheduled_messages SET status = ? WHERE id = ? AND status = ?', ['cancelled', req.params.id, 'pending']);
+    if (r.rowCount === 0) return res.status(404).json({ error: 'Scheduled message not found or already sent/cancelled' });
+    res.json({ message: 'Scheduled message cancelled' });
+  } catch (e) {
+    console.error('Cancel scheduled message error:', e.message);
+    res.status(500).json({ error: 'Failed to cancel' });
   }
 });
 
@@ -2040,8 +2117,50 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// ============ SCHEDULED MESSAGES BACKGROUND JOB ============
+async function processScheduledMessages() {
+  try {
+    const now = new Date().toISOString();
+    const rows = await queryAll(
+      "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= $1 LIMIT 50",
+      [now]
+    );
+    for (const row of rows) {
+      try {
+        let threadId = row.thread_id;
+        if (!threadId) {
+          let thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [row.user_id]);
+          if (!thread) {
+            threadId = uuidv4();
+            await run('INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)', [threadId, row.user_id, '']);
+            thread = { id: threadId };
+          } else {
+            threadId = thread.id;
+          }
+          await run('UPDATE scheduled_messages SET thread_id = ? WHERE id = ?', [threadId, row.id]);
+        }
+        const msgId = uuidv4();
+        await run(
+          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
+          [msgId, threadId, row.admin_id, 'admin', (row.message_body || '').slice(0, 5000)]
+        );
+        await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
+        await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['sent', row.id]);
+        sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach message', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
+      } catch (err) {
+        console.error('Scheduled message send error:', row?.id, err.message);
+        await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['failed', row.id]).catch(() => {});
+      }
+    }
+  } catch (e) {
+    console.error('processScheduledMessages error:', e.message);
+  }
+}
+
 // ============ START ============
 initDB().then(() => {
+  setInterval(processScheduledMessages, 60 * 1000);
+  processScheduledMessages();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);
     console.log(`📧 Admin: ${ADMIN_EMAIL}`);
