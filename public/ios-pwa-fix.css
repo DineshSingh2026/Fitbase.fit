@@ -54,13 +54,6 @@
     }
   }
 
-  /* 8. Admin header/top */
-  .admin-top, .user-top, .superadmin-top {
-    padding-top: calc(12px + var(--safe-top));
-    padding-left: calc(16px + var(--safe-left));
-    padding-right: calc(16px + var(--safe-right));
-  }
-
   /* 9. Admin bottom nav — extend to safe area */
   .admin-bottom-nav {
     padding-bottom: var(--safe-bottom);
