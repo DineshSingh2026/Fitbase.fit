@@ -562,10 +562,178 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
   .admin-section-card-icon{font-size:20px}
 }
 @media(min-width:768px){
-  .admin-sidebar{display:flex;top:72px;height:calc(var(--app-height) - 72px);padding-top:0}
+  .admin-sidebar{display:flex;top:72px;height:calc(var(--app-height) - 72px);padding-top:0;background:#111;border-right:1px solid rgba(200,164,78,0.22)}
   .admin-body{margin-left:270px}
   .admin-top-hamburger{display:none}
   .admin-tabs{display:none}
+}
+/* ===== DESKTOP WEB DASHBOARD (1100px+) ===== */
+@media(min-width:1100px){
+  /* --- Sidebar: visible, distinct panel --- */
+  .admin-sidebar,.user-sidebar{
+    background:#111;
+    border-right:1px solid rgba(200,164,78,0.25);
+  }
+  .admin-sidebar-nav,.user-sidebar-nav{padding:32px 0 20px}
+  .admin-sidebar-link,.user-sidebar-link{
+    padding:13px 24px;
+    font-size:13.5px;
+    letter-spacing:0.4px;
+    border-left-width:3px;
+    transition:all .25s;
+  }
+  .admin-sidebar-link:hover,.user-sidebar-link:hover{background:rgba(200,164,78,0.07)}
+  .admin-sidebar-link.active,.user-sidebar-link.active{
+    background:rgba(200,164,78,0.1);
+    border-left-color:var(--gold);
+    color:var(--gold);
+  }
+
+  /* --- Body: fills remaining space cleanly --- */
+  .admin-body,.user-body{
+    max-width:none;
+    margin-left:270px;
+    padding:36px 48px 48px;
+  }
+
+  /* --- Top bar --- */
+  .admin-top,.user-top{
+    padding:14px 48px;
+    padding-left:max(28px,env(safe-area-inset-left));
+    padding-right:max(28px,env(safe-area-inset-right));
+  }
+
+  /* --- Content wrap: subtle panel with depth --- */
+  .admin-tab-content-wrap,.user-tab-content-wrap{
+    padding:32px;
+    border-radius:16px;
+    border:1px solid rgba(200,164,78,0.1);
+    background:rgba(255,255,255,0.018);
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  /* --- Section titles: bigger on desktop --- */
+  .admin-current-section,.user-current-section{font-size:28px;letter-spacing:2.5px}
+  .user-current-subtitle{max-width:none}
+  .user-section-divider{max-width:none}
+
+  /* ====== ADMIN HOME DASHBOARD ====== */
+  .admin-dash-page{max-width:none}
+  .admin-welcome-card{
+    padding:20px 24px;
+    border-radius:14px;
+    border-left-width:4px;
+  }
+  .admin-summary-cards{
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+  .admin-summary-card{
+    min-height:96px;
+    padding:18px 20px;
+    border-radius:14px;
+    border:1px solid rgba(200,164,78,0.1);
+  }
+  .admin-home-cards{max-width:none;gap:18px}
+  .admin-qa-grid{
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+  }
+  .admin-qa-btn{
+    min-height:80px;
+    padding:16px 14px;
+    border-radius:12px;
+  }
+
+  /* ====== USER HOME DASHBOARD ====== */
+  /* Compact welcome: no giant hero, just a clean greeting row */
+  #usec-home .user-welcome{
+    text-align:left;
+    padding:0 0 8px;
+  }
+  #usec-home .user-welcome::before{display:none}
+  #usec-home .user-welcome-avatar,
+  #usec-home .user-welcome-avatar-placeholder{
+    width:64px;height:64px;
+    margin:0 0 20px;
+    border-width:2px;
+  }
+  #usec-home .user-welcome-avatar-placeholder svg{width:28px;height:28px}
+  #usec-home .user-welcome h1{
+    font-size:clamp(28px,3.5vw,40px);
+    margin-bottom:6px;
+  }
+  #usec-home .user-welcome h1 .welcome-label{
+    font-size:12px;letter-spacing:3px;margin-bottom:4px;
+  }
+  #usec-home .user-welcome .user-welcome-tag{
+    font-size:16px;
+    margin-bottom:28px;
+  }
+
+  /* Today dashboard: full width, proper card grid */
+  #usec-home .today-dash{
+    max-width:none;
+    margin:0;
+    gap:24px;
+  }
+  #usec-home .today-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+  }
+  #usec-home .today-card{
+    min-height:100px;
+    padding:20px;
+    border-radius:14px;
+    border:1px solid rgba(200,164,78,0.1);
+    background:rgba(255,255,255,0.025);
+  }
+
+  /* Micro-goals: clean panel */
+  #usec-home .micro-goals-wrap{
+    padding:28px;
+    border-radius:16px;
+    border-color:rgba(200,164,78,0.12);
+    background:rgba(255,255,255,0.02);
+  }
+  #usec-home .micro-goals-grid{
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+  }
+
+  /* Weekly recap: even row */
+  #usec-home .weekly-recap{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+  }
+  #usec-home .weekly-recap-item{
+    min-width:0;
+    padding:14px;
+    border-radius:10px;
+  }
+
+  /* Welcome cards: horizontal 3-column grid below dashboard */
+  #usec-home .welcome-cards{
+    max-width:none;
+    margin:0;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+  }
+  #usec-home .welcome-card{
+    border-radius:14px;
+    padding:20px 22px;
+  }
+}
+/* ===== EXTRA-WIDE (1440px+) ===== */
+@media(min-width:1440px){
+  .admin-body,.user-body{padding:40px 56px 48px}
+  .admin-tab-content-wrap,.user-tab-content-wrap{padding:36px}
+  .admin-summary-cards{gap:20px}
+  #usec-home .today-row{gap:20px}
+  #usec-home .welcome-cards{gap:20px}
+  .admin-qa-grid{gap:18px}
 }
 @media(max-width:767px){
   .admin-body{margin-left:0;padding-bottom:max(80px,calc(70px + env(safe-area-inset-bottom)))}
@@ -674,7 +842,7 @@ body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:n
 /* AI Assist button in admin top bar (web/desktop only) */
 .admin-ai-assist-top-btn{display:none}
 .admin-top-hamburger{display:none}
-.admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+.admin-body{max-width:1400px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
 .admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
 .admin-tab-content-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);padding:20px;touch-action:pan-y;display:flex;flex-direction:column}
 .admin-tab-content-wrap::-webkit-scrollbar{width:8px;height:8px}
@@ -1132,7 +1300,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-sidebar-link:hover,.user-sidebar-link:focus{color:var(--cream);background:rgba(200,164,78,0.06)}
 .user-sidebar-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,164,78,0.08)}
 .user-sidebar-icon{font-size:18px;opacity:.9;flex-shrink:0}
-.user-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+.user-body{max-width:1400px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
 .user-body::-webkit-scrollbar{width:8px}
 .user-body::-webkit-scrollbar-track{background:transparent}
 .user-body::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
@@ -1307,7 +1475,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .user-body{padding:20px 16px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
 }
 @media(min-width:768px){
-  .user-sidebar{display:flex;top:72px;height:calc(var(--app-height) - 72px);padding-top:0}
+  .user-sidebar{display:flex;top:72px;height:calc(var(--app-height) - 72px);padding-top:0;background:#111;border-right:1px solid rgba(200,164,78,0.22)}
   .user-body{margin-left:270px}
 }
 @media(max-width:767px){

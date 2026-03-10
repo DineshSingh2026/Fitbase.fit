@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — full-screen fix v2 */
-const CACHE_NAME = 'bodybank-v9';
+const CACHE_NAME = 'bodybank-v10';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
