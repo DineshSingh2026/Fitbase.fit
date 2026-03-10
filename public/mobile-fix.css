@@ -83,7 +83,7 @@ html.pwa-standalone body {
 }
 
 /* Header / Top Navbar (exclude bottom nav) */
-.header, .top-nav, .navbar, nav:not(.admin-bottom-nav):not(.bottom-nav) {
+.header, .top-nav, .navbar, nav:not(.admin-bottom-nav):not(.user-bottom-nav):not(.bottom-nav) {
   padding-top: calc(var(--safe-top) + 12px) !important;
   padding-left: calc(var(--safe-left) + 16px) !important;
   padding-right: calc(var(--safe-right) + 16px) !important;

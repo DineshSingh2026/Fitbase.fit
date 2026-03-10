@@ -27,7 +27,7 @@
   .admin-panel, .admin-layout, .user-panel, .dashboard { min-height: 100vh; }
 
   /* 4. Main nav — consistent padding */
-  nav:not(.admin-bottom-nav) {
+  nav:not(.admin-bottom-nav):not(.user-bottom-nav) {
     padding-top: calc(12px + var(--safe-top));
     padding-left: max(48px, var(--safe-left));
     padding-right: max(48px, var(--safe-right));
@@ -54,8 +54,9 @@
     }
   }
 
-  /* 9. Admin bottom nav — extend to safe area */
-  .admin-bottom-nav {
+  /* 9. Bottom navs — extend to safe area */
+  .admin-bottom-nav,
+  .user-bottom-nav {
     padding-bottom: var(--safe-bottom);
   }
 

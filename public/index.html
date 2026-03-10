@@ -96,10 +96,10 @@ body.site-nav-hidden nav#nv{display:none !important}
 .standalone-only{display:none !important}
 .standalone-only.standalone-visible{display:inline-flex !important}
 .mm .standalone-only.standalone-visible{display:flex !important}
-.nav-refresh-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;align-items:center;justify-content:center;transition:all .3s}
+.nav-refresh-btn{display:inline-flex;width:36px;height:36px;min-width:36px;min-height:36px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;align-items:center;justify-content:center;transition:all .3s;flex-shrink:0}
 .nav-refresh-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
-.nav-refresh-btn svg{width:18px;height:18px;display:block}
-.admin-nav-link.pwa-add-homescreen,.user-nav-drawer .user-nav-item.pwa-add-homescreen,.mm .pwa-add-homescreen{cursor:pointer;flex-shrink:0}
+.nav-refresh-btn svg{width:16px;height:16px;display:block}
+.admin-nav-link.pwa-add-homescreen,.user-sidebar-link.pwa-add-homescreen,.mm .pwa-add-homescreen{cursor:pointer;flex-shrink:0}
 .mm .pwa-add-homescreen{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center;background:none;border:none;width:100%;justify-content:center;font:inherit}
 .mm .pwa-add-homescreen:hover{color:var(--gold)}
 .pwa-ios-modal{position:fixed;inset:0;z-index:100020;background:rgba(6,6,6,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));padding-top:max(24px,env(safe-area-inset-top))}
@@ -164,7 +164,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .admin-tab.sc-style,.admin-nav-link.sc-style,.admin-sidebar-link.sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--gold)}
 .admin-tab.sc-style.active,.admin-nav-link.sc-style.active{color:var(--gold)}
 .wc-title.sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
-.user-nav-item .sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px}
+.user-sidebar-link .sc-style,.user-bottom-nav-item .sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px}
 
 /* Transformations – horizontal scroll, one card at a time */
 .tf-wrap{display:flex;gap:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:8px 0 24px;margin:0 -20px;scrollbar-width:thin;scrollbar-color:rgba(200,164,78,0.4) transparent}
@@ -368,7 +368,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .wa-float:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(37,211,102,0.5)}
 .wa-float svg{width:32px;height:32px;fill:currentColor}
 .wa-float:focus{outline:2px solid var(--gold);outline-offset:3px}
-body.admin-dashboard-open .wa-float{display:none!important}
+body.admin-dashboard-open .wa-float,body.user-dashboard-open .wa-float{display:none!important}
 @media(max-width:600px){.wa-float{bottom:max(24px,env(safe-area-inset-bottom));right:max(16px,env(safe-area-inset-right))}}
 
 @keyframes fsu{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
@@ -1108,21 +1108,37 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 
 /* USER DASHBOARD */
-.user-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow-y:auto}
-.user-panel.open{display:block}
-.user-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;padding-top:max(24px,env(safe-area-inset-top));padding-left:max(40px,env(safe-area-inset-left));padding-right:max(40px,env(safe-area-inset-right));border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(6,6,6,0.98);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap}
-.user-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0}
-.user-top-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
-.user-top-left img{height:38px;mix-blend-mode:lighten}
-.user-nav{display:flex;gap:4px;flex-shrink:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.user-nav-item{padding:12px 20px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;border-radius:10px;transition:all .3s;white-space:nowrap;flex-shrink:0}
-.user-nav-item:hover{color:var(--cream);background:rgba(200,164,78,0.08)}
-.user-nav-item.active{color:var(--gold)}
-.user-body{max-width:900px;margin:0 auto;padding:52px 40px;padding-bottom:max(52px,env(safe-area-inset-bottom));min-width:0;overflow-x:hidden}
+.user-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow:hidden;flex-direction:column;min-height:var(--app-height);box-sizing:border-box;padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);padding-bottom:env(safe-area-inset-bottom)}
+.user-panel.open{display:flex}
+.user-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;padding-top:max(24px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));border-bottom:1px solid var(--bdr);background:var(--black);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap;flex-shrink:0;min-height:44px}
+.user-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0;min-width:0}
+.user-top-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.user-top-left img{height:clamp(36px,8vw,44px);width:auto;display:block;object-fit:contain;mix-blend-mode:lighten}
+.user-layout{display:flex;flex:1;min-height:0;position:relative}
+.user-sidebar{display:none;position:fixed;top:72px;left:0;width:270px;height:calc(var(--app-height) - 72px);background:var(--dark2);border-right:1px solid var(--bdr);z-index:5;flex-direction:column;overflow:hidden;padding-left:env(safe-area-inset-left);padding-bottom:env(safe-area-inset-bottom)}
+.user-sidebar-nav{display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:20px 0 16px}
+.user-sidebar-link{display:flex;align-items:center;gap:12px;padding:12px 20px;min-height:48px;font-size:14px;font-weight:600;letter-spacing:0.3px;color:var(--creamd);text-decoration:none;border-left:3px solid transparent;transition:all .2s;box-sizing:border-box;line-height:1.4;cursor:pointer}
+.user-sidebar-link:hover,.user-sidebar-link:focus{color:var(--cream);background:rgba(200,164,78,0.06)}
+.user-sidebar-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,164,78,0.08)}
+.user-sidebar-icon{font-size:18px;opacity:.9;flex-shrink:0}
+.user-body{max-width:1200px;margin:0 auto;padding:28px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(20px,env(safe-area-inset-bottom));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+.user-body>.user-current-section-wrap{flex-shrink:0}
+.user-current-section-wrap{margin-bottom:12px;padding:6px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:0;flex-wrap:wrap}
+.user-current-section-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.user-current-eyebrow{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.user-current-section{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.user-current-subtitle{font-size:13px;color:var(--creamd);line-height:1.5;max-width:680px}
+.user-home-pwa-row{display:flex;justify-content:flex-start;margin:0 0 16px}
+.user-pwa-shortcut{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid rgba(200,164,78,0.35);border-radius:999px;background:transparent;color:var(--gold);font-size:12px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.user-pwa-shortcut:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.user-tab-content-wrap{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.02);padding:20px;padding-bottom:max(28px,calc(108px + env(safe-area-inset-bottom)));touch-action:pan-y;display:flex;flex-direction:column}
+.user-tab-content-wrap::-webkit-scrollbar{width:8px;height:8px}
+.user-tab-content-wrap::-webkit-scrollbar-track{background:transparent}
+.user-tab-content-wrap::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
 .user-section{display:none;min-width:0;overflow-x:hidden}
 .user-section.active{display:block;animation:udFadeIn .4s ease-out}
 @keyframes udFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.user-section h2{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--cream);margin-bottom:28px;text-align:center;letter-spacing:-0.5px}
+.user-section h2{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;color:var(--cream);margin-bottom:24px;text-align:left;letter-spacing:-0.5px}
 .user-welcome{text-align:center;padding:56px 24px 64px;position:relative}
 .user-welcome::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(480px,95%);height:320px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(200,164,78,0.08) 0%,transparent 70%);pointer-events:none}
 .user-welcome-avatar{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:2px solid rgba(200,164,78,0.4);object-fit:cover;display:block;box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.04)}
@@ -1132,28 +1148,20 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-welcome h1 .welcome-label{display:block;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;opacity:.9}
 .user-welcome h1 .welcome-name{background:linear-gradient(135deg,#f5f0e8 0%,var(--goldb) 45%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .user-welcome .user-welcome-tag{font-family:'Cormorant Garamond',serif;font-size:19px;font-style:italic;color:var(--creamd);margin-bottom:32px;letter-spacing:0.2px;opacity:.95}
-/* Quick stats */
-.user-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:640px;margin:0 auto 40px}
-.user-stat-card{padding:20px 20px;background:rgba(18,18,18,0.9);border:1px solid rgba(255,255,255,0.06);border-radius:12px;text-align:center;transition:border-color .3s}
-.user-stat-card:hover{border-color:rgba(200,164,78,0.2)}
-.user-stat-card .stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:1px;color:var(--gold);line-height:1;margin-bottom:6px}
-.user-stat-card .stat-lbl{font-size:12px;color:var(--muted);letter-spacing:0.5px;text-transform:uppercase}
-/* Progress / streaks */
-.user-streak-block{margin-bottom:40px;max-width:400px;margin-left:auto;margin-right:auto}
-.user-streak-block .streak-lbl{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.user-streak-bar{height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden}
-.user-streak-fill{height:100%;background:var(--goldg);border-radius:4px;transition:width .5s ease-out}
-.welcome-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:760px;margin:0 auto}
-.welcome-card{position:relative;padding:36px 28px;background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;text-align:center;cursor:pointer;transition:all .4s cubic-bezier(0.25,0.46,0.45,0.94);overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.25)}
-.welcome-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.6),transparent);opacity:0;transition:opacity .4s}
-.welcome-card:hover{border-color:rgba(200,164,78,0.25);transform:translateY(-4px);box-shadow:0 24px 48px rgba(0,0,0,0.35),0 0 0 1px rgba(200,164,78,0.08)}
+.welcome-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:860px;margin:0 auto}
+.welcome-card{position:relative;display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;text-align:left;cursor:pointer;transition:all .3s ease;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22)}
+.welcome-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgba(200,164,78,0.95),rgba(200,164,78,0.18));border-radius:999px;opacity:.75;transition:opacity .3s}
+.welcome-card::after{content:'\203A';margin-left:auto;color:rgba(200,164,78,0.9);font-size:22px;line-height:1;transition:transform .3s ease,color .3s ease}
+.welcome-card:hover{border-color:rgba(200,164,78,0.28);transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,0.3)}
 .welcome-card:hover::before{opacity:1}
-.welcome-card .wc-icon-wrap{width:64px;height:64px;margin:0 auto 20px;border-radius:14px;background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.12);display:grid;place-items:center;transition:all .4s}
+.welcome-card:hover::after{transform:translateX(3px);color:var(--gold)}
+.welcome-card .wc-icon-wrap{width:48px;height:48px;flex:0 0 48px;margin:0;border-radius:12px;background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.12);display:grid;place-items:center;transition:all .3s}
 .welcome-card .wc-icon-wrap svg{width:28px;height:28px;stroke:var(--gold);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
 .welcome-card:hover .wc-icon-wrap{background:rgba(200,164,78,0.1);border-color:rgba(200,164,78,0.2)}
 .welcome-card:hover .wc-icon-wrap svg{stroke:var(--goldb)}
-.welcome-card .wc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--cream);margin-bottom:8px;text-transform:uppercase}
-.welcome-card .wc-desc{font-size:13px;color:var(--muted);line-height:1.5;letter-spacing:0.2px}
+.welcome-card .wc-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.welcome-card .wc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.2px;color:var(--cream);margin:0;text-transform:uppercase}
+.welcome-card .wc-desc{font-size:12px;color:var(--muted);line-height:1.45;letter-spacing:0.1px;margin:0}
 
 /* Workout Timer */
 .timer-display{text-align:center;margin:28px 0}
@@ -1198,27 +1206,21 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .weekly-recap-item{flex:1;min-width:100px;text-align:center;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px}
 .weekly-recap-item .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
 .weekly-recap-item .num{font-size:18px;font-weight:700;color:var(--gold)}
-.push-enable-wrap{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(0,180,216,0.08);border:1px solid rgba(0,180,216,0.3);border-radius:10px;margin-top:16px;flex-wrap:wrap}
-.push-enable-wrap p{margin:0;flex:1;min-width:200px;font-size:13px;color:var(--creamd)}
-.push-enable-btn{padding:10px 20px;background:linear-gradient(135deg,#00b4d8,#0096c7);border:none;border-radius:8px;color:#fff;font-weight:600;font-size:12px;letter-spacing:.5px;cursor:pointer}
-.push-enable-btn:hover{opacity:.9}
+.push-enable-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px;background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.35);border-radius:10px;margin-top:16px;flex-wrap:wrap;text-align:center}
+.push-enable-wrap p{margin:0;min-width:0;font-size:13px;color:var(--creamd);max-width:320px}
+.push-enable-btn{padding:10px 20px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:12px;letter-spacing:.5px;cursor:pointer;box-shadow:0 6px 18px rgba(200,164,78,0.22)}
+.push-enable-btn:hover{opacity:.95}
 .push-enable-btn:disabled{opacity:.5;cursor:not-allowed}
-.user-hamburger{display:none;background:none;border:none;color:var(--gold);cursor:pointer;padding:12px;min-width:48px;min-height:48px;justify-content:center;align-items:center;border-radius:8px;transition:background .3s}
-.user-hamburger:hover{background:rgba(200,164,78,0.1)}
-.user-hamburger span{display:block;width:22px;height:2px;background:var(--gold);margin:4px 0;border-radius:1px;transition:transform .3s}
-.user-nav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:310;opacity:0;transition:opacity .3s}
-.user-nav-overlay.open{display:block;opacity:1}
-.user-nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(280px,85vw);background:var(--dark2);border-right:1px solid var(--bdr);z-index:311;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .3s;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.user-nav-drawer.open{transform:translateX(0)}
-.user-nav-drawer .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bdr)}
-.user-nav-drawer .drawer-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
-.user-nav-drawer .drawer-close{background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center}
-.user-nav-drawer .drawer-nav{display:flex;flex-direction:column;padding:20px}
-.user-nav-drawer .drawer-nav .user-nav-item{display:flex;align-items:center;padding:16px 20px;margin-bottom:8px;font-size:15px;min-height:48px}
-.user-section-back{display:flex;align-items:center;margin-bottom:20px;width:100%;}
-.user-section-back .back-btn{margin-bottom:0}
-.user-panel .back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--gold);color:var(--gold);padding:10px 20px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;transition:all .2s;min-height:44px}
-.user-panel .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb);color:var(--goldb)}
+.user-section-back{display:none}
+.user-panel .back-btn{display:none}
+.user-bottom-nav{display:none!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;max-width:100vw;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
+.user-bottom-nav-inner{display:flex;align-items:stretch;justify-content:space-between;width:100%;height:100%;min-width:0;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));box-sizing:border-box}
+.user-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box}
+.user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
+.user-bottom-nav-item.active{color:var(--gold)}
+.user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
+.user-bottom-nav-icon{display:block;font-size:22px;line-height:1;margin-bottom:4px;flex-shrink:0}
+.user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
 /* Breadcrumbs */
 .user-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:24px;flex-wrap:wrap}
 .user-breadcrumb span{opacity:.7}
@@ -1286,35 +1288,35 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-thread-row{cursor:pointer;transition:background .2s}
 .admin-thread-row:hover{background:rgba(200,164,78,0.06)}
 
-@media(max-width:768px){
-  .welcome-cards{grid-template-columns:1fr;max-width:400px;gap:16px}
-  .user-stats-row{grid-template-columns:1fr;max-width:320px}
-  .user-stat-card .stat-num{font-size:28px}
+@media(min-width:768px){
+  .user-sidebar{display:flex}
+  .user-body{margin-left:270px}
 }
 @media(max-width:768px){
-  .user-top{padding:14px 16px;padding-top:max(14px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));flex-wrap:wrap;gap:8px}
-  .user-hamburger{display:flex;flex-direction:column}
-  .user-top .user-nav{display:none}
-  .user-top-left{flex:1;min-width:0}
-  .user-top-right{gap:12px}
-  .user-logout{min-height:44px;padding:10px 18px}
+  .welcome-cards{grid-template-columns:1fr;max-width:520px;gap:12px}
+  .user-current-section{font-size:20px;letter-spacing:1.5px}
 }
-@media(max-width:700px){
-  .user-top{padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));flex-wrap:wrap;gap:8px}
-  .user-nav{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch}
-  .user-nav-item{padding:12px 18px;font-size:14px;white-space:nowrap;min-height:44px;min-width:44px;display:flex;align-items:center;justify-content:center}
-  .user-body{padding:28px 16px;padding-bottom:max(28px,env(safe-area-inset-bottom))}
+@media(max-width:767px){
+  .user-top{padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));gap:10px}
+  .user-top-right{gap:8px}
+  .user-logout{min-height:44px;padding:10px 14px;font-size:11px}
+  .user-body{margin-left:0;padding:16px 12px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .user-tab-content-wrap{padding:14px;padding-bottom:max(24px,calc(108px + env(safe-area-inset-bottom)))}
   .user-section h2{font-size:24px}
+  .user-current-section-wrap{align-items:flex-start}
+  .user-current-subtitle{font-size:12px}
+  .user-pwa-shortcut{padding:9px 14px;font-size:11px}
+  .user-bottom-nav{display:flex!important;width:100%!important;left:0!important;right:0!important}
   .user-welcome{padding:40px 20px 48px}
   .user-welcome h1{font-size:clamp(30px,6vw,42px)}
   .user-welcome h1 .welcome-label{font-size:11px;letter-spacing:3.5px}
   .user-welcome .user-welcome-tag{font-size:17px}
-  .welcome-cards{grid-template-columns:1fr;gap:16px;max-width:360px}
-  .welcome-card{padding:28px 24px}
-  .welcome-card .wc-icon-wrap{width:56px;height:56px;margin-bottom:18px}
-  .welcome-card .wc-icon-wrap svg{width:26px;height:26px}
-  .welcome-card .wc-title{font-size:12px;letter-spacing:1.5px}
-  .welcome-card .wc-desc{font-size:14px}
+  .welcome-cards{grid-template-columns:1fr;gap:12px;max-width:360px}
+  .welcome-card{padding:16px 18px;gap:12px}
+  .welcome-card .wc-icon-wrap{width:44px;height:44px;flex-basis:44px}
+  .welcome-card .wc-icon-wrap svg{width:24px;height:24px}
+  .welcome-card .wc-title{font-size:12px;letter-spacing:1px}
+  .welcome-card .wc-desc{font-size:12px}
   .schedule-call-block h3{font-size:17px}
   .my-meeting-item .m-info{font-size:16px}
   .my-meeting-item .m-btn{font-size:13px}
@@ -1322,7 +1324,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .timer-digits{font-size:48px;letter-spacing:3px}
   .timer-digits span{min-width:54px;padding:6px 10px}
   .timer-reset{font-size:13px}
-  .user-panel .back-btn{font-size:14px}
+}
+@media(max-width:420px){
+  .user-top-left img{height:32px}
+  .user-top{padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  .user-top-right{gap:6px}
+  .user-logout{padding:9px 12px;font-size:10px}
 }
 
 /* SUCCESS POPUP */
@@ -1430,23 +1437,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- USER DASHBOARD -->
 <div class="user-panel" id="userPanel">
-  <div class="user-nav-overlay" id="userNavOverlay" onclick="closeUserNavDrawer()"></div>
-  <div class="user-nav-drawer" id="userNavDrawer">
-    <div class="drawer-header"><span class="drawer-title">Menu</span><button class="drawer-close" onclick="closeUserNavDrawer()" aria-label="Close menu">&times;</button></div>
-    <div class="drawer-nav">
-      <div class="user-nav-item active" onclick="switchUserTab('home');closeUserNavDrawer()">Home</div>
-      <div class="user-nav-item" onclick="switchUserTab('workout');closeUserNavDrawer()">My Workout</div>
-      <div class="user-nav-item" onclick="switchUserTab('progress');closeUserNavDrawer()">My Progress</div>
-      <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
-      <div class="user-nav-item" onclick="switchUserTab('messages');closeUserNavDrawer()">Messages</div>
-      <div class="user-nav-item" onclick="switchUserTab('profile');closeUserNavDrawer()">My Profile</div>
-      <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
-      <div class="user-nav-item pwa-add-homescreen" onclick="handlePwaAddToHomescreen();closeUserNavDrawer()">Add to Home Screen</div>
-    </div>
-  </div>
   <div class="user-top">
     <div class="user-top-left">
-      <button class="user-hamburger" id="userHamburger" onclick="toggleUserNavDrawer()" aria-label="Open menu"><span></span><span></span><span></span></button>
       <img src="data:image/png;base64,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" alt="BodyBank" class="nav-logo-img">
     </div>
     <div class="user-top-right">
@@ -1470,19 +1462,33 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <path d="M21 3v6h-6"/>
         </svg>
       </button>
-      <div class="user-nav">
-        <div class="user-nav-item active" onclick="switchUserTab('home')">Home</div>
-        <div class="user-nav-item" onclick="switchUserTab('workout')">My Workout</div>
-        <div class="user-nav-item" onclick="switchUserTab('progress')">My Progress</div>
-        <div class="user-nav-item" onclick="switchUserTab('checkin')"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
-        <div class="user-nav-item" onclick="switchUserTab('messages')">Messages</div>
-        <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
-        <div class="user-nav-item" onclick="switchUserTab('contact')">Contact Us</div>
-      </div>
       <button class="user-logout" id="userLogoutBtn" onclick="logoutUser()">Logout</button>
     </div>
   </div>
-  <div class="user-body">
+  <div class="user-layout">
+    <aside class="user-sidebar" id="userSidebar" role="navigation" aria-label="User navigation">
+      <nav class="user-sidebar-nav">
+        <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
+        <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
+        <a class="user-sidebar-link" href="#" data-tab="progress" onclick="switchUserTab('progress');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128200;</span>My Progress</a>
+        <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Sunday Check-in</a>
+        <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
+        <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
+        <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
+      </nav>
+    </aside>
+    <div class="user-body">
+      <div class="user-current-section-wrap" aria-live="polite">
+        <div class="user-current-section-copy">
+          <span class="user-current-eyebrow">Member Dashboard</span>
+          <span class="user-current-section" id="userCurrentSection">Home</span>
+          <span class="user-current-subtitle" id="userCurrentSubtitle">Your dashboard and daily actions in one place.</span>
+        </div>
+      </div>
+      <div class="user-home-pwa-row" id="userHomePwaRow">
+        <button type="button" class="user-pwa-shortcut pwa-add-homescreen" onclick="handlePwaAddToHomescreen()">Add to Home Screen</button>
+      </div>
+      <div class="user-tab-content-wrap" id="userTabContentWrap">
 
     <!-- HOME (Today dashboard + micro-goals) -->
     <div class="user-section active" id="usec-home">
@@ -1546,22 +1552,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
 
-        <div class="user-stats-row" id="userStatsRow">
-          <div class="user-stat-card"><div class="stat-num" id="statWorkouts">—</div><div class="stat-lbl">Workouts this week</div></div>
-          <div class="user-stat-card"><div class="stat-num" id="statNextCall">—</div><div class="stat-lbl">Next scheduled call</div></div>
-          <div class="user-stat-card"><div class="stat-num" id="statLastActive">—</div><div class="stat-lbl">Days since last activity</div></div>
-        </div>
-        <div class="user-streak-block" id="userStreakBlock">
-          <div class="streak-lbl">Weekly progress (workouts / 5)</div>
-          <div class="user-streak-bar"><div class="user-streak-fill" id="userStreakFill" style="width:0%"></div></div>
-        </div>
         <div class="welcome-cards">
-          <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div>
-          <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics & view analytics</div></div>
-          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Weekly check-in form</div></div>
-          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-title">Messages</div><div class="wc-desc">Chat with your coach</div></div>
-          <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-title">My Profile</div><div class="wc-desc">View & update your information</div></div>
-          <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div>
+          <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-copy"><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics and view analytics</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Complete your weekly check-in form</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your coach</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
       </div>
     </div>
@@ -1726,7 +1723,33 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
+      </div>
+    </div>
   </div>
+  <nav class="user-bottom-nav" id="userBottomNav" aria-label="User sections">
+    <div class="user-bottom-nav-inner">
+      <button type="button" class="user-bottom-nav-item active" data-tab="home" onclick="switchUserTab('home')" aria-label="Home">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9632;</span>
+        <span class="user-bottom-nav-label">Home</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="workout" onclick="switchUserTab('workout')" aria-label="Workout">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9830;</span>
+        <span class="user-bottom-nav-label">Workout</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="progress" onclick="switchUserTab('progress')" aria-label="Progress">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9633;</span>
+        <span class="user-bottom-nav-label">Progress</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#10003;</span>
+        <span class="user-bottom-nav-label">Check-in</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#9650;</span>
+        <span class="user-bottom-nav-label">Messages</span>
+      </button>
+    </div>
+  </nav>
 </div>
 
 <!-- ADMIN DASHBOARD -->
@@ -4103,7 +4126,7 @@ function openUserDashboard(user) {
     document.getElementById('welcomeAvatarPlaceholder').style.display = 'grid';
   }
   document.getElementById('userPanel').classList.add('open');
-  document.body.classList.add('site-nav-hidden');
+  document.body.classList.add('site-nav-hidden','user-dashboard-open');
   var logoutBtn = document.getElementById('userLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = '';
   lockBodyScroll();
@@ -4124,36 +4147,48 @@ function logoutUser() {
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('userPanel').classList.remove('open');
-  document.body.classList.remove('site-nav-hidden');
+  document.body.classList.remove('site-nav-hidden','user-dashboard-open');
   unlockBodyScroll();
 }
 
-function toggleUserNavDrawer() {
-  var overlay = document.getElementById('userNavOverlay');
-  var drawer = document.getElementById('userNavDrawer');
-  if (!overlay || !drawer) return;
-  var open = drawer.classList.contains('open');
-  if (open) { overlay.classList.remove('open'); drawer.classList.remove('open'); } else { overlay.classList.add('open'); drawer.classList.add('open'); }
-}
-function closeUserNavDrawer() {
-  var overlay = document.getElementById('userNavOverlay');
-  var drawer = document.getElementById('userNavDrawer');
-  if (overlay) overlay.classList.remove('open');
-  if (drawer) drawer.classList.remove('open');
-}
+function toggleUserNavDrawer() {}
+function closeUserNavDrawer() {}
+var USER_TAB_LABELS = {
+  home: 'Home',
+  workout: 'My Workout',
+  progress: 'My Progress',
+  checkin: 'Sunday Check-in',
+  messages: 'Messages',
+  profile: 'My Profile',
+  contact: 'Contact Us'
+};
+var USER_TAB_SUBTITLES = {
+  home: 'Your dashboard and daily actions in one place.',
+  workout: 'Log sessions and review recent training history.',
+  progress: 'Track body metrics and keep every entry visible.',
+  checkin: 'Complete your weekly review with no layout gaps.',
+  messages: 'Chat directly with your coach in one clean thread.',
+  profile: 'Keep your personal and contact details up to date.',
+  contact: 'Schedule calls or send support requests quickly.'
+};
 function switchUserTab(tab) {
-  closeUserNavDrawer();
-  document.querySelectorAll('.user-nav-item').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.user-sidebar-link[data-tab]').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.user-bottom-nav-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-section').forEach(function(s) { s.classList.remove('active'); });
-  var tabs = ['home', 'workout', 'progress', 'checkin', 'messages', 'profile', 'contact'];
-  var idx = tabs.indexOf(tab);
-  var topNav = document.querySelectorAll('.user-nav .user-nav-item');
-  var drawerNav = document.querySelectorAll('.drawer-nav .user-nav-item');
-  if (idx !== -1) { if (topNav[idx]) topNav[idx].classList.add('active'); if (drawerNav[idx]) drawerNav[idx].classList.add('active'); }
+  document.querySelectorAll('.user-sidebar-link[data-tab="' + tab + '"]').forEach(function(link) { link.classList.add('active'); });
+  document.querySelectorAll('.user-bottom-nav-item[data-tab="' + tab + '"]').forEach(function(btn) { btn.classList.add('active'); });
   var sec = document.getElementById('usec-' + tab);
   if (sec) sec.classList.add('active');
-  var logoutBtn = document.getElementById('userLogoutBtn');
-  if (logoutBtn) logoutBtn.style.display = tab === 'home' ? '' : 'none';
+  var sectionEl = document.getElementById('userCurrentSection');
+  if (sectionEl) sectionEl.textContent = USER_TAB_LABELS[tab] || 'Home';
+  var subtitleEl = document.getElementById('userCurrentSubtitle');
+  if (subtitleEl) subtitleEl.textContent = USER_TAB_SUBTITLES[tab] || USER_TAB_SUBTITLES.home;
+  var pwaRowEl = document.getElementById('userHomePwaRow');
+  if (pwaRowEl) pwaRowEl.style.display = tab === 'home' ? 'flex' : 'none';
+  var activeSidebar = document.querySelector('.user-sidebar-link[data-tab="' + tab + '"]');
+  if (activeSidebar && typeof activeSidebar.scrollIntoView === 'function') activeSidebar.scrollIntoView({ block: 'nearest' });
+  var contentWrap = document.getElementById('userTabContentWrap');
+  if (contentWrap) contentWrap.scrollTop = 0;
   if (tab === 'home') { loadUserStats(); loadTodayDashboard(); loadMicroGoals(); }
   if (tab === 'progress') {
     var proDate = document.getElementById('proDate');
@@ -5565,6 +5600,7 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
 // PWA Add to Home Screen
 (function() {
   var deferredPrompt = null;
+  var pwaInstalledKey = 'bodybank-pwa-installed';
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
       || (navigator.standalone === true)
@@ -5576,7 +5612,7 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   function updatePwaVisibility() {
     var els = document.querySelectorAll('.pwa-add-homescreen');
     var standaloneEls = document.querySelectorAll('.standalone-only');
-    var hide = isStandalone();
+    var hide = isStandalone() || localStorage.getItem(pwaInstalledKey) === '1';
     els.forEach(function(el) { el.classList.toggle('standalone-hidden', hide); });
     standaloneEls.forEach(function(el) { el.classList.toggle('standalone-visible', hide); });
   }
@@ -5599,6 +5635,7 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   });
   window.addEventListener('appinstalled', function() {
     deferredPrompt = null;
+    localStorage.setItem(pwaInstalledKey, '1');
     updatePwaVisibility();
   });
   if (document.readyState === 'loading') {
