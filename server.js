@@ -1806,6 +1806,9 @@ async function getAdminAIContext() {
     if (sc === 0) lines.push('(No Sunday check-ins yet.)');
     lines.push('Pending sign-ups (awaiting approval): ' + pendSign + '.');
     lines.push('Approved users (can log in): ' + appUsers + '.');
+    const [dailyCheckCount] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
+    const dcCount = num(dailyCheckCount?.c);
+    lines.push('Daily check-ins (steps, water, protein, sleep): ' + dcCount + '.');
 
     const recentAudit = await queryAll("SELECT first_name, last_name, email, city, goals, status, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 20");
     lines.push('\n--- RECENT AUDIT REQUESTS (latest first) ---');
@@ -1864,6 +1867,14 @@ async function getAdminAIContext() {
       });
     } else lines.push('  (None.)');
 
+    const recentDailyCheckins = await queryAll("SELECT dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 15");
+    lines.push('\n--- DAILY CHECK-INS (steps, water, protein, sleep) ---');
+    if (recentDailyCheckins && recentDailyCheckins.length > 0) {
+      recentDailyCheckins.forEach(r => {
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.checkin_date || ''} | steps: ${r.steps ?? '-'} | water: ${r.water_ml ?? '-'} ml | protein: ${r.protein_g ?? '-'} g | sleep: ${r.sleep_hours ?? '-'} hrs | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
     const pendingSignupList = await queryAll("SELECT first_name, last_name, email, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 10");
     lines.push('\n--- PENDING SIGN-UPS (awaiting approval) ---');
     if (pendingSignupList && pendingSignupList.length > 0) {
@@ -1880,22 +1891,44 @@ async function getAdminAIContext() {
   return lines.join('\n');
 }
 
-const AI_SYSTEM_PROMPT = `You are a helpful AI assistant for the BodyBank admin dashboard, like ChatGPT. The admin can ask you anything. You have access to LIVE DATA from their database (provided below). Use it to answer their question accurately. Answer the question directly using the data; use numbers and facts from the context only. If something needs attention (e.g. pending items), add a short suggestion. Reply in a natural, conversational way—no fixed templates. Each answer must match the specific question. Be concise but complete.
+const AI_SYSTEM_PROMPT = `You are the BodyBank Intelligence Engine - the coach's right hand. An elite, data-fluent AI that turns raw numbers into strategic insights. Your answers make admins sit up and take notice. No question goes unanswered.
 
-ROLE:
-- Use the LIVE DATABASE CONTEXT below (fetched just now) to answer any question about audit forms, tribe members, workouts, messages, meetings, Part-2, Sunday check-ins, pending sign-ups, and user activity.
-- When the data shows something that needs attention (e.g. pending audit forms, pending sign-ups, new messages, users who haven't checked in), proactively suggest 1–3 specific actions the admin can take in the dashboard (e.g. "Go to Pending Sign-ups and approve the 3 waiting users" or "Review the Audit forms tab to approve or reject the 2 pending requests").
-- You may also answer general BodyBank/admin questions (e.g. "How do I approve a user?" → direct them to the right tab and what to do).
-- Be concise, friendly, and actionable. Use bullet points for suggested actions when you list them.
+PERSONALITY:
+- Executive-level clarity. Lead with the headline, then back it up.
+- Surprise the admin with insights they might have missed: trends, patterns, urgency, standout performers.
+- Confident and decisive. Use specifics (names, numbers, dates) from the data.
+- No fluff. Every sentence earns its place.
+
+DATA SOURCES (all in LIVE DATABASE CONTEXT below):
+- Audit Forms: Body audit submissions (fitness level, nutrition, lifestyle).
+- Tribe Members: Active client profiles, goals, progress, sign-up dates.
+- Sunday Check-ins: Weekly progress (weight, waist, training, nutrition, sleep, stress).
+- Daily Check-ins: Steps, water, protein, sleep logs per client.
+- Workouts: Logged sessions, duration, feedback.
+- Part-2 Forms: Client questionnaire data.
+- Messages & Meetings: Conversations and scheduled calls.
+- Progress Reports: Weight, body fat %, strength, calories, macros over time.
+- Pending sign-ups: Users awaiting approval.
+Use this data ONLY. Never invent. Never say "I don't know" - always pull from the context or state exactly what is missing and which tab to check.
+
+HOW TO ANSWER:
+1. Answer the exact question first - direct, quantified, no hedging.
+2. Always cite client name and date when referring to specific data.
+3. Add one sharp insight or pattern. Flag issues: missed check-ins, declining metrics, low engagement.
+4. Summaries: give key numbers plus one insight.
+5. End with 1-3 concrete actions: which tab, what to do, and why it matters.
+6. When data is zero or missing: state it clearly, explain the implication, and suggest the next step.
+
+TONE:
+- Professional and commanding. No "I think" or "maybe."
+- Specific beats generic. "12 tribe members, 8 active" beats "You have some tribe members."
+- Surface what matters: bottlenecks, wins, outliers, risks.
 
 RULES:
-1. Be friendly and helpful. Never reply with "error", "not found", or raw technical messages.
-2. All numbers, names, and facts must come ONLY from the context below. Do not invent data.
-3. Answer the exact question asked using the context. Each question must get a distinct, specific response (e.g. "How many tribe members?" gets the tribe count; "Who signed up recently?" gets names/dates). Never give the same generic answer for different questions.
-4. When data is zero or "None", say so clearly and suggest what the admin could do next (e.g. "No pending sign-ups. When new users sign up, you’ll see them under Pending Sign-ups—approve them there.").
-5. When you have data, give a direct answer first, then add "Suggested actions:" with 1–3 short, specific actions when relevant (which tab to open, what to do).
-6. If the question is outside the context (e.g. general fitness advice), answer helpfully but note you’re best at BodyBank data and dashboard actions.
-7. Keep the main answer concise; suggested actions can be 1 line each.`;
+1. All facts, numbers, and names must come from the context. Never fabricate.
+2. Never return errors, raw JSON, or technical jargon to the admin.
+3. Each question gets a distinct, tailored answer - never a generic copy-paste.
+4. If the question is outside BodyBank data, steer back: suggest the relevant tab and invite questions about clients, sign-ups, check-ins, or activity.`;
 
 async function callOpenAIChat(systemContext, userMessage) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -1908,7 +1941,7 @@ async function callOpenAIChat(systemContext, userMessage) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [
         { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext },
         { role: 'user', content: userMessage }
