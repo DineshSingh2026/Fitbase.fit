@@ -40,11 +40,11 @@
   --safe-right:env(safe-area-inset-right,0px);
   --app-height:100dvh;
 }
+@media all and (display-mode:standalone){:root{--app-height:100vh}}
 *{margin:0;padding:0;box-sizing:border-box}
-/* Universal PWA full-screen fix */
-html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden;height:100%;width:100%;-webkit-text-size-adjust:100%}
+html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;overflow-x:hidden;height:100%;width:100%;-webkit-text-size-adjust:100%;background:#060606}
 body{
-  background:var(--black);
+  background:#060606;
   color:var(--cream);
   font-family:'Outfit',sans-serif;
   font-weight:300;
@@ -54,9 +54,13 @@ body{
   margin:0;
   padding:0;
   min-height:100dvh;
+  min-height:-webkit-fill-available;
   height:100%;
   width:100%;
   box-sizing:border-box;
+}
+@media all and (display-mode:standalone){
+  body{position:fixed;inset:0;min-height:100vh;height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 }
 .app,.dashboard,.main-container,.layout,.admin-panel,.admin-layout,.superadmin-panel,.user-panel{padding-top:calc(var(--safe-top) + 10px);min-height:var(--app-height);box-sizing:border-box}
 header,nav,.navbar,.topbar,.admin-top,.user-top,.superadmin-top{position:sticky;top:0;z-index:1000;padding-top:calc(var(--safe-top) + 12px)}
@@ -5635,14 +5639,21 @@ window.addEventListener('load', applySafeAreaFix);
 window.addEventListener('resize', applySafeAreaFix);
 </script>
 <script>
-function setAppHeight() {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--app-height', (vh * 100) + 'px');
-}
-
-window.addEventListener('resize', setAppHeight);
-window.addEventListener('load', setAppHeight);
-setAppHeight();
+(function() {
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator && window.navigator.standalone === true);
+  if (isStandalone) {
+    document.documentElement.classList.add('pwa-standalone');
+    document.documentElement.style.setProperty('--app-height', '100vh');
+  } else {
+    function setAppHeight() {
+      var h = window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', h + 'px');
+    }
+    window.addEventListener('resize', setAppHeight);
+    window.addEventListener('load', setAppHeight);
+    setAppHeight();
+  }
+})();
 </script>
 </body>
 </html>

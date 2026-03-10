@@ -1,4 +1,5 @@
 /* ========== PWA Full-Screen Fixes (Safari + Chrome on iOS) ========== */
+/* Workaround for WebKit bug: dvh/svh report wrong in standalone — use 100vh */
 
 /* Reset */
 *, *::before, *::after {
@@ -7,10 +8,11 @@
   padding: 0;
 }
 
-/* Fill full screen on every browser */
+/* Fill full screen — base */
 html, body {
   height: 100%;
   width: 100%;
+  min-height: -webkit-fill-available;
   min-height: 100dvh;
   overflow-x: hidden;
   margin: 0;
@@ -18,7 +20,41 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Safe area CSS variables — works on Safari AND Chrome on iOS */
+html { background: #060606; }
+
+/* iOS PWA standalone: WebKit bug — 100dvh/window.innerHeight wrong, use 100vh + position fixed */
+@media all and (display-mode: standalone) {
+  html, body {
+    min-height: 100vh !important;
+    height: 100vh !important;
+  }
+  body {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+html.pwa-standalone, html.pwa-standalone body {
+  min-height: 100vh !important;
+  height: 100vh !important;
+}
+html.pwa-standalone body {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area CSS variables */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -27,9 +63,13 @@ html, body {
   --app-height: 100dvh;
 }
 
-/* Root app container — fills viewport, prevents gap */
+@media all and (display-mode: standalone) {
+  :root { --app-height: 100vh; }
+}
+
+/* Root app container */
 #root, #app, .app-wrapper {
-  min-height: 100dvh;
+  min-height: var(--app-height);
   height: 100%;
   width: 100vw;
   overflow-x: hidden;
@@ -37,12 +77,12 @@ html, body {
 
 .app, .dashboard, .main-container, .layout,
 .admin-panel, .admin-layout, .superadmin-panel, .user-panel {
-  min-height: 100dvh;
+  min-height: var(--app-height);
   width: 100%;
   overflow-x: hidden;
 }
 
-/* Header / Top Navbar — pad for status bar (exclude bottom nav) */
+/* Header / Top Navbar (exclude bottom nav) */
 .header, header, .top-nav, .navbar, nav:not(.admin-bottom-nav):not(.bottom-nav), .admin-top, .user-top, .superadmin-top {
   padding-top: calc(var(--safe-top) + 12px) !important;
   padding-left: calc(var(--safe-left) + 16px) !important;
@@ -72,10 +112,8 @@ main::-webkit-scrollbar,
   left: 0;
   right: 0;
   padding-bottom: calc(var(--safe-bottom) + 8px);
-  /* safe-bottom covers the iPhone home indicator on BOTH Safari and Chrome */
 }
 
-/* Prevent overscroll bounce on mobile */
 html, body {
   overscroll-behavior: none;
 }
