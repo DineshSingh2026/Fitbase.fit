@@ -93,6 +93,12 @@ body.site-nav-hidden nav#nv{display:none !important}
 
 /* PWA Add to Home Screen */
 .pwa-add-homescreen.standalone-hidden{display:none !important}
+.standalone-only{display:none !important}
+.standalone-only.standalone-visible{display:inline-flex !important}
+.mm .standalone-only.standalone-visible{display:flex !important}
+.nav-refresh-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;align-items:center;justify-content:center;transition:all .3s}
+.nav-refresh-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.nav-refresh-btn svg{width:18px;height:18px;display:block}
 .admin-nav-link.pwa-add-homescreen,.user-nav-drawer .user-nav-item.pwa-add-homescreen,.mm .pwa-add-homescreen{cursor:pointer;flex-shrink:0}
 .mm .pwa-add-homescreen{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center;background:none;border:none;width:100%;justify-content:center;font:inherit}
 .mm .pwa-add-homescreen:hover{color:var(--gold)}
@@ -749,7 +755,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-nav-link-icon{font-size:18px;opacity:.9;flex-shrink:0}
 .admin-drawer-section{margin-bottom:20px}
 .admin-drawer-section-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 24px 8px}
-.admin-bottom-nav{display:flex!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;min-height:88px;height:calc(88px + env(safe-area-inset-bottom,0px));padding:0 0 env(safe-area-inset-bottom,0px) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
+.admin-bottom-nav{display:flex!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;min-height:76px;height:calc(76px + env(safe-area-inset-bottom,0px));padding:0 0 env(safe-area-inset-bottom,0px) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
 .admin-bottom-nav-inner{display:flex;align-items:stretch;justify-content:space-between;width:100%;height:100%;min-width:0;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));box-sizing:border-box}
 .admin-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box}
 .admin-bottom-nav-item:hover,.admin-bottom-nav-item:focus{color:var(--cream);outline:none}
@@ -916,9 +922,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 @media(max-width:768px){
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
-  .admin-body{padding:max(12px,env(safe-area-inset-top)) 12px max(80px,calc(72px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
-  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
-  .admin-current-section-wrap{margin-bottom:8px;padding:4px 0;flex-shrink:0}
+  .admin-body{padding:6px 12px max(72px,calc(64px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:8px 12px;padding-top:max(2px,calc(env(safe-area-inset-top) - 8px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
+  .admin-current-section-wrap{margin-bottom:4px;padding:2px 0;flex-shrink:0}
   .admin-section-page{padding-top:8px}
   .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:8px 0 0;margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
@@ -981,8 +987,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
-  .admin-body{padding:max(10px,env(safe-area-inset-top)) 12px max(80px,calc(72px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
-  .admin-top{padding:8px 12px;padding-top:max(8px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:6px}
+  .admin-body{padding:4px 12px max(72px,calc(64px + env(safe-area-inset-bottom)));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
+  .admin-top{padding:8px 12px;padding-top:max(2px,calc(env(safe-area-inset-top) - 10px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:6px}
   .admin-table{font-size:14px}
   .admin-table th,.admin-table td{font-size:14px}
   .admin-welcome h1{font-size:32px}
@@ -2334,6 +2340,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </ul>
   <div class="nav-right">
     <span class="nav-tagline">Lifestyle Management</span>
+    <button type="button" class="nav-refresh-btn standalone-only" onclick="refreshApp(this)" title="Refresh" aria-label="Refresh">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
+        <path d="M21 3v6h-6"/>
+      </svg>
+    </button>
     <a href="#" class="nav-cta nav-login-btn desktop-only" onclick="openModal('loginModal');return false;">Login</a>
     <button class="nt" id="navHamburger" onclick="lockBodyScroll();document.getElementById('mo').classList.add('open')" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
@@ -2347,6 +2359,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
   <a href="#contact" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Contact us</a>
   <a href="#" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();openModal('loginModal');return false;">Login</a>
+  <button type="button" class="pwa-add-homescreen standalone-only" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();refreshApp(this)">Refresh App</button>
   <a href="#" class="pwa-add-homescreen" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();handlePwaAddToHomescreen();return false;">Add to Home Screen</a>
 </div>
 
@@ -5562,8 +5575,10 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   }
   function updatePwaVisibility() {
     var els = document.querySelectorAll('.pwa-add-homescreen');
+    var standaloneEls = document.querySelectorAll('.standalone-only');
     var hide = isStandalone();
     els.forEach(function(el) { el.classList.toggle('standalone-hidden', hide); });
+    standaloneEls.forEach(function(el) { el.classList.toggle('standalone-visible', hide); });
   }
   window.handlePwaAddToHomescreen = function() {
     if (isStandalone()) return;
