@@ -5922,11 +5922,18 @@ window.addEventListener('resize', applySafeAreaFix);
 </script>
 <script>
 (function() {
+  var ua = navigator.userAgent || '';
+  var isIosMobile = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isAndroidMobile = /Android/i.test(ua);
+  if (isIosMobile) document.documentElement.classList.add('ios-mobile');
+  if (isAndroidMobile) document.documentElement.classList.add('android-mobile');
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator && window.navigator.standalone === true);
   if (isStandalone) {
     document.documentElement.classList.add('pwa-standalone');
+    if (isAndroidMobile) document.documentElement.classList.add('android-standalone');
     document.documentElement.style.setProperty('--app-height', '100vh');
   } else {
+    if (isAndroidMobile) document.documentElement.classList.add('android-browser');
     function setAppHeight() {
       var h = window.innerHeight;
       document.documentElement.style.setProperty('--app-height', h + 'px');
@@ -5937,5 +5944,143 @@ window.addEventListener('resize', applySafeAreaFix);
   }
 })();
 </script>
+<style id="desktop-sidebar-force">
+/* Force visible sidebar - overrides cache/conflicts */
+@media(min-width:768px){
+  .admin-sidebar,.user-sidebar{background:#111!important;border-right:1px solid rgba(200,164,78,0.25)!important;display:flex!important}
+}
+</style>
+<style id="android-mobile-match-ios">
+@media(max-width:768px){
+  html.android-mobile .admin-top,
+  html.android-mobile .user-top{
+    padding-top:max(6px,env(safe-area-inset-top,0px)) !important;
+    padding-left:max(12px,env(safe-area-inset-left,0px)) !important;
+    padding-right:max(12px,env(safe-area-inset-right,0px)) !important;
+    gap:8px !important;
+  }
+  html.android-mobile .admin-top-left img,
+  html.android-mobile .user-top-left img{
+    height:38px !important;
+  }
+  html.android-mobile .admin-top-right,
+  html.android-mobile .user-top-right{
+    gap:8px !important;
+    flex-wrap:nowrap !important;
+  }
+  html.android-mobile .admin-notify-btn,
+  html.android-mobile .app-refresh-btn{
+    width:38px !important;
+    height:38px !important;
+    min-width:38px !important;
+    min-height:38px !important;
+  }
+  html.android-mobile .admin-logout,
+  html.android-mobile .user-logout{
+    padding:7px 12px !important;
+    font-size:10px !important;
+  }
+  html.android-mobile .admin-body,
+  html.android-mobile .user-body{
+    padding-top:4px !important;
+    padding-left:max(12px,env(safe-area-inset-left,0px)) !important;
+    padding-right:max(12px,env(safe-area-inset-right,0px)) !important;
+    padding-bottom:max(88px,calc(80px + env(safe-area-inset-bottom,0px))) !important;
+  }
+  html.android-mobile .admin-current-section-wrap,
+  html.android-mobile .user-current-section-wrap{
+    margin-bottom:6px !important;
+    padding:2px 0 4px !important;
+  }
+  html.android-mobile .admin-current-section,
+  html.android-mobile .user-current-section{
+    font-size:19px !important;
+    letter-spacing:1.5px !important;
+  }
+  html.android-mobile .admin-current-subtitle,
+  html.android-mobile .user-current-subtitle{
+    font-size:12px !important;
+    line-height:1.45 !important;
+  }
+  html.android-mobile .admin-tab-content-wrap,
+  html.android-mobile .user-tab-content-wrap{
+    padding-top:8px !important;
+    padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important;
+  }
+  html.android-mobile .user-welcome{
+    padding:36px 18px 44px !important;
+  }
+  html.android-mobile .user-welcome h1{
+    font-size:clamp(30px,6vw,40px) !important;
+  }
+  html.android-mobile .user-welcome .user-welcome-tag{
+    font-size:16px !important;
+    margin-bottom:28px !important;
+  }
+  html.android-mobile .welcome-cards{
+    max-width:100% !important;
+    gap:12px !important;
+  }
+  html.android-mobile .welcome-card{
+    padding:16px 16px !important;
+  }
+  html.android-mobile .admin-bottom-nav,
+  html.android-mobile .user-bottom-nav{
+    min-height:78px !important;
+    height:calc(78px + env(safe-area-inset-bottom,0px)) !important;
+    padding-bottom:env(safe-area-inset-bottom,0px) !important;
+  }
+  html.android-mobile .admin-bottom-nav-inner,
+  html.android-mobile .user-bottom-nav-inner{
+    padding:0 max(10px,env(safe-area-inset-right,0px)) 0 max(10px,env(safe-area-inset-left,0px)) !important;
+  }
+  html.android-mobile .admin-bottom-nav-item,
+  html.android-mobile .user-bottom-nav-item{
+    min-height:62px !important;
+    padding:8px 2px 10px !important;
+    justify-content:flex-start !important;
+  }
+  html.android-mobile .admin-bottom-nav-icon,
+  html.android-mobile .user-bottom-nav-icon{
+    font-size:18px !important;
+    margin-bottom:3px !important;
+  }
+  html.android-mobile .admin-bottom-nav-label,
+  html.android-mobile .user-bottom-nav-label{
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+    font-size:10px !important;
+    line-height:1.15 !important;
+    min-height:20px !important;
+    white-space:nowrap !important;
+    overflow:visible !important;
+    text-overflow:clip !important;
+  }
+}
+@media(max-width:420px){
+  html.android-mobile .admin-top,
+  html.android-mobile .user-top{
+    padding-left:max(10px,env(safe-area-inset-left,0px)) !important;
+    padding-right:max(10px,env(safe-area-inset-right,0px)) !important;
+  }
+  html.android-mobile .admin-top-left img,
+  html.android-mobile .user-top-left img{
+    height:34px !important;
+  }
+  html.android-mobile .admin-notify-btn,
+  html.android-mobile .app-refresh-btn{
+    width:36px !important;
+    height:36px !important;
+    min-width:36px !important;
+    min-height:36px !important;
+  }
+  html.android-mobile .admin-logout,
+  html.android-mobile .user-logout{
+    padding:6px 10px !important;
+    font-size:9px !important;
+  }
+}
+</style>
 </body>
 </html>
