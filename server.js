@@ -2308,6 +2308,22 @@ app.get('/api/superadmin/shared', async (req, res) => {
   }
 });
 
+// ============ CRON ENDPOINT (must be before catch-all) ============
+// External services (cron-job.org, UptimeRobot) call this to wake server and process scheduled messages.
+app.get('/api/cron/process-scheduled-messages', async (req, res) => {
+  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
+  if (CRON_SECRET && secret !== CRON_SECRET) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  try {
+    await processScheduledMessages();
+    res.json({ ok: true, message: 'Scheduled messages job completed' });
+  } catch (e) {
+    console.error('Cron process-scheduled-messages error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ SERVE FRONTEND ============
 // PWA: serve service worker and manifest with no-cache so updates apply quickly
 app.get('/sw.js', (req, res) => {
@@ -2387,22 +2403,6 @@ async function processScheduledMessages() {
     console.error('processScheduledMessages error:', e.message);
   }
 }
-
-// Cron endpoint: external services (cron-job.org, UptimeRobot, Render Cron) can call this
-// to wake a sleeping server and process scheduled messages. Required when server sleeps (e.g. Render free tier).
-app.get('/api/cron/process-scheduled-messages', async (req, res) => {
-  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
-  if (CRON_SECRET && secret !== CRON_SECRET) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  try {
-    await processScheduledMessages();
-    res.json({ ok: true, message: 'Scheduled messages job completed' });
-  } catch (e) {
-    console.error('Cron process-scheduled-messages error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
 
 // ============ START ============
 initDB().then(() => {
