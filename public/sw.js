@@ -1,8 +1,51 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v11';
+const CACHE_NAME = 'bodybank-v12';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
+});
+
+/* Push notifications — show banner even when app/website is closed (Zomato-style) */
+self.addEventListener('push', (e) => {
+  if (!e.data) return;
+  let title = 'Body Bank';
+  let body = '';
+  let data = {};
+  try {
+    const j = e.data.json();
+    if (j) {
+      title = j.title || title;
+      body = j.body || j.desc || '';
+      data = j;
+    }
+  } catch (_) {
+    body = e.data.text() || '';
+  }
+  const opts = {
+    body: (body || 'You have a new notification').substring(0, 200),
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: data.id || 'bodybank-' + Date.now(),
+    requireInteraction: false,
+    data: { url: '/', ...data }
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      for (var i = 0; i < clientList.length; i++) {
+        if (clientList[i].url && clientList[i].focus) {
+          clientList[i].navigate(url);
+          return clientList[i].focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener('activate', (e) => {

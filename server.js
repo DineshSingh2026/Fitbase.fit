@@ -54,6 +54,16 @@ async function sendPushToUser(userId, payload) {
   } catch (e) { /* ignore */ }
 }
 
+async function sendPushToAdmins(payload) {
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  try {
+    const admins = await queryAll("SELECT id FROM users WHERE role IN ('admin', 'superadmin')");
+    for (const a of admins) {
+      await sendPushToUser(a.id, payload);
+    }
+  } catch (e) { /* ignore */ }
+}
+
 const app = express();
 
 // Trust proxy (Render, Nginx, etc.) so req.protocol and req.get('host') are correct for share links
@@ -724,6 +734,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
+    sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access` })).catch(() => {});
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
@@ -739,6 +750,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
+    sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit` })).catch(() => {});
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -777,6 +789,7 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
+    sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit` })).catch(() => {});
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -960,6 +973,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run("INSERT INTO contact_messages (id,user_id,name,phone,email,message) VALUES (?,?,?,?,?,?)",
       [id, user_id || null, name, phone || '', email || '', message]);
+    sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}` })).catch(() => {});
     res.json({ id, message: 'Message sent' });
   } catch (e) {
     console.error('Contact error:', e.message);
@@ -985,7 +999,7 @@ app.get('/api/threads', verifyToken, async (req, res) => {
         `SELECT * FROM (
           SELECT DISTINCT ON (t.user_id) t.id, t.user_id, t.subject, t.created_at, t.updated_at,
             u.first_name, u.last_name, u.email,
-            (SELECT body FROM thread_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) AS last_message
+            (SELECT body FROM thread_messages WHERE thread_id = t.id AND sender_role = 'user' ORDER BY created_at DESC LIMIT 1) AS last_message
           FROM message_threads t
           LEFT JOIN users u ON u.id = t.user_id
           ORDER BY t.user_id, t.updated_at DESC
@@ -1104,6 +1118,11 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
       sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
+    }
+    if (!isAdmin) {
+      const u = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
+      const userName = u ? [(u.first_name || '').trim(), (u.last_name || '').trim()].filter(Boolean).join(' ') || u.email : 'A client';
+      sendPushToAdmins(JSON.stringify({ title: 'New message', body: `${userName}: ${String(body).trim().slice(0, 80)}` })).catch(() => {});
     }
     res.status(201).json(msg);
   } catch (e) {
@@ -1626,6 +1645,38 @@ app.get('/api/admin/users', async (req, res) => {
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (NODE_ENV !== 'production') console.log('[DELETE /api/admin/users/:id] id=', id);
+    const user = await queryOne("SELECT id, role, email FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only remove client users' });
+    const threads = await queryAll('SELECT id FROM message_threads WHERE user_id = ?', [id]);
+    const threadIds = (threads || []).map(t => t.id).filter(Boolean);
+    if (threadIds.length > 0) {
+      for (const tid of threadIds) {
+        await run('DELETE FROM thread_messages WHERE thread_id = ?', [tid]);
+      }
+    }
+    await run('DELETE FROM message_threads WHERE user_id = ?', [id]);
+    await run('DELETE FROM scheduled_messages WHERE user_id = ?', [id]);
+    await run('DELETE FROM workout_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM contact_messages WHERE user_id = ?', [id]);
+    await run('DELETE FROM meetings WHERE user_id = ?', [id]);
+    await run('DELETE FROM sunday_checkins WHERE user_id = ?', [id]);
+    await run('DELETE FROM hydration_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
+    await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    await run('DELETE FROM users WHERE id = ?', [id]);
+    res.json({ message: 'User removed' });
+  } catch (e) {
+    console.error('Delete user error:', e.message);
+    res.status(500).json({ error: 'Failed to remove user' });
   }
 });
 

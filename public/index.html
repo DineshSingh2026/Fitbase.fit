@@ -316,6 +316,17 @@ body.site-nav-hidden nav#nv{display:none !important}
 .form-success{font-size:12px;color:#50c878;margin-top:6px}
 select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c8a44e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px}
 select.form-input option{background:var(--dark2);color:var(--cream)}
+input[type="date"].form-input,input[type="time"].form-input{color:var(--cream);font-size:16px;min-height:48px;width:100%;max-width:180px}
+input[type="date"].form-input::-webkit-datetime-edit,input[type="time"].form-input::-webkit-datetime-edit{color:var(--cream);opacity:1}
+input[type="date"].form-input::-webkit-datetime-edit-fields-wrapper{color:var(--cream)}
+input[type="date"].form-input::-webkit-datetime-edit-text{color:var(--cream)}
+input[type="date"].form-input::-webkit-datetime-edit-month-field,input[type="date"].form-input::-webkit-datetime-edit-day-field,input[type="date"].form-input::-webkit-datetime-edit-year-field{color:var(--cream)}
+input[type="time"].form-input::-webkit-datetime-edit-hour-field,input[type="time"].form-input::-webkit-datetime-edit-minute-field{color:var(--cream)}
+.admin-meeting-date,.admin-meeting-time{flex:1;min-width:120px}
+@media(max-width:600px){
+  .admin-meeting-form .admin-meeting-select,.admin-meeting-form .admin-meeting-date,.admin-meeting-form .admin-meeting-time{max-width:100%;min-width:0;flex:1 1 100%}
+  input[type="date"].form-input,input[type="time"].form-input{max-width:100%}
+}
 textarea.form-input{resize:vertical;min-height:80px}
 .form-submit{width:100%;padding:14px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;margin-top:8px}
 .form-submit:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
@@ -1480,6 +1491,20 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-thread-card .tt-date{font-size:12px;color:var(--goldd)}
 .admin-thread-row{cursor:pointer;transition:background .2s}
 .admin-thread-row:hover{background:rgba(200,164,78,0.06)}
+.admin-chat-list{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.2)}
+.admin-chat-item{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s;text-decoration:none;color:inherit}
+.admin-chat-item:last-child{border-bottom:none}
+.admin-chat-item:hover{background:rgba(200,164,78,0.08)}
+.admin-chat-avatar{width:48px;height:48px;min-width:48px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:600;color:var(--cream);background:rgba(200,164,78,0.25);border:1px solid rgba(200,164,78,0.4)}
+.admin-chat-body{flex:1;min-width:0}
+.admin-chat-name{font-weight:600;color:var(--cream);font-size:15px;margin-bottom:2px}
+.admin-chat-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-chat-time{font-size:12px;color:var(--muted);flex-shrink:0}
+.admin-meetings-list{display:flex;flex-direction:column;gap:8px}
+.admin-meeting-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:rgba(0,0,0,0.2);border:1px solid var(--bdr);border-radius:10px}
+.admin-meeting-info{flex:1;min-width:0}
+.admin-meeting-client{font-weight:600;color:var(--cream);margin-bottom:2px}
+.admin-meeting-datetime{font-size:13px;color:var(--muted)}
 
 @media(max-width:900px){
   .user-top{padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
@@ -2199,10 +2224,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th>Status</th><th>Actions</th></tr>
+          <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th>Actions</th></tr>
         </thead>
         <tbody id="requestsBody">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -2245,63 +2270,25 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
-    <!-- TAB: Messages & Upcoming Meetings (combined) -->
+    <!-- TAB: Messages & Meetings (minimal: Chat + Meetings) -->
     <div class="admin-tab-content" id="tab-messages-meetings">
+      <!-- 1. Chat (WhatsApp style): click user → open conversation, reply -->
       <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Scheduled Messages</h3>
-        <p class="form-hint" style="margin-bottom:12px">Schedule a message to be sent to users at a specific date and time.</p>
-        <div class="admin-scheduled-form" style="margin-bottom:20px">
-          <div style="display:grid;gap:12px;max-width:560px">
-            <label class="form-label">Recipients</label>
-            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                <input type="radio" name="schedTarget" value="user" checked>
-                <span>Specific user</span>
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                <input type="radio" name="schedTarget" value="broadcast">
-                <span>All approved users</span>
-              </label>
-            </div>
-            <div id="schedUserWrap">
-              <label class="form-label">Select user</label>
-              <select id="schedUserId" class="form-input">
-                <option value="">— Select user —</option>
-              </select>
-            </div>
-            <label class="form-label">Message</label>
-            <textarea id="schedMessageBody" class="form-input" rows="4" placeholder="Type your message…"></textarea>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div>
-                <label class="form-label">Date</label>
-                <input type="date" id="schedDate" class="form-input">
-              </div>
-              <div>
-                <label class="form-label">Time</label>
-                <input type="time" id="schedTime" class="form-input">
-              </div>
-            </div>
-            <button type="button" class="form-submit" onclick="createScheduledMessage()">Schedule message</button>
-          </div>
-        </div>
-        <div id="adminScheduledList"><p class="form-hint">Loading…</p></div>
+        <h3 class="admin-subsection-title">Chat</h3>
+        <p class="form-hint" style="margin-bottom:12px">Click a client to view messages and reply.</p>
+        <div id="adminThreadsList" class="admin-chat-list" style="max-width:520px"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
       </div>
+      <!-- 2. Meetings (user + admin scheduled) -->
       <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Conversations</h3>
-        <p class="form-hint" style="margin-bottom:12px">One chat per user. Click to open. New users appear at the bottom.</p>
-        <div id="adminThreadsList"><p class="form-hint">Loading…</p></div>
-      </div>
-      <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Upcoming Meetings</h3>
-        <div class="admin-table-wrap"><table class="admin-table">
-          <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Date</th><th>Time Slot</th></tr></thead>
-          <tbody id="meetingsBody"></tbody>
-        </table></div>
-        <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
-          <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
-          <span class="admin-h-scroll-label">Scroll to see all columns</span>
-          <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+        <h3 class="admin-subsection-title">Meetings</h3>
+        <p class="form-hint" style="margin-bottom:12px">Schedule a call or view upcoming meetings.</p>
+        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:20px">
+          <select id="meetingUserId" class="form-input admin-meeting-select" style="min-width:160px;flex:1"><option value="">Select client</option></select>
+          <input type="date" id="meetingDate" class="form-input admin-meeting-date" aria-label="Meeting date">
+          <input type="time" id="meetingTime" class="form-input admin-meeting-time" aria-label="Meeting time">
+          <button type="button" class="form-submit" onclick="adminScheduleCall()">Schedule</button>
         </div>
+        <div id="meetingsList" class="admin-meetings-list" style="max-width:520px"><p class="form-hint" style="margin:0;padding:24px">Loading…</p></div>
       </div>
     </div>
 
@@ -2363,7 +2350,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="admin-cp-detail">
           <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
           <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:16px 0">
-            <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
+              <button type="button" class="action-btn btn-reject" id="adminCpRemoveBtn" onclick="adminRemoveUser()" style="padding:12px 20px">Remove user</button>
+            </div>
             <div id="adminCpShareUrlWrap" style="display:none;margin-top:12px">
               <label class="admin-cp-heading" style="margin-bottom:6px">Link to send to client (they can view their progress &amp; graphs)</label>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -3298,7 +3288,7 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
@@ -3405,12 +3395,21 @@ function compressImageToDataUrl(file) {
   });
 }
 
-function requestNotificationPermission() {
-  if (typeof Notification === 'undefined') return;
-  if (Notification.permission === 'default') {
-    Notification.requestPermission().then(function(p) { if (p === 'granted') updateNotifyPermissionUI(true); else updateNotifyPermissionUI(false); }).catch(function() { updateNotifyPermissionUI(false); });
-  } else if (Notification.permission === 'granted') updateNotifyPermissionUI(true);
-  else updateNotifyPermissionUI(false);
+async function requestNotificationPermission() {
+  if (typeof Notification === 'undefined' || !('serviceWorker' in navigator)) return;
+  try {
+    var perm = Notification.permission;
+    if (perm === 'default') perm = await Notification.requestPermission();
+    if (perm !== 'granted') { updateNotifyPermissionUI(false); return; }
+    updateNotifyPermissionUI(true);
+    var keyRes = await apiCall('GET', '/api/push/vapid-public');
+    var publicKey = keyRes && keyRes.publicKey;
+    if (!publicKey) return;
+    var reg = await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+    var subJson = sub.toJSON ? sub.toJSON() : { endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } };
+    await apiCall('POST', '/api/push/subscribe', { endpoint: subJson.endpoint, keys: subJson.keys || {} });
+  } catch (e) { updateNotifyPermissionUI(Notification.permission === 'granted'); }
 }
 function updateNotifyPermissionUI(granted) {
   var el = document.getElementById('notifyEnablePrompt');
@@ -3622,7 +3621,7 @@ async function loadRequests() {
   const tbody = document.getElementById('requestsBody');
   if (!tbody) return;
   if (data.error || !Array.isArray(data)) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(r => {
@@ -3632,10 +3631,9 @@ async function loadRequests() {
       <td data-label="Email">${escapeHtml(r.email||'')}</td>
       <td data-label="Age">${r.age || '-'}</td>
       <td data-label="City">${escapeHtml(r.city||'')}</td>
-      <td data-label="Status"><span class="status-badge status-${r.status||'pending'}">${escapeHtml((r.status||'').charAt(0).toUpperCase()+(r.status||'').slice(1))}</span></td>
       <td data-label="Actions">
         <button class="action-btn btn-view" onclick="viewRequest('${sid}')">View</button>
-        ${r.status === 'pending' ? `<button class="action-btn btn-approve" onclick="approveRequest('${sid}')">Approve</button><button class="action-btn btn-reject" onclick="rejectRequest('${sid}')">Reject</button>` : ''}
+        <button class="action-btn btn-reject" onclick="removeAuditRequest('${sid}')">Remove</button>
       </td>
     </tr>`;
   }).join('');
@@ -3657,12 +3655,10 @@ async function viewRequest(id) {
     _row('Occupation', r.occupation) +
     _row('Work Intensity', r.work_intensity) +
     _row('Fitness Experience', r.fitness_experience) +
-    _row('Status', (r.status || '').charAt(0).toUpperCase() + (r.status || '').slice(1)) +
     _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
   if (actions) {
-    actions.innerHTML = r.status === 'pending' ? 
-      '<button class="action-btn btn-approve" onclick="closeModal(\'auditViewModal\');approveRequest(\'' + String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">Approve</button>' +
-      '<button class="action-btn btn-reject" onclick="closeModal(\'auditViewModal\');rejectRequest(\'' + String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">Reject</button>' : '';
+    var rid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    actions.innerHTML = '<button class="action-btn btn-reject" onclick="closeModal(\'auditViewModal\');removeAuditRequest(\'' + rid + '\')">Remove</button>';
   }
   openModal('auditViewModal');
 }
@@ -3690,6 +3686,15 @@ async function rejectRequest(id) {
   const res = await apiCall('DELETE', '/api/audit/' + id);
   if (res && res.error) showPopup('Error', res.error, '', 'OK', null, 'error');
   else showPopup('Rejected', 'Request has been rejected.', '', 'OK');
+  loadDashboard();
+}
+
+async function removeAuditRequest(id) {
+  if (!confirm('Remove this audit form? This cannot be undone.')) return;
+  const res = await apiCall('DELETE', '/api/audit/' + id);
+  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+  showPopup('Removed', 'Audit form has been removed.', '', 'OK');
+  loadRequests();
   loadDashboard();
 }
 
@@ -3922,25 +3927,27 @@ async function loadAdminMessages() {
   const tbody = document.getElementById('messagesBody');
   if (!tbody) return;
   const list = data && !data.error && Array.isArray(data) ? data : [];
-  tbody.innerHTML = (list.length ? list.map(m => {
-    const date = m.created_at ? new Date(m.created_at).toLocaleDateString() : '-';
-    return '<tr><td data-label="Name">' + (m.name||'-') + '</td><td data-label="Email">' + (m.email||'-') + '</td><td data-label="Phone">' + (m.phone||'-') + '</td><td data-label="Message">' + (m.message||'-') + '</td><td data-label="Date">' + date + '</td></tr>';
-  }).join('') : '') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No messages yet</td></tr>';
+  tbody.innerHTML = list.length ? list.map(m => {
+    const date = m.created_at ? new Date(m.created_at).toLocaleString() : '-';
+    const msg = (m.message || '').slice(0, 80) + ((m.message || '').length > 80 ? '…' : '');
+    return '<tr><td data-label="From">' + escapeHtml(m.name||'-') + '</td><td data-label="Email">' + escapeHtml(m.email||'-') + '</td><td data-label="Message">' + escapeHtml(msg) + '</td><td data-label="Date">' + escapeHtml(date) + '</td></tr>';
+  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No messages from users yet</td></tr>';
 }
 
 async function loadAdminMeetings() {
-  const data = await apiCall('GET', '/api/meetings');
-  const tbody = document.getElementById('meetingsBody');
-  if (!tbody) return;
-  if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050">Could not load meetings. Please refresh.</td></tr>';
-    return;
-  }
-  const list = (data && Array.isArray(data)) ? data : [];
-  tbody.innerHTML = list.length ? list.map(m => {
-    const date = new Date(m.meeting_date + 'T12:00:00').toLocaleDateString();
-    return '<tr><td data-label="User">' + (m.user_name || '-') + '</td><td data-label="Email">' + (m.user_email || '-') + '</td><td data-label="Phone">' + (m.user_phone || '-') + '</td><td data-label="Date">' + date + '</td><td data-label="Time Slot">' + (m.time_slot || '-') + '</td></tr>';
-  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No upcoming meetings</td></tr>';
+  const el = document.getElementById('meetingsList');
+  if (!el) return;
+  try {
+    const data = await apiCall('GET', '/api/meetings');
+    if (data && data.error) { el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:#e05050">Could not load. Please refresh.</p>'; return; }
+    const list = (data && Array.isArray(data)) ? data : [];
+    if (list.length === 0) { el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:var(--muted)">No upcoming meetings</p>'; return; }
+    el.innerHTML = list.map(m => {
+      const date = m.meeting_date ? new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+      const time = m.time_slot || '';
+      return '<div class="admin-meeting-item"><div class="admin-meeting-info"><div class="admin-meeting-client">' + escapeHtml(m.user_name || m.user_email || '—') + '</div><div class="admin-meeting-datetime">' + escapeHtml(date + (time ? ' · ' + time : '')) + '</div></div></div>';
+    }).join('');
+  } catch (e) { el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:#e05050">Failed to load meetings.</p>'; }
 }
 
 async function loadPerformanceInsights() {
@@ -4256,7 +4263,7 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages-meetings') { loadAdminMeetings(); loadAdminThreads(); loadAdminScheduledMessages(); }
+  if (tab === 'messages-meetings') { loadAdminMeetings(); loadAdminThreads(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
@@ -4479,6 +4486,28 @@ async function loadClientProgressUsers() {
   window._adminCpSelectedUserId = null;
   destroyAdminProgressCharts();
 }
+
+async function adminRemoveUser() {
+  var id = window._adminCpSelectedUserId;
+  if (!id) return;
+  if (!confirm('Remove this user and all their data? This cannot be undone.')) return;
+  var btn = document.getElementById('adminCpRemoveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Removing…'; }
+  try {
+    var res = await apiCall('DELETE', '/api/admin/users/' + encodeURIComponent(id));
+    if (res && res.error) {
+      showPopup('Error', res.error === 'Not found' ? 'The server may need a restart. Please restart the server and try again.' : res.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Removed', 'User and all their data have been removed.', '', 'OK');
+    loadClientProgressUsers();
+  } catch (e) {
+    showPopup('Error', 'Failed to remove user. Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Remove user'; }
+  }
+}
+
 function toggleAdminNavDrawer() {
   var overlay = document.getElementById('adminNavOverlay');
   var drawer = document.getElementById('adminNavDrawer');
@@ -5473,27 +5502,66 @@ async function cancelScheduledMessage(id) {
   }
 }
 
+async function loadMeetingUserDropdown() {
+  var sel = document.getElementById('meetingUserId');
+  if (!sel || sel.options.length > 1) return;
+  try {
+    var users = await apiCall('GET', '/api/admin/users');
+    if (Array.isArray(users)) {
+      window._meetingUsers = users;
+      users.forEach(function(u) {
+        var opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || u.id;
+        sel.appendChild(opt);
+      });
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function adminScheduleCall() {
+  var userId = (document.getElementById('meetingUserId') && document.getElementById('meetingUserId').value) || '';
+  var dateStr = (document.getElementById('meetingDate') && document.getElementById('meetingDate').value) || '';
+  var timeStr = (document.getElementById('meetingTime') && document.getElementById('meetingTime').value) || '';
+  if (!userId) { alert('Select a client'); return; }
+  if (!dateStr || !timeStr) { alert('Select date and time'); return; }
+  var u = (window._meetingUsers || []).find(function(x) { return x.id === userId; });
+  var user_name = u ? [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email : '';
+  var user_email = (u && u.email) || '';
+  var timeSlot = timeStr;
+  try {
+    var res = await apiCall('POST', '/api/meetings', { user_id: userId, user_name: user_name, user_email: user_email, user_phone: (u && u.phone) || '', meeting_date: dateStr, time_slot: timeSlot });
+    if (res && res.error) { alert(res.error); return; }
+    document.getElementById('meetingDate').value = '';
+    document.getElementById('meetingTime').value = '';
+    loadAdminMeetings();
+  } catch (e) {
+    alert('Failed to schedule call.');
+  }
+}
+
 // ========== ADMIN THREADS ==========
 var _adminCurrentThreadId = null;
 
 async function loadAdminThreads() {
   var el = document.getElementById('adminThreadsList');
   if (!el) return;
-  el.innerHTML = '<p class="form-hint">Loading…</p>';
+  el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0">Loading…</p>';
   try {
     var list = await apiCall('GET', '/api/threads');
-    if (list && list.error) { el.innerHTML = '<p class="form-hint" style="color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
+    if (list && list.error) { el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
     if (!Array.isArray(list)) list = [];
-    if (list.length === 0) { el.innerHTML = '<p class="form-hint">No conversations yet. Users can start them from their Messages section.</p>'; return; }
-    el.innerHTML = '<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>User</th><th>Last message</th><th>Updated</th></tr></thead><tbody>' +
-      list.map(function(t) {
-        var name = [t.first_name, t.last_name].filter(Boolean).join(' ') || t.email || '—';
-        var preview = (t.last_message || '').slice(0, 60);
-        var date = t.updated_at ? new Date(t.updated_at).toLocaleString() : '';
-        return '<tr class="admin-thread-row" onclick="adminOpenThread(\'' + (t.id || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')"><td data-label="User">' + escapeHtml(name) + '</td><td data-label="Last message">' + escapeHtml(preview) + '</td><td data-label="Updated">' + escapeHtml(date) + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
+    if (list.length === 0) { el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:var(--muted)">No chats yet. Clients can start a conversation from their Messages section.</p>'; return; }
+    el.innerHTML = list.map(function(t) {
+      var name = [t.first_name, t.last_name].filter(Boolean).join(' ') || t.email || 'Client';
+      var initial = (name.charAt(0) || '?').toUpperCase();
+      var preview = (t.last_message || 'No messages yet').slice(0, 50) + ((t.last_message || '').length > 50 ? '…' : '');
+      var time = t.updated_at ? new Date(t.updated_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      var safeId = (t.id || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return '<div class="admin-chat-item" onclick="adminOpenThread(\'' + safeId + '\')" role="button" tabindex="0"><div class="admin-chat-avatar">' + escapeHtml(initial) + '</div><div class="admin-chat-body"><div class="admin-chat-name">' + escapeHtml(name) + '</div><div class="admin-chat-preview">' + escapeHtml(preview) + '</div></div><div class="admin-chat-time">' + escapeHtml(time) + '</div></div>';
+    }).join('');
   } catch (e) {
-    el.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load conversations.</p>';
+    el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:#e05050">Failed to load chats.</p>';
   }
 }
 
