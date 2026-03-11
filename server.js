@@ -1225,6 +1225,23 @@ app.get('/api/sunday-checkin', async (req, res) => {
   res.json(rows);
 });
 
+app.get('/api/sunday-checkin/last-weight/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    if (!userId) return res.status(400).json({ error: 'Missing user id' });
+    const rows = await queryAll(
+      'SELECT current_weight_waist_week FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      [userId]
+    );
+    if (!rows.length) return res.json({ last_week_weight_waist: '' });
+    const value = (rows[0].current_weight_waist_week || '').trim();
+    res.json({ last_week_weight_waist: value });
+  } catch (e) {
+    console.error('Failed to get last sunday weight', e.message);
+    res.status(500).json({ error: 'Failed to load last week weight' });
+  }
+});
+
 app.get('/api/sunday-checkin/:id', async (req, res) => {
   const row = await queryOne("SELECT * FROM sunday_checkins WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
