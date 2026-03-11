@@ -10,10 +10,3 @@ services:
     buildCommand: npm install
     startCommand: npm start
     # Root Directory: leave empty so Render uses repo root (where server.js lives)
-
-  - type: cron
-    name: bodybank-scheduled-messages
-    runtime: node
-    schedule: "*/5 * * * *"
-    buildCommand: "echo 'no build needed'"
-    startCommand: "curl -sf -o /dev/null 'https://bodybank-fit.onrender.com/api/cron/process-scheduled-messages?secret='$CRON_SECRET || exit 1"
