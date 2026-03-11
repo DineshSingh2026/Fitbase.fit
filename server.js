@@ -1598,7 +1598,9 @@ app.get('/api/stats', async (req, res) => {
   const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
   const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND approval_status='pending'");
   const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
-  const [threadCount] = await queryAll("SELECT COUNT(*) as c FROM message_threads");
+  const [unreadThreads] = await queryAll(
+    "SELECT COUNT(*) as c FROM message_threads t WHERE (SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'"
+  );
 
   const num = (v) => (v === undefined || v === null ? 0 : parseInt(String(v), 10) || 0);
   res.json({
@@ -1612,7 +1614,7 @@ app.get('/api/stats', async (req, res) => {
     check_ins: num(sundayCheckins[0]?.c),
     daily_checkins: num(dailyCheckins?.c),
     pending_signups: num(pendingSignups[0]?.c),
-    messages: num(contactMsgs[0]?.c) + num(threadCount[0]?.c)
+    messages: num(unreadThreads?.c)
   });
 });
 

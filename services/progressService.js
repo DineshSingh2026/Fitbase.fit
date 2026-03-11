@@ -56,11 +56,77 @@ async function getProgressWithMeta(userId) {
   return { logs, streak, goalCompletionPercent: goalPct, insights };
 }
 
+function parseWeightFromText(txt) {
+  if (!txt || typeof txt !== 'string') return null;
+  const m = txt.match(/(\d+\.?\d*)\s*(?:kg|kgs)?/i) || txt.match(/(\d+\.?\d*)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function parseSleepFromText(txt) {
+  if (!txt || typeof txt !== 'string') return null;
+  const m = txt.match(/(\d+\.?\d*)\s*(?:hrs?|hours?)?/i) || txt.match(/(\d+\.?\d*)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
+  const byDate = {};
+
+  progressLogs.forEach((row) => {
+    const d = (row.created_at ? String(row.created_at) : '').slice(0, 10);
+    if (!d) return;
+    byDate[d] = {
+      created_at: row.created_at,
+      weight: row.weight != null ? parseFloat(row.weight) : null,
+      body_fat: row.body_fat != null ? parseFloat(row.body_fat) : null,
+      calories_intake: row.calories_intake != null ? parseInt(row.calories_intake, 10) : null,
+      protein_intake: row.protein_intake != null ? parseInt(row.protein_intake, 10) : null,
+      workout_completed: !!row.workout_completed,
+      workout_type: row.workout_type || null,
+      strength_bench: row.strength_bench != null ? parseFloat(row.strength_bench) : null,
+      strength_squat: row.strength_squat != null ? parseFloat(row.strength_squat) : null,
+      strength_deadlift: row.strength_deadlift != null ? parseFloat(row.strength_deadlift) : null,
+      sleep_hours: row.sleep_hours != null ? parseFloat(row.sleep_hours) : null,
+      water_intake: row.water_intake != null ? parseFloat(row.water_intake) : null,
+      steps: null
+    };
+  });
+
+  (dailyCheckins || []).forEach((row) => {
+    const d = (row.checkin_date ? String(row.checkin_date) : '').slice(0, 10);
+    if (!d) return;
+    const base = byDate[d] || { created_at: d + 'T12:00:00', weight: null, body_fat: null, calories_intake: null, protein_intake: null, workout_completed: false, workout_type: null, strength_bench: null, strength_squat: null, strength_deadlift: null, sleep_hours: null, water_intake: null, steps: null };
+    if (row.steps != null) base.steps = parseInt(row.steps, 10);
+    if (row.protein_g != null && base.protein_intake == null) base.protein_intake = parseInt(row.protein_g, 10);
+    if (row.sleep_hours != null && base.sleep_hours == null) base.sleep_hours = parseFloat(row.sleep_hours);
+    if (row.water_ml != null && base.water_intake == null) base.water_intake = parseFloat(row.water_ml);
+    byDate[d] = base;
+  });
+
+  (sundayCheckins || []).forEach((row) => {
+    const d = (row.created_at ? String(row.created_at) : '').slice(0, 10);
+    if (!d) return;
+    const base = byDate[d] || { created_at: row.created_at || d + 'T12:00:00', weight: null, body_fat: null, calories_intake: null, protein_intake: null, workout_completed: false, workout_type: null, strength_bench: null, strength_squat: null, strength_deadlift: null, sleep_hours: null, water_intake: null, steps: null };
+    const w = parseWeightFromText(row.current_weight_waist_week || row.last_week_weight_waist);
+    if (w != null && base.weight == null) base.weight = w;
+    const s = parseSleepFromText(row.sleep);
+    if (s != null && base.sleep_hours == null) base.sleep_hours = s;
+    byDate[d] = base;
+  });
+
+  return Object.keys(byDate)
+    .sort()
+    .map((d) => ({ ...byDate[d], created_at: byDate[d].created_at || d + 'T12:00:00' }));
+}
+
 async function getAdminUserProgress(userId) {
-  const logs = await db.queryAll(
-    'SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC',
-    [userId]
-  );
+  const [progressLogs, dailyCheckins, sundayCheckins] = await Promise.all([
+    db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
+    db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
+    db.queryAll('SELECT current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId])
+  ]);
+
+  const logs = mergeLogs(progressLogs, dailyCheckins, sundayCheckins);
+
   const streak = await getCurrentStreak(userId);
   const goalPct = await getGoalCompletionPercent(userId);
   const insights = await getInsights(userId);

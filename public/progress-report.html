@@ -145,6 +145,18 @@
             data: { labels: labels, datasets: [{ label: 'Protein (g)', data: sorted.map(function(l) { return l.protein_intake; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }] }
           });
         }
+        if (sorted.filter(function(l) { return l.steps != null; }).length) {
+          addChart('rSteps', 'Steps (Daily check-in)', {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Steps', data: sorted.map(function(l) { return l.steps; }), backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }] }
+          });
+        }
+        if (sorted.filter(function(l) { return l.sleep_hours != null; }).length) {
+          addChart('rSleep', 'Sleep hours', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Sleep (hrs)', data: sorted.map(function(l) { return l.sleep_hours; }), borderColor: '#d0b058', backgroundColor: 'rgba(208,176,88,0.1)', fill: true, tension: 0.3 }] }
+          });
+        }
       }
       function showError(msg) {
         document.getElementById('reportLoading').style.display = 'none';
