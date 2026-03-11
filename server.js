@@ -24,6 +24,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
+const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
@@ -2293,6 +2294,9 @@ async function processScheduledMessages() {
       "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= $1 LIMIT 50",
       [now]
     );
+    if (rows.length > 0) {
+      console.log(`[ScheduledMessages] Processing ${rows.length} due message(s)`);
+    }
     for (const row of rows) {
       try {
         let threadId = row.thread_id;
@@ -2315,6 +2319,7 @@ async function processScheduledMessages() {
         await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
         await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['sent', row.id]);
         sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach message', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
+        console.log(`[ScheduledMessages] Sent message ${row.id} to user ${row.user_id}`);
       } catch (err) {
         console.error('Scheduled message send error:', row?.id, err.message);
         await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['failed', row.id]).catch(() => {});
@@ -2325,9 +2330,25 @@ async function processScheduledMessages() {
   }
 }
 
+// Cron endpoint: external services (cron-job.org, UptimeRobot, Render Cron) can call this
+// to wake a sleeping server and process scheduled messages. Required when server sleeps (e.g. Render free tier).
+app.get('/api/cron/process-scheduled-messages', async (req, res) => {
+  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
+  if (CRON_SECRET && secret !== CRON_SECRET) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  try {
+    await processScheduledMessages();
+    res.json({ ok: true, message: 'Scheduled messages job completed' });
+  } catch (e) {
+    console.error('Cron process-scheduled-messages error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ START ============
 initDB().then(() => {
-  setInterval(processScheduledMessages, 60 * 1000);
+  setInterval(processScheduledMessages, 30 * 1000); // every 30 sec
   processScheduledMessages();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);

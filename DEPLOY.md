@@ -51,3 +51,13 @@ Or use a process manager (e.g. PM2, systemd). PostgreSQL is persistent; no file 
 ## Health check
 
 - `GET /api/health` — returns `{ ok: true, db: 'connected' }` when the app and database are ready.
+
+## Scheduled messages (Render free tier / sleeping servers)
+
+On Render free tier, the web service **sleeps after ~15 minutes of inactivity**. While asleep, the in-process job that sends scheduled messages does not run. To fix this:
+
+1. Set `CRON_SECRET` in your environment (e.g. a long random string like `openssl rand -hex 32`).
+2. Add a cron job that calls the endpoint every 5–10 minutes:
+   - **cron-job.org** (free): Create a job, URL = `https://your-app.onrender.com/api/cron/process-scheduled-messages?secret=YOUR_CRON_SECRET`, interval = every 5 min.
+   - **UptimeRobot** (free): Add an HTTP monitor with the same URL, check interval = 5 min.
+3. When the cron hits the URL, the server wakes up, runs the job, and any overdue scheduled messages are sent.

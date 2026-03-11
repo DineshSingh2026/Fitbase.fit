@@ -1,6 +1,7 @@
 # Render Blueprint — BodyBank
 # Repo root = app root (server.js, package.json). Do NOT set Root Directory to "src".
 # Add a PostgreSQL database (Render Postgres) and set DATABASE_URL in environment variables.
+# For scheduled messages: set CRON_SECRET on both web + cron services (same value).
 
 services:
   - type: web
@@ -9,3 +10,10 @@ services:
     buildCommand: npm install
     startCommand: npm start
     # Root Directory: leave empty so Render uses repo root (where server.js lives)
+
+  - type: cron
+    name: bodybank-scheduled-messages
+    runtime: node
+    schedule: "*/5 * * * *"
+    buildCommand: "true"
+    startCommand: node scripts/cron-ping.js

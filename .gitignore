@@ -3,5 +3,6 @@ data/*.db
 data/*.bat
 data/*.txt
 .env
+CRON_SETUP.txt
 *.log
 .vscode/
