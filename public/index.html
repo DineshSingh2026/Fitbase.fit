@@ -387,10 +387,13 @@ body.admin-dashboard-open .wa-float-user{display:none!important}
 .elite-card-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:linear-gradient(135deg,rgba(200,164,78,0.2),rgba(200,164,78,0.08));border:1.5px solid rgba(200,164,78,0.5);border-radius:8px;color:var(--gold);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;cursor:pointer;transition:all .3s}
 .elite-card-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.2)}
 .elite-card-btn svg{flex-shrink:0}
-.elite-card-modal-body{text-align:center;padding:16px 0}
+#eliteCardModal.modal-overlay{align-items:flex-start;padding-top:max(16px,5vh);padding-bottom:max(24px,5vh);overflow-y:auto}
+#eliteCardModal .modal{max-height:none;margin:auto 0}
+#eliteCardModal .modal h2{margin-bottom:14px}
+.elite-card-modal-body{text-align:center;padding:0}
 .elite-card-wrap{display:inline-block;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);max-width:100%}
-.elite-card-wrap canvas{display:block;max-width:100%;height:auto}
-.elite-card-actions{display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.elite-card-wrap canvas{display:block;max-width:100%;height:auto;max-height:min(320px,45vh)}
+.elite-card-actions{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 
 @keyframes fsu{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 .rv{opacity:0;transform:translateY(32px);transition:opacity .8s ease,transform .8s ease}
@@ -2782,7 +2785,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- USER: Elite card modal -->
 <div class="modal-overlay view-detail-modal" id="eliteCardModal" onclick="if(event.target===this)closeModal('eliteCardModal')">
-  <div class="modal" style="max-width:520px">
+  <div class="modal elite-card-modal" style="max-width:480px">
     <button type="button" class="modal-close" onclick="closeModal('eliteCardModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Your Elite Member Card</h2>
     <div class="elite-card-modal-body">
@@ -5307,7 +5310,7 @@ async function openEliteCardModal() {
     await new Promise(function(resolve, reject) {
       img.onload = resolve;
       img.onerror = function() { reject(new Error('Could not load card image')); };
-      img.src = '/Elite%20member%20card.png';
+      img.src = '/Elite_card1.png';
     });
     var w = img.naturalWidth;
     var h = img.naturalHeight;
@@ -5320,16 +5323,16 @@ async function openEliteCardModal() {
     ctx.textBaseline = 'middle';
     var fontSize = Math.round(w * 0.038);
     if (fontSize < 22) fontSize = 22;
-    ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
-    ctx.fillStyle = '#c8a44e';
-    ctx.shadowColor = 'rgba(0,0,0,0.25)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetY = 2;
-    var nameY = h * 0.48;
+    ctx.font = "600 " + fontSize + "px 'Cormorant Garamond', 'Playfair Display', serif";
+    ctx.fillStyle = '#0a0a0a';
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 1;
+    var nameY = h * 0.40;
     var maxW = w * 0.75;
     if (ctx.measureText(fullName).width > maxW) {
       fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
-      ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
+      ctx.font = "600 " + fontSize + "px 'Cormorant Garamond', 'Playfair Display', serif";
     }
     ctx.fillText(fullName, w / 2, nameY);
     ctx.shadowColor = 'transparent';
