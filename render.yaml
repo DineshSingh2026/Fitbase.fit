@@ -15,5 +15,5 @@ services:
     name: bodybank-scheduled-messages
     runtime: node
     schedule: "*/5 * * * *"
-    buildCommand: "true"
-    startCommand: node scripts/cron-ping.js
+    buildCommand: npm install
+    startCommand: node -e "const s=process.env.CRON_SECRET||'';const u='https://bodybank-fit.onrender.com/api/cron/process-scheduled-messages?secret='+encodeURIComponent(s);require('https').get(u,(r)=>{process.exit(r.statusCode>=200&&r.statusCode<300?0:1)}).on('error',()=>process.exit(1))"
