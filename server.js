@@ -1229,34 +1229,25 @@ app.get('/api/sunday-checkin/:id', async (req, res) => {
 });
 
 // ============ DAILY CHECK-IN (micro-goals: steps, water, protein, sleep) ============
+// User can fill only once per day for streak
 app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, res) => {
   try {
     const userId = req.user.id;
     const { steps, water_ml, protein_g, sleep_hours } = req.body || {};
     const today = new Date().toISOString().slice(0, 10);
+    const existing = await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    if (existing) {
+      return res.status(400).json({ error: 'You can only fill the daily check-in once per day.' });
+    }
     const id = uuidv4();
     await run(
       `INSERT INTO daily_checkins (id, user_id, checkin_date, steps, water_ml, protein_g, sleep_hours)
-       VALUES (?, ?, ?::date, ?, ?, ?, ?)
-       ON CONFLICT (user_id, checkin_date) DO UPDATE SET
-         steps = COALESCE(EXCLUDED.steps, daily_checkins.steps),
-         water_ml = COALESCE(EXCLUDED.water_ml, daily_checkins.water_ml),
-         protein_g = COALESCE(EXCLUDED.protein_g, daily_checkins.protein_g),
-         sleep_hours = COALESCE(EXCLUDED.sleep_hours, daily_checkins.sleep_hours)`,
+       VALUES (?, ?, ?::date, ?, ?, ?, ?)`,
       [id, userId, today, steps != null ? steps : null, water_ml != null ? water_ml : null, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
     );
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     res.json(row || { id, user_id: userId, checkin_date: today, steps, water_ml, protein_g, sleep_hours });
   } catch (e) {
-    if (e.code === '23505') {
-      const today = new Date().toISOString().slice(0, 10);
-      await run(
-        `UPDATE daily_checkins SET steps = COALESCE(?, steps), water_ml = COALESCE(?, water_ml), protein_g = COALESCE(?, protein_g), sleep_hours = COALESCE(?, sleep_hours) WHERE user_id = ? AND checkin_date = ?::date`,
-        [req.body?.steps ?? null, req.body?.water_ml ?? null, req.body?.protein_g ?? null, req.body?.sleep_hours ?? null, req.user.id, today]
-      );
-      const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
-      return res.json(row);
-    }
     console.error('Daily check-in error:', e.message);
     res.status(500).json({ error: 'Failed to save check-in' });
   }
@@ -1278,13 +1269,20 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
       `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 14`,
       [req.user.id]
     );
-    const today = new Date().toISOString().slice(0, 10);
+    const toDateStr = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val.toISOString().slice(0, 10);
+      return String(val).slice(0, 10);
+    };
+    const today = toDateStr(new Date());
+    const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
     let streak = 0;
-    const dates = new Set(rows.map(r => r.checkin_date));
-    for (let d = new Date(); ; d.setDate(d.getDate() - 1)) {
-      const ds = d.toISOString().slice(0, 10);
+    const d = new Date();
+    for (let i = 0; i < 365; i++) {
+      const ds = toDateStr(d);
       if (!dates.has(ds)) break;
       streak++;
+      d.setDate(d.getDate() - 1);
     }
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());

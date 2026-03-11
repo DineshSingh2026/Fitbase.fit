@@ -1321,7 +1321,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-body>.user-current-section-wrap{flex-shrink:0}
 .user-current-section-wrap{margin-bottom:12px;padding:6px 0;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-height:0;flex-wrap:wrap}
 .user-current-section-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
-.user-current-eyebrow{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.user-current-eyebrow{font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:600;letter-spacing:2px;color:var(--gold)}
 .user-current-section{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
 .user-current-subtitle{font-size:13px;color:var(--creamd);line-height:1.5;max-width:680px}
 .user-home-pwa-row{display:flex;justify-content:flex-start;margin:0 0 16px}
@@ -1346,7 +1346,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .user-welcome h1{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,56px);font-weight:800;letter-spacing:-0.02em;margin-bottom:12px;line-height:1.1}
 .user-welcome h1 .welcome-label{display:block;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;opacity:.9}
 .user-welcome h1 .welcome-name{background:linear-gradient(135deg,#f5f0e8 0%,var(--goldb) 45%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.user-welcome .user-welcome-tag{font-family:'Cormorant Garamond',serif;font-size:19px;font-style:italic;color:var(--creamd);margin-bottom:32px;letter-spacing:0.2px;opacity:.95}
+.user-welcome .user-welcome-tag{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:2.5px;color:var(--gold);margin-bottom:32px;opacity:1}
 .welcome-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:860px;margin:0 auto}
 .welcome-card{position:relative;display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;text-align:left;cursor:pointer;transition:all .3s ease;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22)}
 .welcome-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgba(200,164,78,0.95),rgba(200,164,78,0.18));border-radius:999px;opacity:.75;transition:opacity .3s}
@@ -1620,8 +1620,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .chart-wrap{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;min-height:220px}
 .chart-wrap canvas{max-height:200px;width:100%!important}
 .chart-title{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
-.progress-logs-list{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden}
-.progress-logs-list table{width:100%;border-collapse:collapse;font-size:13px}
+.progress-logs-list{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow-x:auto}
+.progress-logs-list table{width:100%;min-width:320px;border-collapse:collapse;font-size:13px}
 .progress-logs-list th{text-align:left;padding:10px 12px;color:var(--gold);font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(200,164,78,0.06)}
 .progress-logs-list td{padding:10px 12px;color:var(--creamd);border-bottom:1px solid rgba(255,255,255,0.04)}
 .progress-logs-list tr:last-child td{border-bottom:none}
@@ -1717,7 +1717,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="user-body">
       <div class="user-current-section-wrap" aria-live="polite">
         <div class="user-current-section-copy">
-          <span class="user-current-eyebrow">Member Dashboard</span>
           <span class="user-current-section" id="userCurrentSection">Home</span>
           <span class="user-current-subtitle" id="userCurrentSubtitle">Your dashboard and daily actions in one place.</span>
         </div>
@@ -1733,7 +1732,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
-        <p class="user-welcome-tag">Start your fitness journey.</p>
+        <p class="user-welcome-tag">Tribe Elite Member</p>
 
         <!-- Today dashboard -->
         <div class="today-dash" id="todayDash">
@@ -1803,7 +1802,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- MY PROFILE -->
     <div class="user-section" id="usec-profile">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <h2>My Profile</h2>
       <div id="profileAvatarSkeleton" class="skeleton-wrapper" style="display:none">
         <div class="skeleton skeleton-avatar"></div>
       </div>
@@ -1839,7 +1837,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- MY WORKOUT -->
     <div class="user-section" id="usec-workout">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <h2>My Workout</h2>
       <div class="form-section-title">Log your session</div>
       <div class="form-group"><label>Workout Name <span class="req">*</span></label><input type="text" class="form-input" id="wkName" placeholder="e.g. Upper body, Cardio"><span class="form-hint">Name this training session</span></div>
       <div class="timer-display">
@@ -1862,7 +1859,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="user-section" id="usec-messages">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div class="chat-header-strip">
-        <h2>Messages</h2>
         <p class="chat-header-desc">Chat with your coach. Just type and send.</p>
       </div>
       <div class="chat-container">
@@ -1877,8 +1873,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- CONTACT US -->
     <div class="user-section" id="usec-contact">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <h2>Contact Us</h2>
-
       <div class="form-section-title">Schedule a meeting</div>
       <div class="schedule-call-block">
         <input type="hidden" id="mtgEditId" value="">
@@ -1910,7 +1904,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- SUNDAY CHECK-IN -->
     <div class="user-section" id="usec-checkin">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <h2 class="sunday-checkin-title">Sunday Check-in <span class="req">*</span></h2>
       <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
       <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
         <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
@@ -1935,7 +1928,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
     <div class="user-section" id="usec-progress">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <h2>My Progress</h2>
       <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
       <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
         <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDate" required></div>
@@ -2768,6 +2760,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('dailyCheckinViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Daily Check-In</h2>
     <div class="view-detail-body" id="dailyCheckinViewBody"></div>
+  </div>
+</div>
+
+<!-- USER: Progress log view modal -->
+<div class="modal-overlay view-detail-modal" id="progressLogViewModal" onclick="if(event.target===this)closeModal('progressLogViewModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('progressLogViewModal')" aria-label="Close">×</button>
+    <h2>Progress Entry</h2>
+    <div class="view-detail-body" id="progressLogViewBody"></div>
   </div>
 </div>
 
@@ -4715,11 +4716,19 @@ async function loadMicroGoals() {
       apiCall('GET', '/api/daily-checkin/streak')
     ]);
     var el;
-    if (today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null)) {
-      if (el = document.getElementById('microSteps')) el.value = today.steps != null ? today.steps : '';
-      if (el = document.getElementById('microWater')) el.value = today.water_ml != null ? today.water_ml : '';
-      if (el = document.getElementById('microProtein')) el.value = today.protein_g != null ? today.protein_g : '';
-      if (el = document.getElementById('microSleep')) el.value = today.sleep_hours != null ? today.sleep_hours : '';
+    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null);
+    if (alreadyFilled) {
+      if (el = document.getElementById('microSteps')) { el.value = today.steps != null ? today.steps : ''; el.disabled = true; }
+      if (el = document.getElementById('microWater')) { el.value = today.water_ml != null ? today.water_ml : ''; el.disabled = true; }
+      if (el = document.getElementById('microProtein')) { el.value = today.protein_g != null ? today.protein_g : ''; el.disabled = true; }
+      if (el = document.getElementById('microSleep')) { el.value = today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = true; }
+      if (el = document.querySelector('#microGoalsForm .micro-goals-submit')) { el.disabled = true; el.textContent = 'Already checked in today'; }
+    } else {
+      if (el = document.getElementById('microSteps')) { el.disabled = false; el.value = today && today.steps != null ? today.steps : ''; }
+      if (el = document.getElementById('microWater')) { el.disabled = false; el.value = today && today.water_ml != null ? today.water_ml : ''; }
+      if (el = document.getElementById('microProtein')) { el.disabled = false; el.value = today && today.protein_g != null ? today.protein_g : ''; }
+      if (el = document.getElementById('microSleep')) { el.disabled = false; el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; }
+      if (el = document.querySelector('#microGoalsForm .micro-goals-submit')) { el.disabled = false; el.textContent = 'Save today'; }
     }
     if (streak && (el = document.getElementById('microStreakBadge'))) {
       var n = streak.streak || 0;
@@ -4757,12 +4766,20 @@ async function submitMicroGoals() {
   if (!isNaN(protein)) body.protein_g = protein;
   if (!isNaN(sleep)) body.sleep_hours = sleep;
   if (Object.keys(body).length === 0) return;
+  var btn = document.querySelector('#microGoalsForm .micro-goals-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   try {
-    await apiCall('POST', '/api/daily-checkin', body);
+    var res = await apiCall('POST', '/api/daily-checkin', body);
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
+      return;
+    }
     loadMicroGoals();
-    showPopup('Saved', 'Daily check-in saved.', '', 'OK', null, 'success');
+    showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
   }
 }
 
@@ -5008,6 +5025,7 @@ function clearProgressForm() {
   });
 }
 
+var _userProgressLogs = [];
 async function loadProgressLogs() {
   var container = document.getElementById('progressLogsList');
   if (!container) return;
@@ -5017,23 +5035,42 @@ async function loadProgressLogs() {
   }
   var data = await apiCall('GET', '/api/progress');
   var logs = (data && data.logs) ? data.logs : [];
+  _userProgressLogs = logs.slice(0, 50);
   if (logs.length === 0) {
     container.innerHTML = '<p class="progress-logs-empty">No entries yet. Save a log above to see it here.</p>';
     return;
   }
   function esc(s) { if (s == null || s === '') return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Body fat</th><th>Calories</th><th>Protein</th><th>Workout</th><th>Sleep</th><th>Water</th></tr></thead><tbody>' +
-    logs.slice(0, 50).map(function(l) {
+  container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Summary</th><th>View</th></tr></thead><tbody>' +
+    _userProgressLogs.map(function(l, i) {
       var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
       var w = l.weight != null ? l.weight + ' kg' : '—';
-      var bf = l.body_fat != null ? l.body_fat + '%' : '—';
-      var cal = l.calories_intake != null ? l.calories_intake : '—';
-      var pro = l.protein_intake != null ? l.protein_intake + ' g' : '—';
-      var workout = l.workout_completed ? (l.workout_type || 'Yes') : 'No';
-      var sleep = l.sleep_hours != null ? l.sleep_hours + ' h' : '—';
-      var water = l.water_intake != null ? l.water_intake + ' L' : '—';
-      return '<tr><td>' + esc(d) + '</td><td>' + esc(w) + '</td><td>' + esc(bf) + '</td><td>' + esc(cal) + '</td><td>' + esc(pro) + '</td><td>' + esc(workout) + '</td><td>' + esc(sleep) + '</td><td>' + esc(water) + '</td></tr>';
+      var parts = [];
+      if (l.body_fat != null) parts.push(l.body_fat + '% BF');
+      if (l.workout_completed) parts.push(l.workout_type || 'Workout');
+      var summary = parts.length ? parts.join(', ') : '—';
+      return '<tr><td data-label="Date">' + esc(d) + '</td><td data-label="Weight">' + esc(w) + '</td><td data-label="Summary">' + esc(summary) + '</td><td data-label="View"><button type="button" class="action-btn btn-view" onclick="viewProgressLog(' + i + ')">View</button></td></tr>';
     }).join('') + '</tbody></table>';
+}
+function viewProgressLog(idx) {
+  var l = _userProgressLogs[idx];
+  if (!l) return;
+  var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  var w = l.weight != null ? l.weight + ' kg' : '—';
+  var bf = l.body_fat != null ? l.body_fat + '%' : '—';
+  var cal = l.calories_intake != null ? l.calories_intake : '—';
+  var pro = l.protein_intake != null ? l.protein_intake + ' g' : '—';
+  var workout = l.workout_completed ? (l.workout_type || 'Yes') : 'No';
+  var bench = l.strength_bench != null ? l.strength_bench + ' kg' : '—';
+  var squat = l.strength_squat != null ? l.strength_squat + ' kg' : '—';
+  var deadlift = l.strength_deadlift != null ? l.strength_deadlift + ' kg' : '—';
+  var sleep = l.sleep_hours != null ? l.sleep_hours + ' h' : '—';
+  var water = l.water_intake != null ? l.water_intake + ' L' : '—';
+  var body = document.getElementById('progressLogViewBody');
+  if (body) {
+    body.innerHTML = _row('Date', d) + _row('Weight', w) + _row('Body fat', bf) + _row('Calories', cal) + _row('Protein', pro) + _row('Workout', workout) + _row('Bench', bench) + _row('Squat', squat) + _row('Deadlift', deadlift) + _row('Sleep', sleep) + _row('Water', water);
+    openModal('progressLogViewModal');
+  }
 }
 
 // Profile
