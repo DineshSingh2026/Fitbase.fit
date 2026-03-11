@@ -14,7 +14,7 @@ const progressService = require('./services/progressService');
 const { inferTimezoneFromCountry, getUserTimezone, extractLocalDateTimeParts, localDateTimeToUtcIso } = require('./utils/timezone');
 
 // ============ CONFIG ============
-const PORT = process.env.PORT || 3000;
+const PORT = process.argv[2] || process.env.PORT || 3000;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bodybank.fit';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
@@ -39,7 +39,10 @@ async function sendPushToUser(userId, payload) {
   try {
     const rows = await queryAll('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);
     const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    const sent = new Set();
     for (const sub of rows) {
+      if (!sub.endpoint || sent.has(sub.endpoint)) continue;
+      sent.add(sub.endpoint);
       try {
         await webPush.sendNotification({
           endpoint: sub.endpoint,
@@ -1117,7 +1120,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
-      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
+      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
     }
     if (!isAdmin) {
       const u = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
@@ -1369,9 +1372,15 @@ app.post('/api/push/subscribe', verifyToken, rateLimiter(5, 60000), async (req, 
   try {
     const { endpoint, keys } = req.body || {};
     if (!endpoint || !keys) return res.status(400).json({ error: 'Subscription required' });
-    const id = uuidv4();
-    await run('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?, ?)',
-      [id, req.user.id, endpoint, keys.p256dh || null, keys.auth || null]);
+    const existing = await queryOne('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [req.user.id, endpoint]);
+    if (existing) {
+      await run('UPDATE push_subscriptions SET p256dh = ?, auth = ? WHERE user_id = ? AND endpoint = ?',
+        [keys.p256dh || null, keys.auth || null, req.user.id, endpoint]);
+    } else {
+      const id = uuidv4();
+      await run('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?, ?)',
+        [id, req.user.id, endpoint, keys.p256dh || null, keys.auth || null]);
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to subscribe' });
@@ -2367,7 +2376,7 @@ async function processScheduledMessages() {
         );
         await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
         await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['sent', row.id]);
-        sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Coach message', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
+        sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
         console.log(`[ScheduledMessages] Sent message ${row.id} to user ${row.user_id}`);
       } catch (err) {
         console.error('Scheduled message send error:', row?.id, err.message);
