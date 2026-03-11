@@ -4751,6 +4751,7 @@ async function loadMicroGoals() {
       if (el = document.getElementById('recapProtein')) el.textContent = w.avgProtein != null ? w.avgProtein : '—';
       if (el = document.getElementById('recapSleep')) el.textContent = w.avgSleep != null ? w.avgSleep : '—';
     }
+    checkUserPushStatus();
   } catch (e) {}
 }
 
@@ -4783,7 +4784,27 @@ async function submitMicroGoals() {
   }
 }
 
-// Push notifications (opt-in)
+// Push notifications (opt-in) — check on load so we don't re-prompt if already enabled
+async function checkUserPushStatus() {
+  var wrap = document.getElementById('pushEnableWrap');
+  var btn = document.getElementById('pushEnableBtn');
+  if (!wrap) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) { wrap.style.display = 'none'; return; }
+  if (Notification.permission === 'denied') { wrap.style.display = 'none'; return; }
+  if (Notification.permission === 'granted') {
+    try {
+      var reg = await navigator.serviceWorker.ready;
+      var sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        wrap.style.display = 'none';
+        if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
+        return;
+      }
+    } catch (e) {}
+  }
+  wrap.style.display = 'flex';
+  if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+}
 async function enablePushNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     showPopup('Not supported', 'Push notifications are not supported in this browser.', '', 'OK', null, 'error');
@@ -4812,6 +4833,8 @@ async function enablePushNotifications() {
     var subJson = sub.toJSON ? sub.toJSON() : { endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } };
     await apiCall('POST', '/api/push/subscribe', { endpoint: subJson.endpoint, keys: subJson.keys || {} });
     if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
+    var wrap = document.getElementById('pushEnableWrap');
+    if (wrap) wrap.style.display = 'none';
     showPopup('Enabled', 'You will get reminders and coach replies.', '', 'OK', null, 'success');
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
