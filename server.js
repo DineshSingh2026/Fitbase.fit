@@ -2335,8 +2335,8 @@ app.get('/api/cron/process-scheduled-messages', async (req, res) => {
     return res.status(403).json({ error: 'Unauthorized' });
   }
   try {
-    await processScheduledMessages();
-    res.json({ ok: true, message: 'Scheduled messages job completed' });
+    const result = await processScheduledMessages();
+    res.json({ ok: true, message: 'Scheduled messages job completed', processed: result.processed, failed: result.failed });
   } catch (e) {
     console.error('Cron process-scheduled-messages error:', e.message);
     res.status(500).json({ error: e.message });
@@ -2381,24 +2381,30 @@ app.use((err, req, res, next) => {
 
 // ============ SCHEDULED MESSAGES BACKGROUND JOB ============
 async function processScheduledMessages() {
+  const result = { processed: 0, failed: 0 };
   try {
-    const now = new Date().toISOString();
+    // Use DB NOW() to avoid Node/DB clock skew; include 2-min buffer for cron drift
     const rows = await queryAll(
-      "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= $1 LIMIT 50",
-      [now]
+      "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= (NOW() + INTERVAL '2 minutes') ORDER BY scheduled_at ASC LIMIT 50"
     );
-    if (rows.length > 0) {
+    if (rows.length === 0) {
+      const pending = await queryAll("SELECT COUNT(*) as n FROM scheduled_messages WHERE status = 'pending'");
+      const n = (pending[0] && Number(pending[0].n)) || 0;
+      if (n > 0) {
+        const next = await queryAll("SELECT id, user_id, scheduled_at FROM scheduled_messages WHERE status = 'pending' ORDER BY scheduled_at ASC LIMIT 3");
+        console.log(`[ScheduledMessages] No messages due yet. Pending: ${n}. Next:`, next.map(r => ({ id: r.id, user_id: r.user_id, at: r.scheduled_at })));
+      }
+    } else {
       console.log(`[ScheduledMessages] Processing ${rows.length} due message(s)`);
     }
     for (const row of rows) {
       try {
         let threadId = row.thread_id;
         if (!threadId) {
-          let thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [row.user_id]);
+          const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [row.user_id]);
           if (!thread) {
             threadId = uuidv4();
             await run('INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)', [threadId, row.user_id, '']);
-            thread = { id: threadId };
           } else {
             threadId = thread.id;
           }
@@ -2413,14 +2419,17 @@ async function processScheduledMessages() {
         await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['sent', row.id]);
         sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
         console.log(`[ScheduledMessages] Sent message ${row.id} to user ${row.user_id}`);
+        result.processed++;
       } catch (err) {
-        console.error('Scheduled message send error:', row?.id, err.message);
+        console.error('[ScheduledMessages] Send error:', row?.id, err.message);
         await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['failed', row.id]).catch(() => {});
+        result.failed++;
       }
     }
   } catch (e) {
     console.error('processScheduledMessages error:', e.message);
   }
+  return result;
 }
 
 // ============ START ============

@@ -20,3 +20,12 @@ Render Dashboard → **Bodybank batch job** (or bodybank-scheduled-messages) →
 5. Save
 
 Done. cron-job.org pings your URL every 5 min → server wakes → scheduled messages are sent.
+
+## Verify it works
+
+On cron-job.org → Last Events → click **Details** on a run. The response body includes:
+- `ok: true`
+- `processed`: number of messages actually sent
+- `failed`: number that failed
+
+If `processed` is 0 but you had pending messages, check Render logs for `[ScheduledMessages]` – you’ll see either “Processing X due message(s)” or “No messages due yet. Pending: N” with the next scheduled times.
