@@ -27,6 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --black:#060606;--dark:#060606;--dark2:#060606;--dark3:#0a0a0a;
@@ -34,6 +35,21 @@
   --goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);
   --cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;
   --bdr:rgba(200,164,78,0.2);
+  --bb-bg:#0e0e0e;
+  --bb-surface:#1a1a1a;
+  --bb-surface-hover:#222222;
+  --bb-border:#2a2a2a;
+  --bb-gold:#c9a84c;
+  --bb-gold-dark:#8a6f2e;
+  --bb-text:#ffffff;
+  --bb-muted:#888888;
+  --bb-green:#2ecc71;
+  --bb-orange:#e67e22;
+  --bb-red:#c0392b;
+  --bb-purple:#8e44ad;
+  --bb-sidebar-width:220px;
+  --bb-font-heading:'Rajdhani',sans-serif;
+  --bb-font-body:'DM Sans',sans-serif;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-left:env(safe-area-inset-left,0px);
@@ -1677,6 +1693,301 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .fitchef-credit a:hover{opacity:.85}
 .fitchef-credit p + p{margin-top:6px}
 
+@media (min-width: 768px) {
+  body{background:var(--bb-bg);font-family:var(--bb-font-body);color:var(--bb-text)}
+
+  /* Hide admin mobile UI on desktop */
+  .admin-mobile-nav-bar{display:none !important}
+  .admin-bottom-nav{display:none !important}
+  .admin-tabs{display:none !important}
+  .admin-nav-drawer,.admin-nav-drawer-overlay{display:none !important}
+
+  /* Desktop admin shell */
+  .admin-panel{background:var(--bb-bg)}
+  .admin-top{display:none !important}
+
+  /* Critical: neutralize global nav styles for sidebar nav */
+  .admin-layout{width:100% !important}
+  .admin-sidebar nav.admin-sidebar-nav{
+    position:static !important;
+    top:auto !important;left:auto !important;right:auto !important;bottom:auto !important;
+    background:transparent !important;
+    border:0 !important;
+    padding:20px 0 0 !important;
+    display:block !important;
+    gap:0 !important;
+    flex-wrap:nowrap !important;
+  }
+  .admin-sidebar nav.admin-sidebar-nav .admin-sidebar-icon{opacity:0.9}
+
+  .admin-sidebar{
+    position:fixed !important;
+    top:0 !important;left:0 !important;
+    width:var(--bb-sidebar-width) !important;
+    height:100vh !important;
+    background:#111111 !important;
+    border-right:1px solid var(--bb-border) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:24px 0 !important;
+    z-index:100 !important;
+  }
+  .admin-sidebar .sidebar-logo{
+    padding:0 20px 28px !important;
+    border-bottom:1px solid var(--bb-border) !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+  }
+  .admin-sidebar .bb-sidebar-logo-img{
+    height:54px !important;
+    width:auto !important;
+    object-fit:contain !important;
+    display:block !important;
+    mix-blend-mode:lighten !important;
+  }
+  .admin-sidebar-nav{
+    flex:1 !important;
+    padding-top:0 !important;
+    overflow:auto !important;
+    width:100% !important;
+  }
+  .admin-sidebar-link{
+    display:flex !important;
+    align-items:center !important;
+    gap:12px !important;
+    padding:12px 20px !important;
+    color:var(--bb-muted) !important;
+    text-decoration:none !important;
+    font-size:13px !important;
+    text-transform:uppercase !important;
+    letter-spacing:0.08em !important;
+    border-left:3px solid transparent !important;
+    transition:all 0.2s ease !important;
+    background:transparent !important;
+  }
+  .admin-sidebar-link:hover,
+  .admin-sidebar-link.active{
+    color:var(--bb-gold) !important;
+    border-left-color:var(--bb-gold) !important;
+    background:rgba(201,168,76,0.06) !important;
+  }
+  .admin-sidebar-link.pwa-add-homescreen{display:none !important}
+
+  .admin-body.admin-main{
+    margin-left:var(--bb-sidebar-width) !important;
+    padding:24px !important;
+    min-height:100vh !important;
+    background:var(--bb-bg) !important;
+    max-width:none !important;
+    width:calc(100% - var(--bb-sidebar-width)) !important;
+    margin-right:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  /* Desktop dashboard content swap */
+  #tab-dashboard-section .admin-dash-page{display:none !important}
+  .bb-desktop-dashboard{display:block !important}
+
+  /* Remove any inherited centering/constraints inside admin */
+  .admin-current-section-wrap{display:none !important}
+  .admin-tab-content-wrap{
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+  #tab-dashboard-section{width:100% !important}
+  .bb-desktop-dashboard{width:100% !important;max-width:none !important}
+
+  /* Top header bar */
+  .admin-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--bb-border);
+  }
+  .admin-topbar h1{
+    font-family:var(--bb-font-heading);
+    font-size:22px;
+    font-weight:700;
+    color:var(--bb-text);
+    letter-spacing:0.05em;
+    margin:0;
+  }
+  .admin-topbar .topbar-right{display:flex;align-items:center;gap:16px}
+  .admin-topbar input[type="search"]{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    color:var(--bb-text);
+    padding:8px 16px;
+    border-radius:8px;
+    font-size:13px;
+    width:220px;
+    outline:none;
+  }
+  .admin-topbar input[type="search"]::placeholder{color:var(--bb-muted)}
+  .bb-top-icon{color:var(--bb-muted);font-size:16px;line-height:1}
+  .bb-top-user{color:var(--bb-muted);font-size:13px;letter-spacing:0.04em}
+  .bb-top-logout{
+    background:transparent;
+    border:1px solid var(--bb-border);
+    color:var(--bb-text);
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .bb-top-logout:hover{
+    border-color:var(--bb-gold);
+    color:var(--bb-gold);
+    box-shadow:0 4px 16px rgba(201,168,76,0.12);
+    transform:translateY(-1px);
+  }
+
+  /* Stat cards */
+  .bb-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+  .bb-stat-card{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transition:transform 0.2s ease;
+  }
+  .bb-stat-card:hover{transform:translateY(-2px)}
+  .bb-stat-card .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--bb-gold);margin-bottom:8px}
+  .bb-stat-card .stat-number{font-family:var(--bb-font-heading);font-size:38px;font-weight:700;color:var(--bb-text);line-height:1;margin-bottom:8px}
+  .bb-stat-card .stat-sub{font-size:12px;color:var(--bb-muted)}
+  .bb-stat-card .stat-sub.up{color:var(--bb-green)}
+  .bb-stat-card .stat-sub.down{color:var(--bb-red)}
+
+  /* Charts row */
+  .bb-chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px}
+  .bb-chart-card{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    border-radius:12px;
+    padding:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  }
+  .bb-chart-card h3{
+    font-family:var(--bb-font-heading);
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--bb-text);
+    margin:0 0 16px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--bb-border);
+  }
+
+  /* Program monitoring */
+  .bb-program-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+  .bb-program-card{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    border-radius:12px;
+    padding:16px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  }
+  .bb-program-card .prog-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--bb-muted);margin-bottom:10px}
+  .bb-program-card .prog-number{font-family:var(--bb-font-heading);font-size:28px;font-weight:700;color:var(--bb-text);margin-bottom:10px}
+  .bb-progress-bar-track{background:#2a2a2a;border-radius:4px;height:4px;width:100%}
+  .bb-progress-bar-fill{height:4px;border-radius:4px;background:var(--bb-gold)}
+  .bb-program-card .prog-pct{font-size:11px;color:var(--bb-gold);margin-top:6px}
+
+  /* Client monitoring table */
+  .bb-table-card{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  }
+  .bb-table-card h3{
+    font-family:var(--bb-font-heading);
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--bb-text);
+    margin:0 0 16px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--bb-border);
+  }
+  .bb-client-table{width:100%;border-collapse:collapse;font-size:13px}
+  .bb-client-table th{text-align:left;color:var(--bb-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;padding:8px 12px;border-bottom:1px solid var(--bb-border)}
+  .bb-client-table td{padding:12px 12px;border-bottom:1px solid #1f1f1f;vertical-align:middle}
+  .bb-client-table tr:hover td{background:var(--bb-surface-hover)}
+  .bb-client-table .client-name{display:flex;align-items:center;gap:10px;font-weight:500}
+  .bb-client-table .client-avatar{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--bb-gold-dark);
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:var(--bb-text);
+    flex-shrink:0;
+  }
+
+  .bb-pill{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .bb-pill.improving{background:rgba(46,204,113,0.15);color:var(--bb-green)}
+  .bb-pill.at-risk{background:rgba(230,126,34,0.15);color:var(--bb-orange)}
+  .bb-pill.stalled{background:rgba(142,68,173,0.15);color:var(--bb-purple)}
+  .bb-pill.inactive{background:rgba(192,57,43,0.15);color:var(--bb-red)}
+  .bb-pill.low{background:rgba(46,204,113,0.15);color:var(--bb-green)}
+  .bb-pill.medium{background:rgba(230,126,34,0.15);color:var(--bb-orange)}
+  .bb-pill.high{background:rgba(192,57,43,0.15);color:var(--bb-red)}
+
+  /* Quick actions */
+  .bb-quick-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+  .bb-quick-btn{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    border-radius:12px;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+    text-decoration:none;
+    color:var(--bb-muted);
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+  }
+  .bb-quick-btn:hover{
+    border-color:var(--bb-gold);
+    color:var(--bb-gold);
+    transform:translateY(-2px);
+    box-shadow:0 4px 16px rgba(201,168,76,0.12);
+  }
+  .bb-quick-btn .btn-icon{font-size:22px}
+
+  /* Make canvases fit cards */
+  .bb-chart-card canvas{width:100% !important;max-height:220px}
+}
+
 </style>
 <link rel="stylesheet" href="/mobile-fix.css?v=11">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=11">
@@ -2044,6 +2355,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
   <div class="admin-layout">
     <aside class="admin-sidebar" id="adminSidebar" role="navigation" aria-label="Primary navigation">
+      <div class="sidebar-logo">
+        <img src="img/logo.png" alt="BodyBank" class="bb-sidebar-logo-img" decoding="async">
+      </div>
       <nav class="admin-sidebar-nav">
         <a class="admin-sidebar-link active" href="#" data-section="dashboard" onclick="switchToSection('dashboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128202;</span>Dashboard</a>
         <a class="admin-sidebar-link" href="#" data-section="clients" onclick="switchToSection('clients');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128101;</span>Clients</a>
@@ -2054,7 +2368,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128260;</span>Add to Home Screen</a>
       </nav>
     </aside>
-  <div class="admin-body">
+  <div class="admin-body admin-main">
     <div class="admin-current-section-wrap" aria-live="polite">
       <a href="#" class="admin-back-to-section" id="adminBackToSection" onclick="var s=this.getAttribute('data-section');if(s){switchToSection(s);}return false" aria-label="Back to section">← Back to <span id="adminBackSectionLabel"></span></a>
       <span class="admin-current-section" id="adminCurrentSection">Dashboard</span>
@@ -2112,6 +2426,111 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content-wrap">
     <!-- SECTION PAGES (card-based) -->
     <div class="admin-tab-content active" id="tab-dashboard-section">
+      <!-- DESKTOP ADMIN DASHBOARD (hidden on mobile via inline style; enabled by desktop CSS) -->
+      <div class="bb-desktop-dashboard" style="display:none">
+        <div class="admin-topbar">
+          <h1>Welcome back, Admin 👋</h1>
+          <div class="topbar-right">
+            <input type="search" placeholder="Search..." aria-label="Search">
+            <span class="bb-top-icon" aria-hidden="true">🔔</span>
+            <span class="bb-top-user">Admin ▾</span>
+            <button type="button" class="bb-top-logout" onclick="logoutAdmin()">Logout</button>
+          </div>
+        </div>
+
+        <div class="bb-stat-grid">
+          <div class="bb-stat-card">
+            <div class="stat-label">Total Members</div>
+            <div class="stat-number" id="stat-members">—</div>
+            <div class="stat-sub up" id="stat-members-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Daily Check-ins Today</div>
+            <div class="stat-number" id="stat-checkins">—</div>
+            <div class="stat-sub up" id="stat-checkins-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Pending Approvals</div>
+            <div class="stat-number" id="stat-pending">—</div>
+            <div class="stat-sub down" id="stat-pending-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Unread Messages</div>
+            <div class="stat-number" id="stat-messages">—</div>
+            <div class="stat-sub" id="stat-messages-sub">Loading...</div>
+          </div>
+        </div>
+
+        <div class="bb-chart-grid">
+          <div class="bb-chart-card">
+            <h3>Member Growth</h3>
+            <canvas id="chart-growth" height="120"></canvas>
+          </div>
+          <div class="bb-chart-card">
+            <h3>Check-in Distribution</h3>
+            <canvas id="chart-distribution" height="120"></canvas>
+          </div>
+        </div>
+
+        <div class="bb-program-grid">
+          <div class="bb-program-card">
+            <div class="prog-label">Audit Pending</div>
+            <div class="prog-number" id="prog-audit">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="prog-audit-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="prog-audit-pct">—%</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Part-2 Submissions</div>
+            <div class="prog-number" id="prog-part2">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="prog-part2-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="prog-part2-pct">—%</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Sunday Check-ins</div>
+            <div class="prog-number" id="prog-sunday">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="prog-sunday-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="prog-sunday-pct">—%</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Workouts Logged</div>
+            <div class="prog-number" id="prog-daily">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="prog-daily-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="prog-daily-pct">—%</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Meetings Scheduled</div>
+            <div class="prog-number" id="prog-tribe">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="prog-tribe-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="prog-tribe-pct">—%</div>
+          </div>
+        </div>
+
+        <div class="bb-table-card">
+          <h3>Client Monitoring</h3>
+          <table class="bb-client-table">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Phase</th>
+                <th>Status</th>
+                <th>Started</th>
+                <th>Activity</th>
+              </tr>
+            </thead>
+            <tbody id="client-table-body">
+              <tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">Loading clients...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bb-quick-actions">
+          <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>View Tribe</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
+          <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
+        </div>
+      </div>
       <div class="admin-dash-page">
         <div class="admin-welcome-card">
           <h2 class="admin-welcome-title">Welcome back <span aria-hidden="true">👋</span></h2>
@@ -3640,6 +4059,187 @@ async function loadStats() {
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     dateEl.textContent = days[d.getDay()] + ' · ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
   }
+
+  // Desktop-only luxury admin dashboard widgets (do not affect mobile)
+  if (window.innerWidth >= 768) {
+    try {
+      await bbRefreshDesktopAdminDashboard(data);
+    } catch (_) {}
+  }
+}
+
+window._bbDesktopCharts = window._bbDesktopCharts || {};
+function bbSetText(id, txt) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+function bbSetHtml(id, html) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+function bbSetBar(id, pct) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var v = Math.max(0, Math.min(100, pct || 0));
+  el.style.width = v.toFixed(0) + '%';
+}
+function bbDestroyChart(key) {
+  if (window._bbDesktopCharts && window._bbDesktopCharts[key]) {
+    try { window._bbDesktopCharts[key].destroy(); } catch (_) {}
+    window._bbDesktopCharts[key] = null;
+  }
+}
+function bbFmtShortDate(s) {
+  if (!s) return '—';
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return String(s).slice(0, 10);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+async function bbRefreshDesktopAdminDashboard(statsData) {
+  // Stats row
+  bbSetText('stat-members', statsData.active_members ?? 0);
+  bbSetText('stat-checkins', statsData.daily_checkins ?? 0);
+  bbSetText('stat-pending', statsData.pending_signups ?? 0);
+  bbSetText('stat-messages', statsData.messages ?? 0);
+  bbSetText('stat-members-sub', 'Active tribe members');
+  bbSetText('stat-checkins-sub', 'Total daily check-ins');
+  bbSetText('stat-pending-sub', 'Users awaiting approval');
+  bbSetText('stat-messages-sub', 'Unread chat threads');
+
+  // Donut chart: daily vs sunday check-ins (lifetime totals)
+  if (typeof Chart !== 'undefined') {
+    var daily = parseInt(statsData.daily_checkins ?? 0, 10) || 0;
+    var sunday = parseInt(statsData.check_ins ?? 0, 10) || 0;
+    var distEl = document.getElementById('chart-distribution');
+    if (distEl) {
+      bbDestroyChart('distribution');
+      window._bbDesktopCharts.distribution = new Chart(distEl, {
+        type: 'doughnut',
+        data: {
+          labels: ['Daily', 'Sunday'],
+          datasets: [{
+            data: [daily, sunday],
+            backgroundColor: ['#c9a84c', '#3a3a3a'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          cutout: '70%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: '#888', font: { size: 12 } }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Use admin insights payload for richer desktop widgets
+  var insights = await apiCall('GET', '/api/admin/performance-insights?source=all');
+  if (!insights || insights.error) return;
+
+  // Program monitoring cards (scaled vs max)
+  var s = insights.stats || {};
+  var prog = [
+    { key: 'audit', label: 'Audit Pending', value: parseInt(s.pending_requests ?? 0, 10) || 0, numId: 'prog-audit', barId: 'prog-audit-bar', pctId: 'prog-audit-pct' },
+    { key: 'part2', label: 'Part-2 Submissions', value: parseInt(s.part2 ?? 0, 10) || 0, numId: 'prog-part2', barId: 'prog-part2-bar', pctId: 'prog-part2-pct' },
+    { key: 'sunday', label: 'Sunday Check-ins', value: parseInt(s.sunday_checkins ?? 0, 10) || 0, numId: 'prog-sunday', barId: 'prog-sunday-bar', pctId: 'prog-sunday-pct' },
+    { key: 'workouts', label: 'Workouts Logged', value: parseInt(s.workouts ?? 0, 10) || 0, numId: 'prog-daily', barId: 'prog-daily-bar', pctId: 'prog-daily-pct' },
+    { key: 'meetings', label: 'Meetings Scheduled', value: parseInt(s.meetings ?? 0, 10) || 0, numId: 'prog-tribe', barId: 'prog-tribe-bar', pctId: 'prog-tribe-pct' }
+  ];
+  var maxV = Math.max.apply(Math, prog.map(function(p) { return p.value; }).concat([1]));
+  prog.forEach(function(p) {
+    bbSetText(p.numId, p.value);
+    var pct = (p.value / maxV) * 100;
+    bbSetBar(p.barId, pct);
+    bbSetText(p.pctId, Math.round(pct) + '%');
+  });
+
+  // Member Growth chart (approved + pending users by month; last 6 buckets)
+  if (typeof Chart !== 'undefined') {
+    var users = Array.isArray(insights.users) ? insights.users : [];
+    var byMonth = {};
+    users.forEach(function(u) {
+      var created = u.created_at || u.createdAt || '';
+      if (!created) return;
+      var d = new Date(created);
+      if (isNaN(d.getTime())) return;
+      var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      byMonth[key] = (byMonth[key] || 0) + 1;
+    });
+    var keys = Object.keys(byMonth).sort();
+    var last = keys.slice(-6);
+    var labels = last.map(function(k) {
+      var parts = k.split('-');
+      var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+      return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+    });
+    var values = last.map(function(k) { return byMonth[k] || 0; });
+    var growthEl = document.getElementById('chart-growth');
+    if (growthEl) {
+      bbDestroyChart('growth');
+      window._bbDesktopCharts.growth = new Chart(growthEl, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            borderColor: '#c9a84c',
+            backgroundColor: 'rgba(201,168,76,0.08)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#c9a84c'
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#888' } },
+            y: { grid: { color: '#1f1f1f' }, ticks: { color: '#888' }, beginAtZero: true }
+          }
+        }
+      });
+    }
+  }
+
+  // Client monitoring table (latest 8 tribe members)
+  var tribe = await apiCall('GET', '/api/tribe');
+  var members = Array.isArray(tribe) ? tribe.slice() : [];
+  members.sort(function(a, b) { return new Date(b.start_date || b.created_at || 0) - new Date(a.start_date || a.created_at || 0); });
+  members = members.slice(0, 8);
+  if (!members.length) {
+    bbSetHtml('client-table-body', '<tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">No tribe members yet.</td></tr>');
+    return;
+  }
+  var rows = members.map(function(m) {
+    var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || m.email || 'Unknown';
+    var initials = name.split(' ').filter(Boolean).map(function(n) { return n[0]; }).join('').slice(0, 2).toUpperCase();
+    var phase = m.phase != null ? String(m.phase) : '—';
+    var statusRaw = (m.status || '').toString().toLowerCase();
+    var status = statusRaw ? statusRaw : 'active';
+    var started = bbFmtShortDate(m.start_date || m.created_at);
+    var apw = m.activity_per_week != null ? String(m.activity_per_week) + '/wk' : '—';
+
+    var risk = (status === 'inactive' || status === 'pending') ? 'High' : (status === 'completed' ? 'Low' : 'Medium');
+    var riskClass = (risk === 'High') ? 'high' : (risk === 'Low' ? 'low' : 'medium');
+    var progress = (status === 'completed') ? 'Improving' : (status === 'inactive' ? 'Inactive' : (status === 'pending' ? 'At Risk' : 'Stalled'));
+    var progClass = (progress === 'Improving') ? 'improving' : (progress === 'Inactive' ? 'inactive' : (progress === 'At Risk' ? 'at-risk' : 'stalled'));
+
+    return (
+      '<tr>' +
+        '<td><div class="client-name"><div class="client-avatar">' + escapeHtml(initials) + '</div>' + escapeHtml(name) + '</div></td>' +
+        '<td>' + escapeHtml(phase) + '</td>' +
+        '<td><span class="bb-pill ' + progClass + '">' + escapeHtml(status) + '</span></td>' +
+        '<td>' + escapeHtml(started) + '</td>' +
+        '<td><span class="bb-pill ' + riskClass + '">' + escapeHtml(apw) + '</span></td>' +
+      '</tr>'
+    );
+  }).join('');
+  bbSetHtml('client-table-body', rows);
 }
 async function loadLiveActivity() {
   const listEl = document.getElementById('adminLiveActivityList');
