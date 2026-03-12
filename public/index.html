@@ -4158,12 +4158,15 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
     bbSetText(p.pctId, Math.round(pct) + '%');
   });
 
-  // Member Growth chart (approved + pending users by month; last 6 buckets)
+  // Tribe data: used for growth chart + monitoring table
+  var tribe = await apiCall('GET', '/api/tribe');
+  var members = Array.isArray(tribe) ? tribe.slice() : [];
+
+  // Member Growth chart (tribe onboarding by month; last 6 buckets)
   if (typeof Chart !== 'undefined') {
-    var users = Array.isArray(insights.users) ? insights.users : [];
     var byMonth = {};
-    users.forEach(function(u) {
-      var created = u.created_at || u.createdAt || '';
+    members.forEach(function(m) {
+      var created = m.start_date || m.created_at || '';
       if (!created) return;
       var d = new Date(created);
       if (isNaN(d.getTime())) return;
@@ -4207,8 +4210,6 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   }
 
   // Client monitoring table (latest 8 tribe members)
-  var tribe = await apiCall('GET', '/api/tribe');
-  var members = Array.isArray(tribe) ? tribe.slice() : [];
   members.sort(function(a, b) { return new Date(b.start_date || b.created_at || 0) - new Date(a.start_date || a.created_at || 0); });
   members = members.slice(0, 8);
   if (!members.length) {
