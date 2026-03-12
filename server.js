@@ -7,7 +7,7 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const webPush = require('web-push');
-const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -1805,6 +1805,52 @@ app.post('/api/me/program-assignments/:id/seen', verifyToken, async (req, res) =
       [id, req.user.id]
     );
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Short-lived PDF access token (restricts sharing - link expires in 10 min)
+app.post('/api/me/programs/pdf-token', verifyToken, async (req, res) => {
+  try {
+    const programId = (req.body && req.body.program_id) ? String(req.body.program_id).trim() : '';
+    if (!programId) return res.status(400).json({ error: 'program_id required' });
+    const hasAccess = await queryOne(
+      'SELECT 1 FROM user_program_assignments a JOIN programs p ON p.id = a.program_id WHERE a.user_id = ? AND a.program_id = ? AND a.removed_at IS NULL',
+      [req.user.id, programId]
+    );
+    if (!hasAccess) return res.status(403).json({ error: 'Not authorized to view this program' });
+    const token = signPdfAccessToken(programId, req.user.id);
+    const base = (req.protocol + '://' + req.get('host')).replace(/\/$/, '');
+    const url = base + '/api/me/programs/pdf?t=' + encodeURIComponent(token) + '&f=' + encodeURIComponent(programId);
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Stream PDF with token (no static URL - restricts sharing & downloading)
+app.get('/api/me/programs/pdf', async (req, res) => {
+  try {
+    const token = req.query.t || '';
+    const fileParam = req.query.f || '';
+    const payload = verifyPdfAccessToken(token);
+    if (!payload || payload.programId !== fileParam) return res.status(403).json({ error: 'Invalid or expired link' });
+    const hasAccess = await queryOne(
+      'SELECT 1 FROM user_program_assignments WHERE user_id = ? AND program_id = ? AND removed_at IS NULL',
+      [payload.userId, fileParam]
+    );
+    if (!hasAccess) return res.status(403).json({ error: 'Not authorized' });
+    const fs = require('fs');
+    const filePath = path.join(__dirname, 'public', 'programs', 'pdfs', fileParam);
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return res.status(404).json({ error: 'Not found' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    const stream = fs.createReadStream(filePath);
+    stream.pipe(res);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

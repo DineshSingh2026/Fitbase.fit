@@ -79,4 +79,25 @@ function verifyShareToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, JWT_SECRET };
+function signPdfAccessToken(programId, userId) {
+  return jwt.sign(
+    { programId, userId, purpose: 'pdf-view' },
+    JWT_SECRET,
+    { expiresIn: '10m' }
+  );
+}
+
+function verifyPdfAccessToken(token) {
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded && decoded.purpose === 'pdf-view' && decoded.programId && decoded.userId) {
+      return { programId: decoded.programId, userId: decoded.userId };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, JWT_SECRET };

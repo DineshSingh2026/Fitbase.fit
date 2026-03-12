@@ -1650,8 +1650,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .pdf-modal-title{font-weight:600;font-size:14px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pdf-modal-close{width:36px;height:36px;border:none;background:transparent;color:var(--cream);font-size:24px;line-height:1;cursor:pointer;border-radius:6px;opacity:0.8}
 .pdf-modal-close:hover{opacity:1;background:rgba(255,255,255,0.08)}
-.pdf-modal-body{flex:1;min-height:0;background:#000}
-.pdf-modal-iframe{width:100%;height:100%;border:0;display:block}
+.pdf-modal-body{flex:1;min-height:0;background:#000;position:relative}
+.pdf-modal-iframe{width:100%;height:100%;border:0;display:block;min-height:400px}
+.pdf-modal-fallback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--cream);font-size:14px;text-align:center;padding:20px}
+.pdf-modal-fallback a{color:var(--gold);text-decoration:underline}
 .pdf-modal-footer{padding:12px 16px;border-top:1px solid var(--bdr);flex-shrink:0}
 .pdf-modal-back-btn{width:100%;margin:0}
 
@@ -3377,7 +3379,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <button type="button" class="pdf-modal-close" onclick="closePdfModal()" aria-label="Close">×</button>
     </div>
     <div class="pdf-modal-body">
-      <iframe id="pdfModalFrame" class="pdf-modal-iframe" title="Program PDF"></iframe>
+      <object id="pdfModalFrame" class="pdf-modal-iframe" type="application/pdf" data="" aria-label="Program PDF">
+        <p class="pdf-modal-fallback">For the best viewing experience, open this PDF in a new tab.<br><a id="pdfModalFallbackLink" href="#" target="_blank" rel="noopener">Open program PDF</a></p>
+      </object>
     </div>
     <div class="pdf-modal-footer">
       <button type="button" class="form-submit pdf-modal-back-btn" onclick="closePdfModal()">← Back to Programs</button>
@@ -3984,10 +3988,10 @@ async function loadUserPrograms() {
     el.innerHTML = list.map(function(p) {
       var rawName = p.name || '';
       var name = escapeHtml(rawName);
-      var pdf = String(p.pdf_url || '').replace(/"/g, '&quot;');
+      var programId = String(p.program_id || p.id || '').replace(/"/g, '&quot;');
       var safeName = (rawName || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
       var actions = '<div class="prog-actions">' +
-        '<button type="button" class="form-submit" style="padding:10px 14px;font-size:12px" data-pdf="' + pdf + '" data-name="' + safeName + '" onclick="openPdfModal(this.getAttribute(\'data-pdf\'), this.getAttribute(\'data-name\'))">View PDF</button>' +
+        '<button type="button" class="form-submit" style="padding:10px 14px;font-size:12px" data-program-id="' + programId + '" data-name="' + safeName + '" onclick="openPdfModal(this.getAttribute(\'data-program-id\'), this.getAttribute(\'data-name\'))">View PDF</button>' +
       '</div>';
       return '<div class="prog-card">' +
         '<div class="prog-meta"><div class="prog-title">' + name + '</div><div class="prog-sub">Assigned program PDF</div></div>' +
@@ -3999,16 +4003,19 @@ async function loadUserPrograms() {
   }
 }
 
-function openPdfModal(pdfUrl, programName) {
+async function openPdfModal(programId, programName) {
   var overlay = document.getElementById('pdfModalOverlay');
   var frame = document.getElementById('pdfModalFrame');
   var title = document.getElementById('pdfModalTitle');
+  var fallbackLink = document.getElementById('pdfModalFallbackLink');
   if (!overlay || !frame) return;
-  if (pdfUrl && pdfUrl.indexOf('/programs/pdfs/') === 0) {
-    frame.src = pdfUrl;
-  } else {
-    frame.src = '';
-  }
+  var url = '';
+  try {
+    var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
+    if (res && res.url) url = res.url;
+  } catch (e) {}
+  frame.setAttribute('data', url);
+  if (fallbackLink) fallbackLink.href = url || '#';
   if (title) title.textContent = programName || 'Program PDF';
   overlay.classList.add('show');
   if (typeof lockBodyScroll === 'function') lockBodyScroll();
@@ -4018,7 +4025,7 @@ function closePdfModal() {
   var overlay = document.getElementById('pdfModalOverlay');
   var frame = document.getElementById('pdfModalFrame');
   if (overlay) overlay.classList.remove('show');
-  if (frame) frame.src = '';
+  if (frame) frame.removeAttribute('data');
   if (typeof unlockBodyScroll === 'function') unlockBodyScroll();
 }
 
