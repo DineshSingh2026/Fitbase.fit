@@ -1655,6 +1655,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .pdf-modal-iframe{width:100%;height:100%;min-height:500px;border:0;display:block;touch-action:pan-x pan-y pinch-zoom}
 .pdf-modal-fallback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--cream);font-size:14px;text-align:center;padding:20px}
 .pdf-modal-fallback a{color:var(--gold);text-decoration:underline}
+.pdf-modal-open-tab{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:rgba(200,164,78,0.12);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.pdf-modal-open-tab-txt{font-size:13px;color:var(--cream);text-align:center}
+.pdf-modal-open-tab-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:var(--gold);color:#0d0d0d;font-weight:600;font-size:14px;border:none;border-radius:8px;text-decoration:none;cursor:pointer;white-space:nowrap}
+.pdf-modal-open-tab-btn:hover{background:#d4ae66;color:#0d0d0d}
 .pdf-modal-footer{padding:12px 16px;border-top:1px solid var(--bdr);flex-shrink:0}
 .pdf-modal-back-btn{width:100%;margin:0}
 
@@ -3379,6 +3383,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <span class="pdf-modal-title" id="pdfModalTitle">Program PDF</span>
       <button type="button" class="pdf-modal-close" onclick="closePdfModal()" aria-label="Close">×</button>
     </div>
+    <div class="pdf-modal-open-tab">
+      <span class="pdf-modal-open-tab-txt">Need pinch-to-zoom? Open in new tab for best viewing on mobile.</span>
+      <a id="pdfModalOpenTabBtn" href="#" target="_blank" rel="noopener" class="pdf-modal-open-tab-btn">Open PDF in new tab</a>
+    </div>
     <div class="pdf-modal-body">
       <div class="pdf-modal-scalable" id="pdfModalScalable">
       <object id="pdfModalFrame" class="pdf-modal-iframe" type="application/pdf" data="" aria-label="Program PDF">
@@ -4011,6 +4019,7 @@ async function openPdfModal(programId, programName) {
   var frame = document.getElementById('pdfModalFrame');
   var title = document.getElementById('pdfModalTitle');
   var fallbackLink = document.getElementById('pdfModalFallbackLink');
+  var openTabBtn = document.getElementById('pdfModalOpenTabBtn');
   if (!overlay || !frame) return;
   var url = '';
   try {
@@ -4019,6 +4028,7 @@ async function openPdfModal(programId, programName) {
   } catch (e) {}
   frame.setAttribute('data', url);
   if (fallbackLink) fallbackLink.href = url || '#';
+  if (openTabBtn) openTabBtn.href = url || '#';
   if (title) title.textContent = programName || 'Program PDF';
   overlay.classList.add('show');
   if (typeof lockBodyScroll === 'function') lockBodyScroll();
