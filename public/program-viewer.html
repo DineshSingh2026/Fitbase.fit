@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>BodyBank Program Viewer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root{
+      --black:#050505;
+      --dark2:#141414;
+      --gold:#c8a44e;
+      --cream:#f5f0e8;
+      --bdr:rgba(255,255,255,0.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      background:radial-gradient(circle at top,var(--dark2),#020202 56%);
+      color:var(--cream);
+      display:flex;
+      flex-direction:column;
+    }
+    .pv-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px;
+      border-bottom:1px solid var(--bdr);
+      background:rgba(0,0,0,0.85);
+      position:sticky;
+      top:0;
+      z-index:10;
+    }
+    .pv-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:600;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      font-size:13px;
+    }
+    .pv-logo{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      border:1px solid rgba(200,164,78,0.6);
+      display:grid;
+      place-items:center;
+      font-size:16px;
+    }
+    .pv-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .pv-back-btn{
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid var(--gold);
+      background:transparent;
+      color:var(--gold);
+      font-size:12px;
+      font-weight:600;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+    .pv-back-btn:hover{background:rgba(200,164,78,0.1)}
+    .pv-title{
+      font-size:13px;
+      opacity:0.85;
+      max-width:40vw;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .pv-main{
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      padding:10px;
+      gap:10px;
+    }
+    .pv-hint{
+      font-size:12px;
+      opacity:0.75;
+      text-align:center;
+    }
+    .pv-frame-wrap{
+      flex:1;
+      min-height:0;
+      border-radius:10px;
+      border:1px solid var(--bdr);
+      overflow:hidden;
+      background:#000;
+    }
+    .pv-frame{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#000;
+    }
+    @media (max-width:600px){
+      .pv-header{flex-wrap:wrap;gap:8px}
+      .pv-title{max-width:100%;order:3;width:100%;text-align:left}
+      .pv-main{padding:8px}
+    }
+  </style>
+</head>
+<body>
+  <header class="pv-header">
+    <div class="pv-brand">
+      <div class="pv-logo">BB</div>
+      <div>BodyBank</div>
+    </div>
+    <div class="pv-actions">
+      <button type="button" class="pv-back-btn" id="pvBackBtn">
+        ← Back to My Programs
+      </button>
+    </div>
+    <div class="pv-title" id="pvTitle">Program PDF</div>
+  </header>
+  <main class="pv-main">
+    <div class="pv-hint">If the PDF does not load, make sure pop‑ups are allowed for this site.</div>
+    <div class="pv-frame-wrap">
+      <iframe id="pvFrame" class="pv-frame" title="Program PDF"></iframe>
+    </div>
+  </main>
+  <script>
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var file = params.get('file') || '';
+        var name = params.get('name') || '';
+        var frame = document.getElementById('pvFrame');
+        var titleEl = document.getElementById('pvTitle');
+        if (name && titleEl) titleEl.textContent = name;
+        if (file && frame) {
+          // Only allow PDFs from our public programs folder
+          if (file.indexOf('/programs/pdfs/') === 0) {
+            frame.src = file;
+          } else {
+            frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
+          }
+        } else if (frame) {
+          frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Program file not specified.</p>';
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      var backBtn = document.getElementById('pvBackBtn');
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          // Try browser back first; if there is no history, go to main app
+          if (window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = '/index.html';
+          }
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
+

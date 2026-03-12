@@ -3957,10 +3957,12 @@ async function loadUserPrograms() {
       return;
     }
     el.innerHTML = list.map(function(p) {
-      var name = escapeHtml(p.name || '');
-      var pdf = escapeHtml(p.pdf_url || '');
+      var rawName = p.name || '';
+      var name = escapeHtml(rawName);
+      var pdf = String(p.pdf_url || '');
+      var viewerUrl = '/program-viewer.html?file=' + encodeURIComponent(pdf) + '&name=' + encodeURIComponent(rawName);
       var actions = '<div class="prog-actions">' +
-        '<a class="form-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;font-size:12px" href="' + pdf + '" target="_blank" rel="noopener noreferrer">View PDF</a>' +
+        '<a class="form-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;font-size:12px" href="' + viewerUrl + '" target="_blank" rel="noopener noreferrer">View PDF</a>' +
       '</div>';
       return '<div class="prog-card">' +
         '<div class="prog-meta"><div class="prog-title">' + name + '</div><div class="prog-sub">Assigned program PDF</div></div>' +
