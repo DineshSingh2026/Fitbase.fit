@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0a" />
 
 <!-- Safari / iOS -->
@@ -1648,15 +1648,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .pdf-modal-box{display:flex;flex-direction:column;width:100%;max-width:900px;height:100%;max-height:90vh;background:#0d0d0d;border:1px solid rgba(200,164,78,0.25);border-radius:12px;overflow:hidden;animation:popUp .3s}
 .pdf-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);background:rgba(0,0,0,0.5);flex-shrink:0}
 .pdf-modal-title{font-weight:600;font-size:14px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
-.pdf-modal-zoom{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.pdf-zoom-btn{width:32px;height:32px;border:1px solid var(--bdr);background:rgba(255,255,255,0.05);color:var(--cream);font-size:18px;line-height:1;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s}
-.pdf-zoom-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);color:var(--gold)}
-.pdf-zoom-level{font-size:12px;color:var(--muted);min-width:36px;text-align:center}
 .pdf-modal-close{width:36px;height:36px;border:none;background:transparent;color:var(--cream);font-size:24px;line-height:1;cursor:pointer;border-radius:6px;opacity:0.8;flex-shrink:0}
 .pdf-modal-close:hover{opacity:1;background:rgba(255,255,255,0.08)}
-.pdf-modal-body{flex:1;min-height:0;background:#000;position:relative;overflow:auto}
+.pdf-modal-body{flex:1;min-height:0;background:#000;position:relative;overflow:auto;touch-action:pan-x pan-y pinch-zoom}
 .pdf-modal-scalable{width:100%;height:100%;min-height:100%;display:block}
-.pdf-modal-iframe{width:100%;height:100%;min-height:500px;border:0;display:block}
+.pdf-modal-iframe{width:100%;height:100%;min-height:500px;border:0;display:block;touch-action:pan-x pan-y pinch-zoom}
 .pdf-modal-fallback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--cream);font-size:14px;text-align:center;padding:20px}
 .pdf-modal-fallback a{color:var(--gold);text-decoration:underline}
 .pdf-modal-footer{padding:12px 16px;border-top:1px solid var(--bdr);flex-shrink:0}
@@ -3381,11 +3377,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="pdf-modal-box">
     <div class="pdf-modal-header">
       <span class="pdf-modal-title" id="pdfModalTitle">Program PDF</span>
-      <div class="pdf-modal-zoom">
-        <button type="button" class="pdf-zoom-btn" onclick="pdfZoomOut()" aria-label="Zoom out">−</button>
-        <span class="pdf-zoom-level" id="pdfZoomLevel">100%</span>
-        <button type="button" class="pdf-zoom-btn" onclick="pdfZoomIn()" aria-label="Zoom in">+</button>
-      </div>
       <button type="button" class="pdf-modal-close" onclick="closePdfModal()" aria-label="Close">×</button>
     </div>
     <div class="pdf-modal-body">
@@ -4026,47 +4017,18 @@ async function openPdfModal(programId, programName) {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
     if (res && res.url) url = res.url;
   } catch (e) {}
-  _pdfBaseUrl = url;
   frame.setAttribute('data', url);
   if (fallbackLink) fallbackLink.href = url || '#';
   if (title) title.textContent = programName || 'Program PDF';
-  _pdfZoom = 1;
-  applyPdfZoom();
   overlay.classList.add('show');
   if (typeof lockBodyScroll === 'function') lockBodyScroll();
-}
-
-var _pdfZoom = 1;
-var _pdfBaseUrl = '';
-
-function pdfZoomIn() {
-  _pdfZoom = Math.min(2.5, _pdfZoom + 0.25);
-  applyPdfZoom();
-}
-
-function pdfZoomOut() {
-  _pdfZoom = Math.max(1, _pdfZoom - 0.25);
-  applyPdfZoom();
-}
-
-function applyPdfZoom() {
-  var scalable = document.getElementById('pdfModalScalable');
-  var levelEl = document.getElementById('pdfZoomLevel');
-  if (scalable) {
-    scalable.style.width = (_pdfZoom * 100) + '%';
-    scalable.style.minHeight = (_pdfZoom * 100) + '%';
-  }
-  if (levelEl) levelEl.textContent = Math.round(_pdfZoom * 100) + '%';
 }
 
 function closePdfModal() {
   var overlay = document.getElementById('pdfModalOverlay');
   var frame = document.getElementById('pdfModalFrame');
-  _pdfZoom = 1;
-  applyPdfZoom();
   if (overlay) overlay.classList.remove('show');
   if (frame) frame.removeAttribute('data');
-  _pdfBaseUrl = '';
   if (typeof unlockBodyScroll === 'function') unlockBodyScroll();
 }
 
