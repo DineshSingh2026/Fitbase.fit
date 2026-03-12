@@ -45,13 +45,13 @@
     #pvScroll {
       position:fixed;
       top:0; left:0; right:0; bottom:var(--bar-h);
-      overflow-y:scroll; overflow-x:hidden;
+      overflow-y:scroll; overflow-x:auto;
       -webkit-overflow-scrolling:touch;
       background:#1a1a1a;
       display:flex; flex-direction:column; align-items:center;
       gap:8px;
       padding:76px 0 16px;
-      touch-action:pan-y;        /* allows native vertical scroll */
+      touch-action:pan-x pan-y;  /* allows native scroll in both directions */
     }
 
     /* PAGE */
@@ -282,7 +282,9 @@
         pinching    = true;
         pinchDist0  = getDist(e.touches);
         pinchScale0 = scale;
-        e.preventDefault(); // block browser zoom only when 2 fingers
+        e.preventDefault();
+      } else {
+        pinching = false;
       }
     }, { passive: false });
 
