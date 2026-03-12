@@ -1986,6 +1986,140 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
   /* Make canvases fit cards */
   .bb-chart-card canvas{width:100% !important;max-height:220px}
+
+  /* =========================
+     USER DASHBOARD (DESKTOP)
+     ========================= */
+  .user-bottom-nav{display:none !important}
+  .user-top{display:none !important}
+  .user-home-pwa-row{display:none !important}
+  .user-current-section-wrap{display:none !important}
+
+  /* Neutralize global nav styles inside user sidebar */
+  .user-layout{width:100% !important}
+  .user-sidebar nav.user-sidebar-nav{
+    position:static !important;
+    top:auto !important;left:auto !important;right:auto !important;bottom:auto !important;
+    background:transparent !important;
+    border:0 !important;
+    padding:20px 0 0 !important;
+    display:block !important;
+    gap:0 !important;
+    flex-wrap:nowrap !important;
+  }
+
+  .user-sidebar{
+    position:fixed !important;
+    top:0 !important;left:0 !important;
+    width:var(--bb-sidebar-width) !important;
+    height:100vh !important;
+    background:#111111 !important;
+    border-right:1px solid var(--bb-border) !important;
+    display:flex !important;
+    flex-direction:column !important;
+    padding:24px 0 !important;
+    z-index:90 !important;
+  }
+  .user-sidebar .sidebar-logo{
+    padding:0 20px 28px !important;
+    border-bottom:1px solid var(--bb-border) !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+  }
+  .user-sidebar .bb-user-sidebar-logo-img{
+    height:54px !important;
+    width:auto !important;
+    object-fit:contain !important;
+    display:block !important;
+    mix-blend-mode:lighten !important;
+  }
+
+  .user-sidebar-nav{
+    flex:1 !important;
+    padding-top:0 !important;
+    overflow:auto !important;
+    width:100% !important;
+  }
+
+  .user-sidebar-link{
+    display:flex !important;
+    align-items:center !important;
+    gap:12px !important;
+    padding:12px 20px !important;
+    color:var(--bb-muted) !important;
+    text-decoration:none !important;
+    font-size:13px !important;
+    text-transform:uppercase !important;
+    letter-spacing:0.08em !important;
+    border-left:3px solid transparent !important;
+    transition:all 0.2s ease !important;
+    background:transparent !important;
+  }
+  .user-sidebar-link:hover,
+  .user-sidebar-link.active{
+    color:var(--bb-gold) !important;
+    border-left-color:var(--bb-gold) !important;
+    background:rgba(201,168,76,0.06) !important;
+  }
+
+  .user-body{
+    margin-left:var(--bb-sidebar-width) !important;
+    padding:24px !important;
+    min-height:100vh !important;
+    background:var(--bb-bg) !important;
+    max-width:none !important;
+    width:calc(100% - var(--bb-sidebar-width)) !important;
+    margin-right:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .user-tab-content-wrap{
+    width:100% !important;
+    max-width:none !important;
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    background:transparent !important;
+    box-shadow:none !important;
+  }
+
+  /* Desktop home swap (keep mobile perfect) */
+  #usec-home .user-welcome{display:none !important}
+  #usec-home .bb-user-desktop-dashboard{display:block !important}
+
+  .user-topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--bb-border);
+  }
+  .user-topbar h1{
+    font-family:var(--bb-font-heading);
+    font-size:22px;
+    font-weight:700;
+    color:var(--bb-text);
+    letter-spacing:0.05em;
+    margin:0;
+  }
+  .user-topbar .topbar-right{display:flex;align-items:center;gap:16px}
+  .user-topbar input[type="search"]{
+    background:var(--bb-surface);
+    border:1px solid var(--bb-border);
+    color:var(--bb-text);
+    padding:8px 16px;
+    border-radius:8px;
+    font-size:13px;
+    width:220px;
+    outline:none;
+  }
+  .user-topbar input[type="search"]::placeholder{color:var(--bb-muted)}
+  .bb-top-logout.bb-user-logout{border-color:var(--bb-border)}
+
+  /* Fit canvases */
+  .bb-user-desktop-dashboard canvas{width:100% !important;max-height:220px}
 }
 
 </style>
@@ -2032,6 +2166,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
   <div class="user-layout">
     <aside class="user-sidebar" id="userSidebar" role="navigation" aria-label="User navigation">
+      <div class="sidebar-logo">
+        <img src="img/logo.png" alt="BodyBank" class="bb-user-sidebar-logo-img" decoding="async">
+      </div>
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
@@ -2056,6 +2193,111 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- HOME (Today dashboard + micro-goals) -->
     <div class="user-section active" id="usec-home">
+      <!-- DESKTOP USER DASHBOARD (hidden on mobile via inline style; enabled by desktop CSS) -->
+      <div class="bb-user-desktop-dashboard" style="display:none">
+        <div class="user-topbar">
+          <h1>Welcome back, <span id="bbUserWelcomeName">User</span> 👋</h1>
+          <div class="topbar-right">
+            <input type="search" placeholder="Search..." aria-label="Search">
+            <span class="bb-top-icon" aria-hidden="true">🔔</span>
+            <span class="bb-top-user">Member ▾</span>
+            <button type="button" class="bb-top-logout bb-user-logout" onclick="logoutUser()">Logout</button>
+          </div>
+        </div>
+
+        <div class="bb-stat-grid">
+          <div class="bb-stat-card">
+            <div class="stat-label">Workouts This Week</div>
+            <div class="stat-number" id="u-stat-workouts">—</div>
+            <div class="stat-sub up" id="u-stat-workouts-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Next Call</div>
+            <div class="stat-number" id="u-stat-nextcall">—</div>
+            <div class="stat-sub" id="u-stat-nextcall-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Days Since Workout</div>
+            <div class="stat-number" id="u-stat-days">—</div>
+            <div class="stat-sub" id="u-stat-days-sub">Loading...</div>
+          </div>
+          <div class="bb-stat-card">
+            <div class="stat-label">Last Message</div>
+            <div class="stat-number" id="u-stat-lastmsg">—</div>
+            <div class="stat-sub" id="u-stat-lastmsg-sub">Loading...</div>
+          </div>
+        </div>
+
+        <div class="bb-chart-grid">
+          <div class="bb-chart-card">
+            <h3>Workouts Trend</h3>
+            <canvas id="u-chart-workouts" height="120"></canvas>
+          </div>
+          <div class="bb-chart-card">
+            <h3>Weekly Goal (5 Workouts)</h3>
+            <canvas id="u-chart-goal" height="120"></canvas>
+          </div>
+        </div>
+
+        <div class="bb-program-grid">
+          <div class="bb-program-card">
+            <div class="prog-label">Steps (today)</div>
+            <div class="prog-number" id="u-prog-steps">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-steps-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="u-prog-steps-pct">—</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Water (ml)</div>
+            <div class="prog-number" id="u-prog-water">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-water-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="u-prog-water-pct">—</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Protein (g)</div>
+            <div class="prog-number" id="u-prog-protein">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-protein-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="u-prog-protein-pct">—</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Sleep (hrs)</div>
+            <div class="prog-number" id="u-prog-sleep">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-sleep-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="u-prog-sleep-pct">—</div>
+          </div>
+          <div class="bb-program-card">
+            <div class="prog-label">Streak</div>
+            <div class="prog-number" id="u-prog-streak">—</div>
+            <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-streak-bar" style="width:0%"></div></div>
+            <div class="prog-pct" id="u-prog-streak-pct">—</div>
+          </div>
+        </div>
+
+        <div class="bb-table-card">
+          <h3>Recent Activity</h3>
+          <table class="bb-client-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Summary</th>
+                <th>Status</th>
+                <th>Link</th>
+              </tr>
+            </thead>
+            <tbody id="u-activity-body">
+              <tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">Loading activity...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bb-quick-actions">
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('workout');return false"><span class="btn-icon">🏋️</span>Log Workout</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('progress');return false"><span class="btn-icon">📈</span>My Progress</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Sunday Check-in</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
+        </div>
+      </div>
       <div class="user-welcome">
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
@@ -5440,7 +5682,14 @@ function switchUserTab(tab) {
   var contentWrap = document.getElementById('userTabContentWrap');
   if (contentWrap) contentWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'home') { loadUserStats(); loadTodayDashboard(); loadMicroGoals(); }
+  if (tab === 'home') {
+    loadUserStats();
+    loadTodayDashboard();
+    loadMicroGoals();
+    if (window.innerWidth >= 768) {
+      setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
+    }
+  }
   if (tab === 'progress') {
     var proDate = document.getElementById('proDate');
     if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
@@ -5461,6 +5710,194 @@ function switchUserTab(tab) {
     loadMyMeetings();
   }
   if (tab === 'checkin') loadSundayCheckinDefaults();
+}
+
+window._bbUserCharts = window._bbUserCharts || {};
+function bbUserSetText(id, txt) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = txt;
+}
+function bbUserSetHtml(id, html) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+function bbUserSetBar(id, pct) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var v = Math.max(0, Math.min(100, pct || 0));
+  el.style.width = v.toFixed(0) + '%';
+}
+function bbUserDestroyChart(key) {
+  if (window._bbUserCharts && window._bbUserCharts[key]) {
+    try { window._bbUserCharts[key].destroy(); } catch (_) {}
+    window._bbUserCharts[key] = null;
+  }
+}
+function bbUserFmtDate(s) {
+  if (!s) return '—';
+  var d = new Date(s);
+  if (isNaN(d.getTime())) return String(s).slice(0, 10);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+function bbUserEsc(s) {
+  return (typeof escapeHtml === 'function') ? escapeHtml(s) : String(s || '').replace(/[&<>"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });
+}
+async function bbRefreshDesktopUserDashboard() {
+  if (window.innerWidth < 768) return;
+  if (!window.currentUser || !window.currentUser.id) return;
+  if (typeof Chart === 'undefined') return;
+
+  // Keep welcome name in desktop topbar in sync
+  var nameEl = document.getElementById('userWelcomeName');
+  var topNameEl = document.getElementById('bbUserWelcomeName');
+  if (nameEl && topNameEl) topNameEl.textContent = nameEl.textContent || 'User';
+
+  var userId = window.currentUser.id;
+  var workouts = [];
+  var meetings = [];
+  var today = null;
+  var dailyToday = null;
+  var dailyStreak = null;
+
+  try {
+    var r = await Promise.all([
+      apiCall('GET', '/api/workouts/' + userId),
+      apiCall('GET', '/api/meetings/user/' + userId),
+      apiCall('GET', '/api/today'),
+      apiCall('GET', '/api/daily-checkin/today'),
+      apiCall('GET', '/api/daily-checkin/streak')
+    ]);
+    if (Array.isArray(r[0]) && !r[0].error) workouts = r[0];
+    if (Array.isArray(r[1]) && !r[1].error) meetings = r[1];
+    if (r[2] && !r[2].error) today = r[2];
+    if (r[3] && !r[3].error) dailyToday = r[3];
+    if (r[4] && !r[4].error) dailyStreak = r[4];
+  } catch (_) {}
+
+  var now = new Date();
+  var weekStart = new Date(now);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  var workoutsThisWeek = (workouts || []).filter(function(w) {
+    var d = new Date(w.created_at);
+    return d >= weekStart;
+  }).length;
+
+  var sortedWorkouts = (workouts || []).slice().sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+  var lastWorkout = sortedWorkouts.length ? new Date(sortedWorkouts[0].created_at) : null;
+  var daysSince = lastWorkout ? Math.floor((now - lastWorkout) / (24 * 60 * 60 * 1000)) : null;
+
+  var upcomingMeetings = (meetings || []).filter(function(m) { return m.status !== 'cancelled'; })
+    .sort(function(a, b) { return new Date(a.meeting_date) - new Date(b.meeting_date); });
+  var nextCall = upcomingMeetings.length ? upcomingMeetings[0] : null;
+  var nextCallStr = nextCall ? new Date(nextCall.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'None';
+
+  var lastMsg = (today && today.lastMessage && today.lastMessage.body) ? String(today.lastMessage.body) : '';
+  var lastMsgShort = lastMsg ? (lastMsg.slice(0, 18) + (lastMsg.length > 18 ? '…' : '')) : '—';
+
+  bbUserSetText('u-stat-workouts', String(workoutsThisWeek));
+  bbUserSetText('u-stat-workouts-sub', 'Goal: 5 / week');
+  bbUserSetText('u-stat-nextcall', nextCallStr);
+  bbUserSetText('u-stat-nextcall-sub', nextCall ? (nextCall.time_slot || 'Scheduled') : 'No meeting booked');
+  bbUserSetText('u-stat-days', daysSince !== null ? String(daysSince) : '—');
+  bbUserSetText('u-stat-days-sub', 'Since last workout');
+  bbUserSetText('u-stat-lastmsg', lastMsgShort);
+  bbUserSetText('u-stat-lastmsg-sub', lastMsg ? 'Most recent coach reply' : 'No messages yet');
+
+  // Chart 1: workouts trend (last 14 workout logs grouped by date)
+  var byDay = {};
+  (workouts || []).forEach(function(w) {
+    var d = new Date(w.created_at);
+    if (isNaN(d.getTime())) return;
+    var key = d.toISOString().slice(0, 10);
+    byDay[key] = (byDay[key] || 0) + 1;
+  });
+  var days = Object.keys(byDay).sort().slice(-14);
+  var labels = days.map(function(k) { return bbUserFmtDate(k); });
+  var values = days.map(function(k) { return byDay[k] || 0; });
+  var ctx1 = document.getElementById('u-chart-workouts');
+  if (ctx1) {
+    bbUserDestroyChart('workouts');
+    window._bbUserCharts.workouts = new Chart(ctx1, {
+      type: 'line',
+      data: { labels: labels, datasets: [{ data: values, borderColor: '#c9a84c', backgroundColor: 'rgba(201,168,76,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#c9a84c' }] },
+      options: { plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#888' } }, y: { grid: { color: '#1f1f1f' }, ticks: { color: '#888' }, beginAtZero: true } } }
+    });
+  }
+
+  // Chart 2: weekly goal donut (workouts this week vs remaining to 5)
+  var goal = 5;
+  var done = Math.min(goal, workoutsThisWeek);
+  var remaining = Math.max(0, goal - done);
+  var ctx2 = document.getElementById('u-chart-goal');
+  if (ctx2) {
+    bbUserDestroyChart('goal');
+    window._bbUserCharts.goal = new Chart(ctx2, {
+      type: 'doughnut',
+      data: { labels: ['Done', 'Remaining'], datasets: [{ data: [done, remaining || 0.0001], backgroundColor: ['#c9a84c', '#3a3a3a'], borderWidth: 0, hoverOffset: 4 }] },
+      options: { cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#888', font: { size: 12 } } } } }
+    });
+  }
+
+  // Progress cards: daily check-in values + streak
+  var steps = dailyToday && dailyToday.steps != null ? parseInt(dailyToday.steps, 10) : null;
+  var water = dailyToday && dailyToday.water_ml != null ? parseInt(dailyToday.water_ml, 10) : null;
+  var protein = dailyToday && dailyToday.protein_g != null ? parseInt(dailyToday.protein_g, 10) : null;
+  var sleep = dailyToday && dailyToday.sleep_hours != null ? parseFloat(dailyToday.sleep_hours) : null;
+  var streakN = dailyStreak && dailyStreak.streak != null ? parseInt(dailyStreak.streak, 10) : 0;
+
+  var stepGoal = 8000, waterGoal = 2000, proteinGoal = 120, sleepGoal = 8;
+  bbUserSetText('u-prog-steps', steps != null ? String(steps) : '—');
+  bbUserSetBar('u-prog-steps-bar', steps != null ? (steps / stepGoal) * 100 : 0);
+  bbUserSetText('u-prog-steps-pct', steps != null ? Math.round((steps / stepGoal) * 100) + '% of ' + stepGoal : '—');
+
+  bbUserSetText('u-prog-water', water != null ? String(water) : '—');
+  bbUserSetBar('u-prog-water-bar', water != null ? (water / waterGoal) * 100 : 0);
+  bbUserSetText('u-prog-water-pct', water != null ? Math.round((water / waterGoal) * 100) + '% of ' + waterGoal : '—');
+
+  bbUserSetText('u-prog-protein', protein != null ? String(protein) : '—');
+  bbUserSetBar('u-prog-protein-bar', protein != null ? (protein / proteinGoal) * 100 : 0);
+  bbUserSetText('u-prog-protein-pct', protein != null ? Math.round((protein / proteinGoal) * 100) + '% of ' + proteinGoal : '—');
+
+  bbUserSetText('u-prog-sleep', sleep != null ? String(sleep) : '—');
+  bbUserSetBar('u-prog-sleep-bar', sleep != null ? (sleep / sleepGoal) * 100 : 0);
+  bbUserSetText('u-prog-sleep-pct', sleep != null ? Math.round((sleep / sleepGoal) * 100) + '% of ' + sleepGoal : '—');
+
+  bbUserSetText('u-prog-streak', String(streakN));
+  bbUserSetBar('u-prog-streak-bar', Math.min(100, (streakN / 7) * 100));
+  bbUserSetText('u-prog-streak-pct', streakN ? (streakN + ' day streak') : 'Start today');
+
+  // Recent activity table (last 8 combined)
+  var activity = [];
+  (sortedWorkouts || []).slice(0, 6).forEach(function(w) {
+    activity.push({ at: w.created_at, type: 'Workout', summary: w.workout_name || 'Workout', status: 'DONE', linkTab: 'workout' });
+  });
+  (upcomingMeetings || []).slice(0, 4).forEach(function(m) {
+    activity.push({ at: (m.meeting_date ? (m.meeting_date + 'T12:00:00') : m.created_at), type: 'Meeting', summary: (m.time_slot || 'Scheduled'), status: (m.status || 'NEW').toUpperCase(), linkTab: 'contact' });
+  });
+  if (today && today.lastMessage) {
+    activity.push({ at: today.lastMessage.created_at || today.lastMessage.createdAt || new Date().toISOString(), type: 'Message', summary: (today.lastMessage.body || '').slice(0, 40) || 'Message', status: 'UNREAD', linkTab: 'messages' });
+  }
+  if (dailyToday && (steps != null || water != null || protein != null || sleep != null)) {
+    activity.push({ at: new Date().toISOString(), type: 'Daily Check-in', summary: 'Saved today', status: 'DONE', linkTab: 'home' });
+  }
+  activity.sort(function(a, b) { return new Date(b.at || 0) - new Date(a.at || 0); });
+  activity = activity.slice(0, 8);
+
+  var tbody = activity.map(function(a) {
+    var pillClass = (a.status === 'DONE') ? 'low' : (a.status === 'UNREAD' ? 'high' : 'medium');
+    return (
+      '<tr>' +
+        '<td>' + bbUserEsc(bbUserFmtDate(a.at)) + '</td>' +
+        '<td>' + bbUserEsc(a.type) + '</td>' +
+        '<td>' + bbUserEsc(a.summary) + '</td>' +
+        '<td><span class="bb-pill ' + pillClass + '">' + bbUserEsc(a.status) + '</span></td>' +
+        '<td><a href="#" class="bb-quick-btn" style="padding:8px 10px;border-radius:10px;font-size:11px" onclick="switchUserTab(\\\'' + bbUserEsc(a.linkTab) + '\\\');return false">Open</a></td>' +
+      '</tr>'
+    );
+  }).join('');
+  bbUserSetHtml('u-activity-body', tbody || '<tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">No activity yet.</td></tr>');
 }
 
 // User stats (workouts this week, next call, days since last activity)
