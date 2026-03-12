@@ -451,7 +451,7 @@ async function initDB() {
   } catch (e) { /* column may already be correct */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status_at ON scheduled_messages(status, scheduled_at)`); } catch (e) { /* ignore */ }
 
-  // Programs (PDF + YouTube) - admin assigns to users, max 2 per user
+  // Programs (PDF + YouTube) - admin assigns to users, max 4 per user
   await pool.query(`CREATE TABLE IF NOT EXISTS programs (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -1735,7 +1735,7 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
       'SELECT COUNT(*) as c FROM user_program_assignments WHERE user_id = ? AND removed_at IS NULL',
       [user_id]
     );
-    if (Number(activeCount?.c || 0) >= 2) return res.status(400).json({ error: 'User already has maximum 2 programs assigned' });
+    if (Number(activeCount?.c || 0) >= 4) return res.status(400).json({ error: 'User already has maximum 4 programs assigned' });
     const existing = await queryOne(
       'SELECT id FROM user_program_assignments WHERE user_id = ? AND program_id = ? AND removed_at IS NULL',
       [user_id, program_id]
