@@ -451,6 +451,59 @@ async function initDB() {
   } catch (e) { /* column may already be correct */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status_at ON scheduled_messages(status, scheduled_at)`); } catch (e) { /* ignore */ }
 
+  // Programs (PDF + YouTube) - admin assigns to users, max 2 per user
+  await pool.query(`CREATE TABLE IF NOT EXISTS programs (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    pdf_url TEXT NOT NULL,
+    image_url TEXT,
+    youtube_url TEXT DEFAULT '',
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_program_assignments (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    program_id TEXT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+    assigned_by TEXT,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    removed_at TIMESTAMP,
+    seen_at TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_program_assignments_user ON user_program_assignments(user_id)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_program_assignments_program ON user_program_assignments(program_id)`); } catch (e) { /* ignore */ }
+
+  // Sync programs table with PDF files on disk
+  try {
+    const fs = require('fs');
+    const pdfDir = path.join(__dirname, 'public', 'programs', 'pdfs');
+    let files = [];
+    try {
+      files = fs.readdirSync(pdfDir, { withFileTypes: true })
+        .filter(d => d.isFile && typeof d.isFile === 'function' ? d.isFile() : !d.isDirectory())
+        .map(d => d.name || d)
+        .filter(name => String(name).toLowerCase().endsWith('.pdf'));
+    } catch (e) {
+      console.warn('Programs folder not found or not readable:', e.message);
+      files = [];
+    }
+    for (const file of files) {
+      const base = String(file);
+      const id = base;
+      const name = base.replace(/\.pdf$/i, '');
+      const pdfUrl = '/programs/pdfs/' + encodeURIComponent(base);
+      const existing = await queryOne('SELECT id FROM programs WHERE id = ?', [id]);
+      if (existing && existing.id) {
+        await run('UPDATE programs SET name = ?, pdf_url = ? WHERE id = ?', [name, pdfUrl, id]);
+      } else {
+        await run('INSERT INTO programs (id, name, pdf_url) VALUES (?, ?, ?)', [id, name, pdfUrl]);
+      }
+    }
+    console.log('✅ Synced programs from PDFs:', files.length);
+  } catch (e) {
+    console.error('Failed to sync programs from PDFs:', e.message);
+  }
+
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
     console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
@@ -1594,12 +1647,166 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       }
+      const programAssignments = await queryAll(
+        `SELECT a.id, a.assigned_at, p.name FROM user_program_assignments a
+         JOIN programs p ON p.id = a.program_id
+         WHERE a.user_id = ? AND a.removed_at IS NULL AND a.seen_at IS NULL
+         ORDER BY a.assigned_at DESC LIMIT 5`,
+        [req.user.id]
+      );
+      programAssignments.forEach(a => {
+        notifications.push({
+          id: 'program-' + a.id,
+          type: 'program',
+          title: 'Program Assigned',
+          desc: 'Your lifestyle manager assigned "' + (a.name || '') + '"',
+          time: a.assigned_at,
+          link: 'programs'
+        });
+      });
     }
 
     notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
     res.json(notifications.slice(0, 30));
   } catch (e) {
     res.status(500).json([]);
+  }
+});
+
+// ============ PROGRAMS ============
+// Legacy admin-only route (kept under different path to avoid conflicts)
+app.get('/api/programs-legacy', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT id, name, pdf_url, image_url, youtube_url, sort_order FROM programs ORDER BY sort_order, name');
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/program-catalog', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT id, name, pdf_url FROM programs ORDER BY name');
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/programs/user/:userId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const rows = await queryAll(
+      `SELECT a.id, a.user_id, a.program_id, a.assigned_by, a.assigned_at, a.removed_at,
+        p.name as program_name, p.pdf_url, p.youtube_url
+       FROM user_program_assignments a
+       JOIN programs p ON p.id = a.program_id
+       WHERE a.user_id = ?
+       ORDER BY a.removed_at IS NULL DESC, a.assigned_at DESC`,
+      [userId]
+    );
+    const users = await queryAll("SELECT id, first_name, last_name, email FROM users WHERE id IN (SELECT DISTINCT assigned_by FROM user_program_assignments WHERE assigned_by IS NOT NULL)");
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email; });
+    const out = rows.map(r => ({
+      id: r.id,
+      user_id: r.user_id,
+      program_id: r.program_id,
+      program_name: r.program_name,
+      pdf_url: r.pdf_url,
+      youtube_url: r.youtube_url,
+      assigned_by: r.assigned_by,
+      assigned_by_name: userMap[r.assigned_by] || '—',
+      assigned_at: r.assigned_at,
+      removed_at: r.removed_at,
+      is_active: !r.removed_at
+    }));
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { user_id, program_id } = req.body;
+    if (!user_id || !program_id) return res.status(400).json({ error: 'user_id and program_id required' });
+    const activeCount = await queryOne(
+      'SELECT COUNT(*) as c FROM user_program_assignments WHERE user_id = ? AND removed_at IS NULL',
+      [user_id]
+    );
+    if (Number(activeCount?.c || 0) >= 2) return res.status(400).json({ error: 'User already has maximum 2 programs assigned' });
+    const existing = await queryOne(
+      'SELECT id FROM user_program_assignments WHERE user_id = ? AND program_id = ? AND removed_at IS NULL',
+      [user_id, program_id]
+    );
+    if (existing) return res.status(400).json({ error: 'This program is already assigned to the user' });
+    const id = uuidv4();
+    await run(
+      'INSERT INTO user_program_assignments (id, user_id, program_id, assigned_by) VALUES (?, ?, ?, ?)',
+      [id, user_id, program_id, req.user.id]
+    );
+    try { await sendPushToUser(user_id, JSON.stringify({ type: 'program_assigned', assignmentId: id })); } catch (_) {}
+    res.json({ id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/programs/assign/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    await run('UPDATE user_program_assignments SET removed_at = CURRENT_TIMESTAMP WHERE id = ? AND removed_at IS NULL', [id]);
+    const r = await queryOne('SELECT id FROM user_program_assignments WHERE id = ?', [id]);
+    if (!r) return res.status(404).json({ error: 'Assignment not found' });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/me/programs', verifyToken, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT a.id, a.program_id, a.assigned_at, p.name, p.pdf_url, p.image_url, p.youtube_url
+       FROM user_program_assignments a
+       JOIN programs p ON p.id = a.program_id
+       WHERE a.user_id = ? AND a.removed_at IS NULL
+       ORDER BY a.assigned_at DESC`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/me/program-assignments/unseen', verifyToken, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT a.id, p.name
+       FROM user_program_assignments a
+       JOIN programs p ON p.id = a.program_id
+       WHERE a.user_id = ? AND a.removed_at IS NULL AND a.seen_at IS NULL
+       ORDER BY a.assigned_at DESC`,
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json([]);
+  }
+});
+
+app.post('/api/me/program-assignments/:id/seen', verifyToken, async (req, res) => {
+  try {
+    const id = req.params.id;
+    await run(
+      'UPDATE user_program_assignments SET seen_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ? AND removed_at IS NULL',
+      [id, req.user.id]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -2361,6 +2568,18 @@ app.get(['/', '/index.html'], (req, res) => {
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
+
+// Public programs list (used by Admin "Assign Program" tab)
+// Kept very simple and safe: just returns id, name and PDF URL.
+app.get('/api/programs', async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT id, name, pdf_url FROM programs ORDER BY name');
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.use((req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');

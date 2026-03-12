@@ -1394,6 +1394,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .welcome-card .wc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.2px;color:var(--cream);margin:0;text-transform:uppercase}
 .welcome-card .wc-desc{font-size:12px;color:var(--muted);line-height:1.45;letter-spacing:0.1px;margin:0}
 
+/* My Programs */
+.user-programs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.prog-card{background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22);display:flex;flex-direction:column;min-width:0}
+.prog-thumb{display:block;position:relative;aspect-ratio:16/9;background:rgba(200,164,78,0.06);border-bottom:1px solid rgba(255,255,255,0.06);overflow:hidden}
+.prog-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.prog-thumb.placeholder{display:grid;place-items:center;color:var(--gold);text-decoration:none}
+.prog-thumb.placeholder span{width:56px;height:56px;border-radius:999px;border:1px solid rgba(200,164,78,0.5);display:grid;place-items:center;background:rgba(0,0,0,0.35);font-size:22px}
+.prog-meta{padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.prog-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.6px;color:var(--cream);text-transform:uppercase;line-height:1.25}
+.prog-sub{font-size:12px;color:var(--muted);line-height:1.4}
+.prog-actions{display:flex;gap:10px;flex-wrap:wrap;padding:0 16px 16px}
+.prog-actions a{flex:1 1 0%;min-width:120px}
+
 /* Workout Timer */
 .timer-display{text-align:center;margin:28px 0}
 .timer-digits{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:6px;color:var(--cream)}
@@ -1580,6 +1593,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .timer-digits{font-size:48px;letter-spacing:3px}
   .timer-digits span{min-width:54px;padding:6px 10px}
   .timer-reset{font-size:13px}
+}
+@media(max-width:430px){
+  .timer-digits{font-size:40px;letter-spacing:2px}
+  .timer-digits span{min-width:42px;padding:4px 8px;margin:0 2px}
+  .timer-sep{font-size:30px}
 }
 @media(max-width:600px){
   .user-body{padding:2px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
@@ -2172,6 +2190,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
+        <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="progress" onclick="switchUserTab('progress');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128200;</span>My Progress</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Sunday Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
@@ -2431,6 +2450,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="workout-history" id="wkHistory"></div>
     </div>
 
+    <!-- MY PROGRAMS -->
+    <div class="user-section" id="usec-programs">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
+      <div class="form-section-title">My Programs</div>
+      <p class="form-hint" style="margin-bottom:20px">Programs assigned by your lifestyle manager. View the PDF and click the video link to watch and perform.</p>
+      <div id="userProgramsList" class="user-programs-grid"><p class="form-hint" style="padding:24px;text-align:center">Loading…</p></div>
+    </div>
 
     <!-- MESSAGES (single chat with coach, no subject) -->
     <div class="user-section" id="usec-messages">
@@ -2543,6 +2569,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128170;</span>
         <span class="user-bottom-nav-label">Workout</span>
       </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="programs" onclick="switchUserTab('programs')" aria-label="Programs">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#127919;</span>
+        <span class="user-bottom-nav-label">Programs</span>
+      </button>
       <button type="button" class="user-bottom-nav-item" data-tab="progress" onclick="switchUserTab('progress')" aria-label="Progress">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128200;</span>
         <span class="user-bottom-nav-label">Progress</span>
@@ -2604,6 +2634,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link active" href="#" data-section="dashboard" onclick="switchToSection('dashboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128202;</span>Dashboard</a>
         <a class="admin-sidebar-link" href="#" data-section="clients" onclick="switchToSection('clients');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128101;</span>Clients</a>
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
+        <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
@@ -2638,6 +2669,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-nav-link" href="#" data-section="training" onclick="switchToSection('training');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#127947;</span>Training
         </a>
+        <a class="admin-nav-link" href="#" data-section="programs" onclick="switchToSection('programs');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#127919;</span>Programs
+        </a>
         <a class="admin-nav-link" href="#" data-section="forms" onclick="switchToSection('forms');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128203;</span>Forms
         </a>
@@ -2662,6 +2696,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
       <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
+      <div class="admin-tab" data-tab="programs" onclick="switchTab('programs')">Programs</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
     </div>
 
@@ -2791,7 +2826,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('messages-meetings');return false"><span class="admin-qa-icon">&#128226;</span>Meetings</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
@@ -2860,6 +2895,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-icon" aria-hidden="true">&#127947;</span>
             <span class="admin-section-card-title">Workouts</span>
             <span class="admin-section-card-desc">View and manage workout logs</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="admin-tab-content" id="tab-programs-section">
+      <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
+        <div class="admin-section-cards">
+          <a class="admin-section-card" href="#" onclick="switchTab('programs');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#127919;</span>
+            <span class="admin-section-card-title">Assign Program</span>
+            <span class="admin-section-card-desc">Assign programs to users (max 2 per user)</span>
           </a>
         </div>
       </div>
@@ -3050,6 +3097,28 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <div class="chart-wrap"><canvas id="adminChartSleep"></canvas><p class="chart-title">Sleep hours (all sources)</p></div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- TAB: Programs (assign + history) -->
+    <div class="admin-tab-content" id="tab-programs">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Assign Program</h3>
+        <p class="form-hint" style="margin-bottom:12px">Select a user and program. Max 2 programs per user.</p>
+        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:24px">
+          <select id="programAssignUserId" class="form-input admin-meeting-select" style="min-width:180px;flex:1"><option value="">Select user</option></select>
+          <select id="programAssignProgramId" class="form-input admin-meeting-select" style="min-width:180px;flex:1"><option value="">Select program</option></select>
+          <button type="button" class="form-submit" id="programAssignBtn" onclick="assignProgramToUser()">Assign</button>
+        </div>
+      </div>
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Assignment History</h3>
+        <p class="form-hint" style="margin-bottom:12px">Select a user to view and manage their program assignments.</p>
+        <select id="programHistoryUserId" class="form-input" style="min-width:200px;margin-bottom:16px" onchange="loadProgramAssignmentsForUser()"><option value="">Select user</option></select>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Program</th><th>Assigned By</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="programAssignmentsBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Select a user</td></tr></tbody>
+        </table></div>
       </div>
     </div>
 
@@ -3870,6 +3939,62 @@ async function apiCall(method, url, body) {
   } catch (e) {
     return { error: 'Network error. Please check your connection.' };
   }
+}
+
+async function loadUserPrograms() {
+  var el = document.getElementById('userProgramsList');
+  if (!el) return;
+  el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center">Loading…</p>';
+  try {
+    var list = await apiCall('GET', '/api/me/programs');
+    if (list && list.error) {
+      el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050">' + escapeHtml(list.error) + '</p>';
+      return;
+    }
+    if (!Array.isArray(list)) list = [];
+    if (!list.length) {
+      el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:var(--muted)">No programs assigned yet.</p>';
+      return;
+    }
+    el.innerHTML = list.map(function(p) {
+      var name = escapeHtml(p.name || '');
+      var pdf = escapeHtml(p.pdf_url || '');
+      var actions = '<div class="prog-actions">' +
+        '<a class="form-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;font-size:12px" href="' + pdf + '" target="_blank" rel="noopener noreferrer">View PDF</a>' +
+      '</div>';
+      return '<div class="prog-card">' +
+        '<div class="prog-meta"><div class="prog-title">' + name + '</div><div class="prog-sub">Assigned program PDF</div></div>' +
+        actions +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050">Failed to load programs.</p>';
+  }
+}
+
+async function checkProgramAssignmentPopup() {
+  if (!window.currentUser || !window.currentUser.token) return;
+  try {
+    var unseen = await apiCall('GET', '/api/me/program-assignments/unseen');
+    if (!Array.isArray(unseen) || unseen.length === 0) return;
+    var first = unseen[0];
+    var programName = (first && first.name) ? String(first.name) : 'a new program';
+    showPopup(
+      'Program Assigned',
+      'A program is assigned by the lifestyle manager.',
+      'Tap below to view your program now.',
+      'View My Programs',
+      async function() {
+        try {
+          for (var i = 0; i < unseen.length; i++) {
+            if (unseen[i] && unseen[i].id) await apiCall('POST', '/api/me/program-assignments/' + encodeURIComponent(unseen[i].id) + '/seen', {});
+          }
+        } catch (_) {}
+        switchUserTab('programs');
+        setTimeout(function(){ loadUserPrograms(); }, 120);
+      }
+    );
+  } catch (e) { /* ignore */ }
 }
 
 // ========== LOGIN ==========
@@ -5084,8 +5209,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', insights: 'Performance Insights' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', insights: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
 function switchToSection(section) {
   if (typeof closeAdminNavDrawer === 'function') closeAdminNavDrawer();
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
@@ -5161,6 +5286,7 @@ function switchTab(tab) {
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
+  if (tab === 'programs') loadProgramsAdmin();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -5412,6 +5538,109 @@ async function adminRemoveUser() {
   }
 }
 
+async function loadProgramsAdmin() {
+  var userSelect = document.getElementById('programAssignUserId');
+  var progSelect = document.getElementById('programAssignProgramId');
+  var historySelect = document.getElementById('programHistoryUserId');
+  if (!userSelect || !progSelect || !historySelect) return;
+  try {
+    var [usersRes, programsRes] = await Promise.all([
+      apiCall('GET', '/api/admin/users'),
+      apiCall('GET', '/api/programs')
+    ]);
+    var users = Array.isArray(usersRes) ? usersRes : (usersRes.users || usersRes || []);
+    users = users.filter(function(u) {
+      var e = (u.email || '').toLowerCase();
+      var f = (u.first_name || '').toLowerCase();
+      if (e.indexOf('test.bodybank.fit') !== -1) return false;
+      if (f.indexOf('e2e') !== -1) return false;
+      return true;
+    });
+    var programs = Array.isArray(programsRes) ? programsRes : (programsRes.programs || []);
+    var userOpts = '<option value="">Select user</option>' + users.map(function(u) {
+      var n = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || u.id;
+      return '<option value="' + (u.id || '').replace(/"/g, '&quot;') + '">' + (n || 'User').replace(/</g, '&lt;') + '</option>';
+    }).join('');
+    var progOpts = '<option value="">Select program</option>' + programs.map(function(p) {
+      return '<option value="' + (p.id || '').replace(/"/g, '&quot;') + '">' + (p.name || p.id).replace(/</g, '&lt;') + '</option>';
+    }).join('');
+    userSelect.innerHTML = userOpts;
+    progSelect.innerHTML = progOpts;
+    historySelect.innerHTML = userOpts;
+  } catch (e) {
+    if (userSelect) userSelect.innerHTML = '<option value="">Error loading</option>';
+    if (progSelect) progSelect.innerHTML = '<option value="">Error loading</option>';
+    if (historySelect) historySelect.innerHTML = '<option value="">Error loading</option>';
+  }
+}
+
+async function assignProgramToUser() {
+  var userId = (document.getElementById('programAssignUserId') || {}).value;
+  var programId = (document.getElementById('programAssignProgramId') || {}).value;
+  var btn = document.getElementById('programAssignBtn');
+  if (!userId || !programId) {
+    showPopup('Missing', 'Please select both user and program.', '', 'OK', null, 'error');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Assigning…'; }
+  try {
+    var res = await apiCall('POST', '/api/programs/assign', { user_id: userId, program_id: programId });
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Assigned', 'Program assigned successfully. User will see it in My Programs.', '', 'OK');
+    loadProgramAssignmentsForUser();
+    document.getElementById('programAssignProgramId').value = '';
+  } catch (e) {
+    showPopup('Error', 'Failed to assign. Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Assign'; }
+  }
+}
+
+async function loadProgramAssignmentsForUser() {
+  var userId = (document.getElementById('programHistoryUserId') || {}).value;
+  var tbody = document.getElementById('programAssignmentsBody');
+  if (!tbody) return;
+  if (!userId) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Select a user</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  try {
+    var data = await apiCall('GET', '/api/programs/user/' + encodeURIComponent(userId));
+    var rows = Array.isArray(data) ? data : (data.assignments || data || []);
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No assignments yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r) {
+      var status = r.is_active ? '<span style="color:#50c878">Active</span>' : '<span style="color:var(--muted)">Removed</span>';
+      var date = r.assigned_at ? new Date(r.assigned_at).toLocaleDateString() : '—';
+      var removeBtn = r.is_active ? '<button type="button" class="action-btn btn-reject" style="padding:6px 12px;font-size:12px" onclick="removeProgramAssignment(\'' + (r.id || '').replace(/'/g, "\\'") + '\')">Remove</button>' : '—';
+      return '<tr><td>' + (r.program_name || r.program_id || '—').replace(/</g, '&lt;') + '</td><td>' + (r.assigned_by_name || '—').replace(/</g, '&lt;') + '</td><td>' + date + '</td><td>' + status + '</td><td>' + removeBtn + '</td></tr>';
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">Failed to load</td></tr>';
+  }
+}
+
+async function removeProgramAssignment(assignmentId) {
+  if (!assignmentId || !confirm('Remove this program from the user?')) return;
+  try {
+    var res = await apiCall('DELETE', '/api/programs/assign/' + encodeURIComponent(assignmentId));
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Removed', 'Program removed from user.', '', 'OK');
+    loadProgramAssignmentsForUser();
+  } catch (e) {
+    showPopup('Error', 'Failed to remove. Please try again.', '', 'OK', null, 'error');
+  }
+}
+
 function toggleAdminNavDrawer() {
   var overlay = document.getElementById('adminNavOverlay');
   var drawer = document.getElementById('adminNavDrawer');
@@ -5480,7 +5709,7 @@ function openUserDashboard(user) {
   loadWorkoutHistory();
   if (typeof loadNotifications === 'function') loadNotifications();
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
-  // Pre-fill contact form
+  setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
 }
@@ -5648,6 +5877,7 @@ function closeUserNavDrawer() {}
 var USER_TAB_LABELS = {
   home: 'Home',
   workout: 'My Workout',
+  programs: 'My Programs',
   progress: 'My Progress',
   checkin: 'Sunday Check-in',
   messages: 'Messages',
@@ -5657,6 +5887,7 @@ var USER_TAB_LABELS = {
 var USER_TAB_SUBTITLES = {
   home: 'Your dashboard and daily actions in one place.',
   workout: 'Log sessions and review recent training history.',
+  programs: 'Programs assigned by your lifestyle manager.',
   progress: 'Track body metrics and keep every entry visible.',
   checkin: 'Complete your weekly review with no layout gaps.',
   messages: 'Chat directly with your coach in one clean thread.',
@@ -5710,6 +5941,7 @@ function switchUserTab(tab) {
     loadMyMeetings();
   }
   if (tab === 'checkin') loadSundayCheckinDefaults();
+  if (tab === 'programs') loadUserPrograms();
 }
 
 window._bbUserCharts = window._bbUserCharts || {};
