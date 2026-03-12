@@ -1823,7 +1823,8 @@ app.post('/api/me/programs/pdf-token', verifyToken, async (req, res) => {
     const token = signPdfAccessToken(programId, req.user.id);
     const base = (req.protocol + '://' + req.get('host')).replace(/\/$/, '');
     const url = base + '/api/me/programs/pdf?t=' + encodeURIComponent(token) + '&f=' + encodeURIComponent(programId);
-    res.json({ url });
+    const viewUrl = base + '/program-viewer.html?url=' + encodeURIComponent(url);
+    res.json({ url, viewUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

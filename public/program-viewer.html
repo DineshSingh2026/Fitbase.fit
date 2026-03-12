@@ -106,6 +106,30 @@
       border:0;
       background:#000;
     }
+    .pv-close{
+      position:fixed;
+      top:12px;
+      right:12px;
+      width:44px;
+      height:44px;
+      border-radius:50%;
+      border:1px solid var(--bdr);
+      background:rgba(0,0,0,0.8);
+      color:var(--cream);
+      font-size:24px;
+      line-height:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      z-index:100;
+      transition:background .2s, border-color .2s;
+    }
+    .pv-close:hover{
+      background:rgba(200,164,78,0.2);
+      border-color:var(--gold);
+      color:var(--gold);
+    }
     @media (max-width:600px){
       .pv-header{flex-wrap:wrap;gap:8px}
       .pv-title{max-width:100%;order:3;width:100%;text-align:left}
@@ -114,6 +138,7 @@
   </style>
 </head>
 <body>
+  <button type="button" class="pv-close" id="pvClose" aria-label="Close">×</button>
   <header class="pv-header">
     <div class="pv-brand">
       <div class="pv-logo">BB</div>
@@ -136,35 +161,40 @@
     (function () {
       try {
         var params = new URLSearchParams(window.location.search);
+        var url = params.get('url') || '';
         var file = params.get('file') || '';
         var name = params.get('name') || '';
         var frame = document.getElementById('pvFrame');
         var titleEl = document.getElementById('pvTitle');
         if (name && titleEl) titleEl.textContent = name;
-        if (file && frame) {
-          // Only allow PDFs from our public programs folder
-          if (file.indexOf('/programs/pdfs/') === 0) {
-            frame.src = file;
-          } else {
+        if (url && frame) {
+          try {
+            var u = new URL(url, window.location.origin);
+            if (u.origin === window.location.origin && (u.pathname.indexOf('/api/me/programs/pdf') === 0 || u.pathname.indexOf('/programs/') === 0)) {
+              frame.src = url;
+            } else {
+              frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
+            }
+          } catch (_) {
             frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
           }
+        } else if (file && frame) {
+          if (file.indexOf('/programs/pdfs/') === 0) frame.src = file;
+          else frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
         } else if (frame) {
-          frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Program file not specified.</p>';
+          frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Program link not specified.</p>';
         }
       } catch (e) {
         console.error(e);
       }
-      var backBtn = document.getElementById('pvBackBtn');
-      if (backBtn) {
-        backBtn.addEventListener('click', function () {
-          // Try browser back first; if there is no history, go to main app
-          if (window.history.length > 1) {
-            window.history.back();
-          } else {
-            window.location.href = '/index.html';
-          }
-        });
+      function closeOrBack() {
+        window.close();
+        setTimeout(function() { window.location.href = '/index.html'; }, 150);
       }
+      var closeBtn = document.getElementById('pvClose');
+      if (closeBtn) closeBtn.addEventListener('click', closeOrBack);
+      var backBtn = document.getElementById('pvBackBtn');
+      if (backBtn) backBtn.addEventListener('click', closeOrBack);
     })();
   </script>
 </body>

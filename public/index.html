@@ -4022,13 +4022,15 @@ async function openPdfModal(programId, programName) {
   var openTabBtn = document.getElementById('pdfModalOpenTabBtn');
   if (!overlay || !frame) return;
   var url = '';
+  var viewUrl = '';
   try {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
     if (res && res.url) url = res.url;
+    if (res && res.viewUrl) viewUrl = res.viewUrl;
   } catch (e) {}
   frame.setAttribute('data', url);
-  if (fallbackLink) fallbackLink.href = url || '#';
-  if (openTabBtn) openTabBtn.href = url || '#';
+  if (fallbackLink) fallbackLink.href = (viewUrl || url) || '#';
+  if (openTabBtn) openTabBtn.href = (viewUrl || url) || '#';
   if (title) title.textContent = programName || 'Program PDF';
   overlay.classList.add('show');
   if (typeof lockBodyScroll === 'function') lockBodyScroll();
