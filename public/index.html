@@ -308,6 +308,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0;width:100%}
 .form-input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:8px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;transition:border-color .3s;outline:none}
 .form-input:focus{border-color:var(--gold)}
+.form-input[readonly]{cursor:default;opacity:0.9}
 .form-input::placeholder{color:var(--muted)}
 .form-input.has-error{border-color:#e05050}
 .form-input.has-success{border-color:rgba(80,200,120,0.5)}
@@ -374,14 +375,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .form-submit.loading .btn-spinner,.popup-btn.loading .btn-spinner{display:inline-block}
 @keyframes btnSpin{to{transform:rotate(360deg)}}
 
-/* Floating WhatsApp – user dashboard only, draggable (lives in body for correct fixed positioning) */
-.wa-float-user{position:fixed;z-index:900;width:56px;height:56px;border-radius:50%;background:#25D366;color:#fff;display:none;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(37,211,102,0.4);text-decoration:none;transition:box-shadow .3s;cursor:grab;user-select:none;-webkit-user-select:none}
-body.user-dashboard-open .wa-float-user{display:flex}
+/* Floating WhatsApp – user dashboard only, draggable */
+.wa-float-user{position:absolute;z-index:10050;width:56px;height:56px;border-radius:50%;background:#25D366;color:#fff;display:none;align-items:center;justify-content:center;touch-action:none;cursor:grab;box-shadow:0 4px 20px rgba(37,211,102,0.4);text-decoration:none;transition:box-shadow .3s;user-select:none;-webkit-user-select:none}
 .wa-float-user:hover{box-shadow:0 6px 28px rgba(37,211,102,0.5)}
 .wa-float-user.wa-dragging{cursor:grabbing;transition:none}
 .wa-float-user svg{width:32px;height:32px;fill:currentColor;pointer-events:none}
 .wa-float-user:focus{outline:2px solid var(--gold);outline-offset:3px}
-body.admin-dashboard-open .wa-float-user{display:none!important}
+.user-panel.open .wa-float-user{display:flex}
 
 /* Elite card */
 .elite-card-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:linear-gradient(135deg,rgba(200,164,78,0.2),rgba(200,164,78,0.08));border:1.5px solid rgba(200,164,78,0.5);border-radius:8px;color:var(--gold);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;cursor:pointer;transition:all .3s}
@@ -822,6 +822,9 @@ body.admin-dashboard-open .wa-float-user{display:none!important}
 .admin-notify-wrap{position:relative;flex-shrink:0}
 .admin-notify-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s;font-size:18px}
 .admin-notify-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.user-wa-top-btn{width:auto;min-width:0;height:44px;padding:0 6px;border:none;background:transparent;color:#25D366;cursor:pointer;display:grid;place-items:center;transition:opacity .3s}
+.user-wa-top-btn:hover{opacity:.85}
+.user-wa-top-btn svg{width:22px;height:22px;display:block;fill:currentColor}
 .app-refresh-btn{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s}
 .app-refresh-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .app-refresh-btn svg{width:18px;height:18px;display:block}
@@ -1704,6 +1707,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
       </div>
+      <button type="button" class="user-wa-top-btn" onclick="openUserWhatsApp()" title="Chat on WhatsApp" aria-label="Chat on WhatsApp">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      </button>
       <button type="button" class="app-refresh-btn" onclick="refreshApp(this)" title="Refresh" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12a9 9 0 1 1-2.64-6.36"/>
@@ -1831,8 +1837,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div id="profileFormContent">
       <div class="form-section-title">Personal information</div>
-      <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="profFirstName" placeholder="e.g. John"><span class="form-hint" id="profFirstNameHint">Your first name as we should address you</span></div>
-      <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="profLastName" placeholder="e.g. Smith"><span class="form-hint" id="profLastNameHint">Your family or surname</span></div>
+      <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="profFirstName" placeholder="e.g. John" readonly><span class="form-hint" id="profFirstNameHint">Your first name as we should address you</span></div>
+      <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="profLastName" placeholder="e.g. Smith" readonly><span class="form-hint" id="profLastNameHint">Your family or surname</span></div>
       <div class="form-divider"></div>
       <div class="form-section-title">Contact details</div>
       <div class="form-group"><label>Mobile number <span class="form-hint" style="display:inline;font-weight:400">(Linked to WhatsApp)</span></label><input type="tel" class="form-input" id="profPhone" placeholder="e.g. +91 98765 43210"><span class="form-hint">Used for scheduling and support</span></div>
@@ -1846,7 +1852,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div style="text-align:center;margin-top:20px">
         <button type="button" class="elite-card-btn" onclick="openEliteCardModal()">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 4v16"/></svg>
-          Get my Elite card
+          View my Elite Card
         </button>
       </div>
       </div>
@@ -4610,6 +4616,13 @@ document.addEventListener('click', function(e) {
 // ========== USER DASHBOARD ==========
 function openUserDashboard(user) {
   window.currentUser = user;
+  var adminPanel = document.getElementById('adminPanel');
+  var superadminPanel = document.getElementById('superadminPanel');
+  var waFloat = document.getElementById('userWaFloat');
+  if (adminPanel) adminPanel.classList.remove('open');
+  if (superadminPanel) superadminPanel.classList.remove('open');
+  if (waFloat) waFloat.style.display = 'none';
+  document.body.classList.remove('admin-dashboard-open');
   document.getElementById('userWelcomeName').textContent = user.first_name || 'User';
   setUserWelcomeAvatar(user.profile_picture || '');
   document.getElementById('userPanel').classList.add('open');
@@ -4627,29 +4640,34 @@ function openUserDashboard(user) {
   // Pre-fill contact form
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
-  initUserWaFloat();
+}
+
+function openUserWhatsApp() {
+  window.open('https://wa.me/919502575669', '_blank', 'noopener,noreferrer');
 }
 
 function initUserWaFloat() {
-  var STORAGE_KEY = 'userWaFloatPos';
+  var STORAGE_KEY = 'userWaFloatPos_v2';
   var SIZE = 56;
   var MARGIN = 24;
-  var DRAG_THRESHOLD = 3;
+  var DRAG_THRESHOLD = 4;
+  var panel = document.getElementById('userPanel');
+  if (!panel) return;
   var el = document.getElementById('userWaFloat');
   if (!el) {
-    el = document.createElement('a');
+    el = document.createElement('div');
     el.id = 'userWaFloat';
     el.className = 'wa-float wa-float-user';
-    el.href = 'https://wa.me/919502575669';
-    el.target = '_blank';
-    el.rel = 'noopener noreferrer';
-    el.title = 'Chat on WhatsApp (drag to move)';
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('title', 'Chat on WhatsApp (drag to move)');
     el.setAttribute('aria-label', 'Chat on WhatsApp');
     el.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
-    document.body.appendChild(el);
   }
-  if (el._waFloatInited) return;
-  el._waFloatInited = true;
+  if (el.parentNode !== panel) {
+    panel.appendChild(el);
+  }
+  el.style.display = 'flex';
 
   function loadPos() {
     try {
@@ -4664,70 +4682,105 @@ function initUserWaFloat() {
   function savePos(leftPct, topPct) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ leftPct: leftPct, topPct: topPct })); } catch (e) {}
   }
+  function getBounds() {
+    var panelRect = panel.getBoundingClientRect();
+    var bottomNav = document.getElementById('userBottomNav');
+    var bottomInset = MARGIN;
+    if (bottomNav && window.getComputedStyle(bottomNav).display !== 'none') {
+      bottomInset += bottomNav.offsetHeight || 0;
+    }
+    return {
+      width: panelRect.width || window.innerWidth,
+      height: panelRect.height || window.innerHeight,
+      maxLeft: Math.max(MARGIN, (panelRect.width || window.innerWidth) - SIZE - MARGIN),
+      maxTop: Math.max(MARGIN, (panelRect.height || window.innerHeight) - SIZE - bottomInset)
+    };
+  }
   function applyPos(leftPx, topPx) {
-    var w = window.innerWidth;
-    var h = window.innerHeight;
-    leftPx = Math.max(MARGIN, Math.min(w - SIZE - MARGIN, leftPx));
-    topPx = Math.max(MARGIN, Math.min(h - SIZE - MARGIN, topPx));
+    var bounds = getBounds();
+    leftPx = Math.max(MARGIN, Math.min(bounds.maxLeft, leftPx));
+    topPx = Math.max(MARGIN, Math.min(bounds.maxTop, topPx));
     el.style.left = leftPx + 'px';
     el.style.top = topPx + 'px';
   }
   function applyPosFromPct(leftPct, topPct) {
-    applyPos((leftPct / 100) * window.innerWidth, (topPct / 100) * window.innerHeight);
+    var bounds = getBounds();
+    applyPos((leftPct / 100) * bounds.width, (topPct / 100) * bounds.height);
+  }
+  function persistCurrentPos() {
+    var left = parseFloat(el.style.left) || MARGIN;
+    var top = parseFloat(el.style.top) || MARGIN;
+    var bounds = getBounds();
+    savePos((left / bounds.width) * 100, (top / bounds.height) * 100);
+  }
+  function refreshPos() {
+    var saved = loadPos();
+    if (saved) applyPosFromPct(saved.leftPct, saved.topPct);
+    else {
+      var bounds = getBounds();
+      applyPos(bounds.maxLeft, bounds.maxTop);
+    }
+    el.style.display = 'flex';
   }
 
-  var saved = loadPos();
-  if (saved) applyPosFromPct(saved.leftPct, saved.topPct);
-  else applyPos(window.innerWidth - SIZE - MARGIN, window.innerHeight - SIZE - MARGIN);
-
-  var drag = { active: false, startX: 0, startY: 0, startLeft: 0, startTop: 0, moved: false };
-
-  function onDown(e) {
-    if (e.button !== 0 && e.type === 'mousedown') return;
-    var x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-    var y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-    var rect = el.getBoundingClientRect();
-    var left = rect.left;
-    var top = rect.top;
-    drag = { active: true, startX: x, startY: y, startLeft: left, startTop: top, moved: false };
-    el.classList.add('wa-dragging');
+  if (el._waFloatInited) {
+    refreshPos();
+    return;
   }
-  function onMove(e) {
-    if (!drag.active) return;
-    var x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
-    var y = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
-    var dx = x - drag.startX;
-    var dy = y - drag.startY;
+  el._waFloatInited = true;
+  refreshPos();
+
+  var drag = { active: false, pointerId: null, startX: 0, startY: 0, startLeft: 0, startTop: 0, moved: false };
+  var suppressClickUntil = 0;
+
+  function onPointerMove(e) {
+    if (!drag.active || e.pointerId !== drag.pointerId) return;
+    var dx = e.clientX - drag.startX;
+    var dy = e.clientY - drag.startY;
     if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) drag.moved = true;
     applyPos(drag.startLeft + dx, drag.startTop + dy);
-    if (e.cancelable) e.preventDefault();
+    e.preventDefault();
   }
-  function onUp() {
-    if (!drag.active) return;
+  function onPointerUp(e) {
+    if (!drag.active || e.pointerId !== drag.pointerId) return;
     var didMove = drag.moved;
     el.classList.remove('wa-dragging');
+    try { el.releasePointerCapture(drag.pointerId); } catch (err) {}
     drag.active = false;
-    if (didMove) {
-      requestAnimationFrame(function() {
-        var rect = el.getBoundingClientRect();
-        var leftPct = (rect.left / window.innerWidth) * 100;
-        var topPct = (rect.top / window.innerHeight) * 100;
-        savePos(leftPct, topPct);
-      });
-    }
+    drag.pointerId = null;
+    if (didMove) persistCurrentPos();
+    if (didMove) suppressClickUntil = Date.now() + 250;
   }
 
-  el.addEventListener('mousedown', function(e) { e.preventDefault(); onDown(e); });
-  el.addEventListener('touchstart', onDown, { passive: true });
-  document.addEventListener('mousemove', onMove);
-  document.addEventListener('mouseup', onUp);
-  document.addEventListener('touchmove', onMove, { passive: false });
-  document.addEventListener('touchend', onUp);
-  document.addEventListener('touchcancel', onUp);
-
-  el.addEventListener('click', function(e) {
-    if (drag.moved) { e.preventDefault(); e.stopPropagation(); }
-  }, true);
+  el.onpointerdown = function(e) {
+    if (!e.isPrimary || e.button !== 0) return;
+    drag = {
+      active: true,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startLeft: parseFloat(el.style.left) || MARGIN,
+      startTop: parseFloat(el.style.top) || MARGIN,
+      moved: false
+    };
+    el.classList.add('wa-dragging');
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    e.preventDefault();
+  };
+  el.onpointermove = onPointerMove;
+  el.onpointerup = onPointerUp;
+  el.onpointercancel = onPointerUp;
+  el.onclick = function(e) {
+    e.preventDefault();
+    if (drag.moved || Date.now() < suppressClickUntil) return;
+    window.open('https://wa.me/919502575669', '_blank', 'noopener,noreferrer');
+  };
+  el.onkeydown = function(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    window.open('https://wa.me/919502575669', '_blank', 'noopener,noreferrer');
+  };
+  window.addEventListener('resize', refreshPos);
 }
 
 function logoutUser() {
@@ -4735,8 +4788,15 @@ function logoutUser() {
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
-  document.getElementById('userPanel').classList.remove('open');
-  document.body.classList.remove('site-nav-hidden','user-dashboard-open');
+  var adminPanel = document.getElementById('adminPanel');
+  var superadminPanel = document.getElementById('superadminPanel');
+  if (adminPanel) adminPanel.classList.remove('open');
+  if (superadminPanel) superadminPanel.classList.remove('open');
+  var userPanel = document.getElementById('userPanel');
+  var waFloat = document.getElementById('userWaFloat');
+  if (waFloat) waFloat.style.display = 'none';
+  if (userPanel) userPanel.classList.remove('open');
+  document.body.classList.remove('site-nav-hidden','user-dashboard-open','admin-dashboard-open');
   unlockBodyScroll();
 }
 
@@ -5310,7 +5370,7 @@ async function openEliteCardModal() {
     await new Promise(function(resolve, reject) {
       img.onload = resolve;
       img.onerror = function() { reject(new Error('Could not load card image')); };
-      img.src = '/Elite_card1.png';
+      img.src = '/Elite%20card%204.png';
     });
     var w = img.naturalWidth;
     var h = img.naturalHeight;
@@ -5319,22 +5379,23 @@ async function openEliteCardModal() {
     canvas.height = h;
     var ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    var fontSize = Math.round(w * 0.038);
-    if (fontSize < 22) fontSize = 22;
-    ctx.font = "600 " + fontSize + "px 'Cormorant Garamond', 'Playfair Display', serif";
+    var nameX = w * 0.065;
+    var nameY = h * 0.52;
+    var maxW = w * 0.7;
+    var fontSize = Math.round(w * 0.055);
+    if (fontSize < 28) fontSize = 28;
+    ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
+    if (ctx.measureText(fullName).width > maxW) {
+      fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
+      ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
+    }
     ctx.fillStyle = '#0a0a0a';
     ctx.shadowColor = 'rgba(0,0,0,0.15)';
     ctx.shadowBlur = 2;
     ctx.shadowOffsetY = 1;
-    var nameY = h * 0.52;
-    var maxW = w * 0.75;
-    if (ctx.measureText(fullName).width > maxW) {
-      fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
-      ctx.font = "600 " + fontSize + "px 'Cormorant Garamond', 'Playfair Display', serif";
-    }
-    ctx.fillText(fullName, w / 2, nameY);
+    ctx.fillText(fullName, nameX, nameY);
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
@@ -6567,7 +6628,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=13').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;
