@@ -4014,7 +4014,7 @@ async function openPdfModal(programId, programName) {
   try {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
     if (res && res.url) {
-      window.location.href = res.url;
+      window.location.href = '/program-viewer.html?url=' + encodeURIComponent(res.url);
     }
   } catch (e) {
     alert('Could not open program PDF. Please try again.');
