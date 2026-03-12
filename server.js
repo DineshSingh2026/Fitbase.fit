@@ -1373,14 +1373,24 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
 
 app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const rows = await queryAll(
-      `SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at,
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const search = (req.query.search || '').trim();
+    let sql = `SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at,
               u.first_name, u.last_name, u.email
        FROM daily_checkins dc
        LEFT JOIN users u ON u.id = dc.user_id
-       ORDER BY dc.checkin_date DESC, dc.created_at DESC
-       LIMIT 250`
-    );
+       WHERE 1=1`;
+    const params = [];
+    if (from) { sql += ` AND dc.checkin_date >= ?`; params.push(from); }
+    if (to) { sql += ` AND dc.checkin_date <= ?`; params.push(to); }
+    if (search) {
+      const q = '%' + search.replace(/%/g, '\\%') + '%';
+      sql += ` AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)`;
+      params.push(q, q, q);
+    }
+    sql += ` ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 250`;
+    const rows = await queryAll(sql, params);
     res.json(rows);
   } catch (e) {
     console.error('Admin daily check-ins list error:', e.message);

@@ -514,6 +514,21 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fcta-inner h2,.fcta h2{font-size:30px}
   .fcta p{font-size:17px}.fcta .bold{font-size:18px}
 }
+.admin-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 0 16px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
+.admin-filter-bar label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;background:rgba(255,255,255,0.03);color:var(--cream);font-size:13px;min-width:130px}
+.admin-filter-bar input[type="text"]{min-width:160px}
+.admin-filter-bar .admin-apply-btn{padding:8px 18px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+.admin-filter-bar .admin-apply-btn:hover{opacity:.9}
+.admin-list-table{width:100%;border-collapse:collapse}
+.admin-list-table thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,240,232,0.7);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--bdr)}
+.admin-list-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
+.admin-list-table tbody tr:hover{background:rgba(255,255,255,0.02)}
+.admin-list-table tbody td{padding:14px 16px;font-size:14px;color:var(--cream);vertical-align:middle;word-break:break-word}
+.admin-list-table tbody td:first-child{font-weight:500}
+.admin-list-table .btn-view-cell{text-align:right;white-space:nowrap}
+.admin-list-table .action-btn.btn-view{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(200,164,78,0.2);color:var(--gold);border:1px solid rgba(200,164,78,0.4)}
+.admin-list-table .action-btn.btn-view:hover{background:rgba(200,164,78,0.35)}
 .admin-table-wrap{width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;touch-action:pan-x pan-y}
 .admin-table-wrap::-webkit-scrollbar{width:8px;height:10px}
 .admin-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
@@ -1176,6 +1191,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-table tbody td .status-badge{margin-top:4px}
   .admin-table tbody td .action-btn{margin-right:8px;margin-top:8px}
   .admin-table tbody td .action-btn:last-child{margin-right:0}
+  .admin-list-table thead{display:table-header-group!important}
+  .admin-list-table tbody tr{display:table-row!important;margin:0;padding:0;background:transparent!important;border:none!important;border-radius:0}
+  .admin-list-table tbody td{display:table-cell!important;padding:10px 8px!important}
+  .admin-list-table tbody td::before{display:none!important}
+  #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
   .insights-table-wrap .admin-table tbody td{display:block;padding:6px 0;border:none}
@@ -2896,7 +2916,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-desc">Weekly client progress check-in</span>
           </a>
           <a class="admin-section-card" href="#" onclick="switchTab('dailycheckin');return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128221;</span>
+            <span class="admin-section-card-icon" aria-hidden="true">&#128204;</span>
             <span class="admin-section-card-title">Daily Check-In</span>
             <span class="admin-section-card-desc">Daily steps, water, protein and sleep logs</span>
           </a>
@@ -2962,9 +2982,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
       </div>
-      <div class="admin-table-wrap"><table class="admin-table">
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th>Actions</th></tr>
+          <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th style="text-align:right;width:100px">Actions</th></tr>
         </thead>
         <tbody id="requestsBody">
           <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
@@ -3034,8 +3054,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Sunday Check-in -->
     <div class="admin-tab-content" id="tab-sundaycheckin">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th>Actions</th></tr></thead>
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+        <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -3047,15 +3067,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Daily Check-In -->
     <div class="admin-tab-content" id="tab-dailycheckin">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Date</th><th>Steps</th><th>Water (ml)</th><th>Protein (g)</th><th>Sleep (hrs)</th><th>Actions</th></tr></thead>
-        <tbody id="dailyCheckinBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
-      </table></div>
-      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
-        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
-        <span class="admin-h-scroll-label">Scroll to see all columns</span>
-        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      <div class="admin-filter-bar">
+        <label>From <input type="date" id="dcFilterFrom"></label>
+        <label>To <input type="date" id="dcFilterTo"></label>
+        <label>Search <input type="text" id="dcFilterSearch" placeholder="Name or email"></label>
+        <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
       </div>
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
+        <tbody id="dailyCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+      </table></div>
     </div>
 
     <!-- TAB 6: Part-2 Form -->
@@ -3068,8 +3089,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
       </div>
       <div class="admin-table-wrap" style="margin-top:28px">
-        <table class="admin-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Activity Level</th><th>Date</th><th>Actions</th></tr></thead>
+        <table class="admin-table admin-list-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
           <tbody id="part2Body"></tbody>
         </table>
       </div>
@@ -4701,7 +4722,7 @@ async function loadRequests() {
       <td data-label="Email">${escapeHtml(r.email||'')}</td>
       <td data-label="Age">${r.age || '-'}</td>
       <td data-label="City">${escapeHtml(r.city||'')}</td>
-      <td data-label="Actions">
+      <td data-label="Actions" class="btn-view-cell">
         <button class="action-btn btn-view" onclick="viewRequest('${sid}')">View</button>
         <button class="action-btn btn-reject" onclick="removeAuditRequest('${sid}')">Remove</button>
       </td>
@@ -4832,7 +4853,7 @@ async function loadSundayCheckins() {
   tbody.innerHTML = list.map(function(r) {
     var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td data-label="Name">' + escapeHtml(r.full_name || '-') + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+    return '<tr><td data-label="Name">' + escapeHtml(r.full_name || '-') + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -4861,17 +4882,30 @@ async function viewSundayCheckin(id) {
 async function loadDailyCheckins() {
   const tbody = document.getElementById('dailyCheckinBody');
   if (!tbody) return;
-  const data = await apiCall('GET', '/api/admin/daily-checkins');
-  const list = data && !data.error && Array.isArray(data) ? data : [];
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var fromEl = document.getElementById('dcFilterFrom');
+  var toEl = document.getElementById('dcFilterTo');
+  var searchEl = document.getElementById('dcFilterSearch');
+  var qs = [];
+  if (fromEl && fromEl.value) qs.push('from=' + encodeURIComponent(fromEl.value));
+  if (toEl && toEl.value) qs.push('to=' + encodeURIComponent(toEl.value));
+  if (searchEl && searchEl.value.trim()) qs.push('search=' + encodeURIComponent(searchEl.value.trim()));
+  var url = '/api/admin/daily-checkins' + (qs.length ? '?' + qs.join('&') : '');
+  const data = await apiCall('GET', url);
+  if (data && data.error) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
+    return;
+  }
+  const list = data && Array.isArray(data) ? data : [];
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No daily check-ins yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No daily check-ins found.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(function(r) {
-    var date = r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '-';
+    var date = r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
-    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Steps">' + escapeHtml(r.steps != null ? String(r.steps) : '—') + '</td><td data-label="Water">' + escapeHtml(r.water_ml != null ? String(r.water_ml) : '—') + '</td><td data-label="Protein">' + escapeHtml(r.protein_g != null ? String(r.protein_g) : '—') + '</td><td data-label="Sleep">' + escapeHtml(r.sleep_hours != null ? String(r.sleep_hours) : '—') + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
+    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -4963,9 +4997,9 @@ async function loadPart2Submissions() {
     tbody.innerHTML = (data && !data.error && Array.isArray(data) ? data : []).map(r => {
       const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
       const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<tr data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Mobile">${escapeHtml(r.mobile || '-')}</td><td data-label="Activity Level">${escapeHtml((r.activity_level || '-').substring(0,30))}</td><td data-label="Date">${dt}</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
-    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions yet.</td></tr>';
-  } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
+      return `<tr data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
+    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions yet.</td></tr>';
+  } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
 function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function copyPart2Link() {
