@@ -3,55 +3,307 @@
 <head>
   <meta charset="utf-8">
   <title>BodyBank – Program PDF</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{width:100%;height:100%;background:#000}
-    #pvFrame{
-      position:fixed;
-      top:0;left:0;
-      width:100%;
-      height:100%;
-      border:none;
+    :root {
+      --gold: #c8a44e;
+      --cream: #f5f0e8;
+      --dark: #0d0d0d;
+      --bar-h: 54px;
     }
-    #pvClose{
-      position:fixed;
-      top:max(14px, env(safe-area-inset-top, 14px));
-      right:max(14px, env(safe-area-inset-right, 14px));
-      width:46px;
-      height:46px;
-      border-radius:50%;
-      border:none;
-      background:rgba(0,0,0,0.72);
-      color:#fff;
-      font-size:28px;
-      line-height:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      z-index:9999;
-      backdrop-filter:blur(8px);
-      -webkit-backdrop-filter:blur(8px);
-      box-shadow:0 2px 16px rgba(0,0,0,0.5);
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #1a1a1a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
     }
-    #pvClose:active{background:rgba(200,164,78,0.9);color:#000}
+
+    /* ── TOP BAR ── */
+    #pvTopBar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: var(--bar-h);
+      padding-top: env(safe-area-inset-top, 0);
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding-left: 12px; padding-right: 12px;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    #pvClose {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: none; background: rgba(255,255,255,0.1);
+      color: var(--cream); font-size: 22px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: background .15s;
+    }
+    #pvClose:active { background: rgba(200,164,78,0.4); }
+    #pvTitle {
+      flex: 1; text-align: center;
+      font-size: 13px; font-weight: 600;
+      color: var(--cream); opacity: 0.9;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      padding: 0 10px;
+    }
+    #pvPageInfo {
+      font-size: 12px; color: rgba(245,240,232,0.6);
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* ── SCROLL AREA ── */
+    #pvScroll {
+      position: fixed;
+      top: var(--bar-h); left: 0; right: 0;
+      bottom: var(--bar-h);
+      overflow-y: auto; overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #1a1a1a;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 10px 0;
+      touch-action: pan-x pan-y;
+    }
+    #pvCanvasWrap {
+      display: inline-block;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      touch-action: none; /* we handle pinch ourselves */
+    }
+    #pvCanvas { display: block; }
+
+    /* ── BOTTOM BAR ── */
+    #pvBottomBar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: var(--bar-h);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      gap: 8px;
+      z-index: 100;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .pv-btn {
+      width: 38px; height: 38px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--cream); font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background .15s, border-color .15s;
+      flex-shrink: 0;
+      -webkit-user-select: none; user-select: none;
+    }
+    .pv-btn:active { background: rgba(200,164,78,0.3); border-color: var(--gold); color: var(--gold); }
+    .pv-btn:disabled { opacity: 0.3; pointer-events: none; }
+    #pvZoomLabel {
+      font-size: 12px; color: rgba(245,240,232,0.7);
+      min-width: 42px; text-align: center;
+    }
+    .pv-sep {
+      width: 1px; height: 24px;
+      background: rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+
+    /* ── LOADING ── */
+    #pvLoading {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #1a1a1a; color: var(--cream);
+      font-size: 14px; gap: 14px; z-index: 200;
+    }
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid rgba(200,164,78,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <iframe id="pvFrame" title="Program PDF" allowfullscreen></iframe>
-  <button id="pvClose" aria-label="Close">&#x2715;</button>
+
+  <div id="pvLoading"><div class="spinner"></div><span id="pvLoadingText">Loading PDF…</span></div>
+
+  <div id="pvTopBar">
+    <button id="pvClose" aria-label="Close">&#x2715;</button>
+    <div id="pvTitle">Program PDF</div>
+    <div id="pvPageInfo">– / –</div>
+  </div>
+
+  <div id="pvScroll">
+    <div id="pvCanvasWrap">
+      <canvas id="pvCanvas"></canvas>
+    </div>
+  </div>
+
+  <div id="pvBottomBar">
+    <button class="pv-btn" id="pvPrev" aria-label="Previous page">&#8249;</button>
+    <button class="pv-btn" id="pvNext" aria-label="Next page">&#8250;</button>
+    <div class="pv-sep"></div>
+    <button class="pv-btn" id="pvZoomOut" aria-label="Zoom out">&#8722;</button>
+    <span id="pvZoomLabel">100%</span>
+    <button class="pv-btn" id="pvZoomIn" aria-label="Zoom in">&#43;</button>
+  </div>
+
   <script>
-    (function(){
-      var url = new URLSearchParams(window.location.search).get('url') || '';
-      if(url){
-        document.getElementById('pvFrame').src = url;
-      }
-      document.getElementById('pvClose').addEventListener('click', function(){
-        if(window.history.length > 1){ window.history.back(); }
-        else { window.location.href = '/index.html'; }
+  (function () {
+    'use strict';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    var pdfDoc   = null;
+    var pageNum  = 1;
+    var scale    = 1;       // set after first render to fit width
+    var rendering = false;
+    var renderTask = null;
+
+    var canvas   = document.getElementById('pvCanvas');
+    var ctx      = canvas.getContext('2d');
+    var scroll   = document.getElementById('pvScroll');
+    var loading  = document.getElementById('pvLoading');
+    var loadTxt  = document.getElementById('pvLoadingText');
+    var pageInfo = document.getElementById('pvPageInfo');
+    var zoomLbl  = document.getElementById('pvZoomLabel');
+    var titleEl  = document.getElementById('pvTitle');
+    var prevBtn  = document.getElementById('pvPrev');
+    var nextBtn  = document.getElementById('pvNext');
+
+    /* ── INIT ── */
+    var params  = new URLSearchParams(window.location.search);
+    var pdfUrl  = params.get('url') || '';
+    var pdfName = params.get('name') || 'Program PDF';
+    titleEl.textContent = pdfName;
+
+    if (!pdfUrl) {
+      loadTxt.textContent = 'No program specified.';
+      return;
+    }
+
+    fetch(pdfUrl, { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Server returned ' + r.status);
+        return r.arrayBuffer();
+      })
+      .then(function (buf) {
+        return pdfjsLib.getDocument({ data: buf }).promise;
+      })
+      .then(function (doc) {
+        pdfDoc = doc;
+        updateNav();
+        return renderPage(1, true);
+      })
+      .catch(function (err) {
+        loadTxt.innerHTML = 'Could not load PDF.<br><small style="opacity:.6">' + err.message + '</small>';
       });
-    })();
+
+    /* ── RENDER ── */
+    function renderPage(num, fitWidth) {
+      if (!pdfDoc) return Promise.resolve();
+      rendering = true;
+
+      return pdfDoc.getPage(num).then(function (page) {
+        if (fitWidth) {
+          var containerW = scroll.clientWidth - 20;
+          var baseVp = page.getViewport({ scale: 1 });
+          scale = Math.max(0.5, containerW / baseVp.width);
+        }
+
+        var viewport = page.getViewport({ scale: scale });
+        canvas.width  = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+
+        if (renderTask) { renderTask.cancel(); }
+        renderTask = page.render({ canvasContext: ctx, viewport: viewport });
+        return renderTask.promise;
+      }).then(function () {
+        rendering = false;
+        renderTask = null;
+        pageInfo.textContent = pageNum + ' / ' + pdfDoc.numPages;
+        zoomLbl.textContent  = Math.round(scale * 100) + '%';
+        updateNav();
+        loading.style.display = 'none';
+      }).catch(function (e) {
+        rendering = false;
+        if (e && e.name !== 'RenderingCancelledException') {
+          loadTxt.textContent = 'Render error.';
+        }
+      });
+    }
+
+    function updateNav() {
+      if (!pdfDoc) return;
+      prevBtn.disabled = (pageNum <= 1);
+      nextBtn.disabled = (pageNum >= pdfDoc.numPages);
+    }
+
+    /* ── NAVIGATION ── */
+    prevBtn.addEventListener('click', function () {
+      if (pageNum > 1) { pageNum--; renderPage(pageNum); scroll.scrollTop = 0; }
+    });
+    nextBtn.addEventListener('click', function () {
+      if (pdfDoc && pageNum < pdfDoc.numPages) { pageNum++; renderPage(pageNum); scroll.scrollTop = 0; }
+    });
+
+    /* ── ZOOM BUTTONS ── */
+    document.getElementById('pvZoomIn').addEventListener('click', function () {
+      scale = Math.min(4, Math.round((scale + 0.25) * 100) / 100);
+      renderPage(pageNum);
+    });
+    document.getElementById('pvZoomOut').addEventListener('click', function () {
+      scale = Math.max(0.5, Math.round((scale - 0.25) * 100) / 100);
+      renderPage(pageNum);
+    });
+
+    /* ── PINCH-TO-ZOOM ── */
+    var pinchStartDist  = 0;
+    var pinchStartScale = 1;
+    var pinching        = false;
+
+    document.getElementById('pvCanvasWrap').addEventListener('touchstart', function (e) {
+      if (e.touches.length === 2) {
+        pinching = true;
+        pinchStartDist  = getTouchDist(e.touches);
+        pinchStartScale = scale;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.getElementById('pvCanvasWrap').addEventListener('touchmove', function (e) {
+      if (e.touches.length === 2 && pinching) {
+        var newScale = pinchStartScale * (getTouchDist(e.touches) / pinchStartDist);
+        scale = Math.max(0.5, Math.min(4, Math.round(newScale * 100) / 100));
+        zoomLbl.textContent = Math.round(scale * 100) + '%';
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    document.getElementById('pvCanvasWrap').addEventListener('touchend', function (e) {
+      if (pinching && e.touches.length < 2) {
+        pinching = false;
+        renderPage(pageNum);
+      }
+    });
+
+    function getTouchDist(touches) {
+      var dx = touches[0].clientX - touches[1].clientX;
+      var dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    /* ── CLOSE ── */
+    document.getElementById('pvClose').addEventListener('click', function () {
+      if (window.history.length > 1) { window.history.back(); }
+      else { window.location.href = '/index.html'; }
+    });
+
+  })();
   </script>
 </body>
 </html>
