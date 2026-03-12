@@ -3934,6 +3934,7 @@ document.querySelectorAll('.rv').forEach(e=>ob.observe(e));
 })();
 updateGoogleButtonVisibility();
 if(window.location.hash==='#login'){openModal('loginModal');history.replaceState(null,'',location.pathname+location.search)}
+if(window.location.hash==='#programs'){history.replaceState(null,'',location.pathname+location.search);var _waitPrograms=setInterval(function(){var el=document.getElementById('usec-programs');if(el){clearInterval(_waitPrograms);if(typeof switchUserTab==='function')switchUserTab('programs');}},50);}
 (function(){
   var params=new URLSearchParams(window.location.search);
   var resetToken=params.get('reset');
