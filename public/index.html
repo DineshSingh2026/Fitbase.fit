@@ -516,9 +516,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .admin-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 0 16px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
 .admin-filter-bar label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;background:rgba(255,255,255,0.03);color:var(--cream);font-size:13px;min-width:130px}
+.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;background:rgba(255,255,255,0.03);color:var(--cream);font-size:16px;min-width:130px}
 .admin-filter-bar input[type="text"]{min-width:160px}
-.admin-filter-bar .admin-apply-btn{padding:8px 18px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:600;font-size:13px;cursor:pointer}
+.admin-filter-bar .admin-apply-btn{padding:8px 18px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:600;font-size:16px;cursor:pointer}
 .admin-filter-bar .admin-apply-btn:hover{opacity:.9}
 .admin-list-table{width:100%;border-collapse:collapse}
 .admin-list-table thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,240,232,0.7);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--bdr)}
@@ -1722,6 +1722,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-cp-user-list .admin-cp-user-item{padding:12px 16px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;cursor:pointer;transition:background .2s}
 .admin-cp-user-list .admin-cp-user-item:hover{background:rgba(200,164,78,0.08)}
 .admin-cp-user-list .admin-cp-user-item.selected{border-color:var(--gold);background:rgba(200,164,78,0.1)}
+.admin-cp-suspended-badge{font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--gold);opacity:0.9;margin-left:6px}
 .admin-cp-placeholder{color:var(--muted);font-size:14px;padding:16px 0}
 .admin-cp-error-msg{background:rgba(200,80,80,0.15);border:1px solid rgba(200,80,80,0.4);color:#e8b4b4;padding:16px;border-radius:8px;font-size:14px;margin:12px 0}
 .admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:16px;overflow:visible;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px}
@@ -3113,7 +3114,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:16px 0">
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
               <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
-              <button type="button" class="action-btn btn-reject" id="adminCpRemoveBtn" onclick="adminRemoveUser()" style="padding:12px 20px">Remove user</button>
+              <button type="button" class="action-btn btn-reject" id="adminCpSuspendBtn" onclick="adminSuspendUser()" style="padding:12px 20px;display:none">Suspend user</button>
+              <button type="button" class="action-btn btn-approve" id="adminCpReactivateBtn" onclick="adminReactivateUser()" style="padding:12px 20px;display:none">Re-activate</button>
             </div>
             <div id="adminCpShareUrlWrap" style="display:none;margin-top:12px">
               <label class="admin-cp-heading" style="margin-bottom:6px">Link to send to client (they can view their progress &amp; graphs)</label>
@@ -5541,7 +5543,12 @@ async function loadAdminUserProgressDetail(userId, userName) {
   }
   try {
     if (shareWrap) shareWrap.style.display = 'block';
-    detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.</p>';
+    var suspendBtn = document.getElementById('adminCpSuspendBtn');
+    var reactivateBtn = document.getElementById('adminCpReactivateBtn');
+    var suspended = !!(data.suspended);
+    if (suspendBtn) { suspendBtn.style.display = suspended ? 'none' : ''; suspendBtn.disabled = false; suspendBtn.textContent = 'Suspend user'; }
+    if (reactivateBtn) { reactivateBtn.style.display = suspended ? '' : 'none'; reactivateBtn.disabled = false; reactivateBtn.textContent = 'Re-activate'; }
+    detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.' + (suspended ? ' <span style="color:var(--gold)">(User is suspended)</span>' : '') + '</p>';
     var kpis = [
       { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
       { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
@@ -5586,7 +5593,9 @@ async function loadClientProgressUsers() {
   listEl.innerHTML = users.map(function(u) {
     var name = (u.name || (u.first_name && u.last_name ? u.first_name + ' ' + u.last_name : u.email) || u.id || '').replace(/</g, '&lt;');
     var id = String(u.id || '');
-    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '">' + name + '</div>';
+    var suspended = !!(u.suspended === true || u.suspended === 't');
+    var badge = suspended ? ' <span class="admin-cp-suspended-badge">Suspended</span>' : '';
+    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '">' + name + badge + '</div>';
   }).join('');
   if (!listEl._clientProgressClickBound) {
     listEl._clientProgressClickBound = true;
@@ -5609,24 +5618,43 @@ async function loadClientProgressUsers() {
   destroyAdminProgressCharts();
 }
 
-async function adminRemoveUser() {
+async function adminSuspendUser() {
   var id = window._adminCpSelectedUserId;
   if (!id) return;
-  if (!confirm('Remove this user and all their data? This cannot be undone.')) return;
-  var btn = document.getElementById('adminCpRemoveBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Removing…'; }
+  if (!confirm('Suspend this user? They will not be able to log in. All data will be preserved.')) return;
+  var btn = document.getElementById('adminCpSuspendBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Suspending…'; }
   try {
-    var res = await apiCall('DELETE', '/api/admin/users/' + encodeURIComponent(id));
+    var res = await apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/suspend');
     if (res && res.error) {
-      showPopup('Error', res.error === 'Not found' ? 'The server may need a restart. Please restart the server and try again.' : res.error, '', 'OK', null, 'error');
+      showPopup('Error', res.error, '', 'OK', null, 'error');
       return;
     }
-    showPopup('Removed', 'User and all their data have been removed.', '', 'OK');
-    loadClientProgressUsers();
+    showPopup('Suspended', 'User has been suspended. They cannot access the app until re-activated.', '', 'OK');
+    loadAdminUserProgressDetail(id, document.querySelector('.admin-cp-user-item.selected') ? document.querySelector('.admin-cp-user-item.selected').getAttribute('data-user-name') || 'Client' : 'Client');
   } catch (e) {
-    showPopup('Error', 'Failed to remove user. Please try again.', '', 'OK', null, 'error');
+    showPopup('Error', 'Failed to suspend user. Please try again.', '', 'OK', null, 'error');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Remove user'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Suspend user'; }
+  }
+}
+async function adminReactivateUser() {
+  var id = window._adminCpSelectedUserId;
+  if (!id) return;
+  var btn = document.getElementById('adminCpReactivateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Re-activating…'; }
+  try {
+    var res = await apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/reactivate');
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Re-activated', 'User has been re-activated. They can log in again.', '', 'OK');
+    loadAdminUserProgressDetail(id, document.querySelector('.admin-cp-user-item.selected') ? document.querySelector('.admin-cp-user-item.selected').getAttribute('data-user-name') || 'Client' : 'Client');
+  } catch (e) {
+    showPopup('Error', 'Failed to re-activate user. Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-activate'; }
   }
 }
 

@@ -214,6 +214,7 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN approval_status TEXT DEFAULT 'approved'`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN suspended BOOLEAN DEFAULT FALSE`); } catch (e) { /* column may exist */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -685,6 +686,10 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
         if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
+    }
+    const suspended = user.suspended === true || user.suspended === 't';
+    if (suspended) {
+      return res.status(403).json({ error: 'suspended', message: 'Your account has been suspended. Please contact support.' });
     }
     const status = user.approval_status || 'approved';
     if (status === 'rejected') {
@@ -1930,11 +1935,39 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
 app.get('/api/admin/users', async (req, res) => {
   try {
     const list = await queryAll(
-      "SELECT id, first_name, last_name, email, country, timezone FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
+      "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
     );
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only suspend client users' });
+    await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
+    res.json({ message: 'User suspended' });
+  } catch (e) {
+    console.error('Suspend user error:', e.message);
+    res.status(500).json({ error: 'Failed to suspend user' });
+  }
+});
+
+app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only reactivate client users' });
+    await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
+    res.json({ message: 'User reactivated' });
+  } catch (e) {
+    console.error('Reactivate user error:', e.message);
+    res.status(500).json({ error: 'Failed to reactivate user' });
   }
 });
 

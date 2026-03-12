@@ -119,6 +119,8 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
 }
 
 async function getAdminUserProgress(userId) {
+  const userRow = await db.queryOne('SELECT COALESCE(suspended, false) as suspended FROM users WHERE id = ?', [userId]);
+  const suspended = userRow ? (userRow.suspended === true || userRow.suspended === 't') : false;
   const [progressLogs, dailyCheckins, sundayCheckins] = await Promise.all([
     db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
     db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
@@ -175,7 +177,8 @@ async function getAdminUserProgress(userId) {
     averageCalories: avgCalories,
     averageSleep: avgSleep,
     insights,
-    logs
+    logs,
+    suspended
   };
 }
 
