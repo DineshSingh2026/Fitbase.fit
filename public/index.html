@@ -1642,6 +1642,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .forgot-box p{color:var(--muted);font-size:13px;margin-bottom:20px}
 @media(max-width:600px){.forgot-box h3{font-size:22px}.forgot-box p{font-size:15px}}
 
+/* PDF VIEWER MODAL */
+.pdf-modal-overlay{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));box-sizing:border-box;animation:fadeIn .3s}
+.pdf-modal-overlay.show{display:flex}
+.pdf-modal-box{display:flex;flex-direction:column;width:100%;max-width:900px;height:100%;max-height:90vh;background:#0d0d0d;border:1px solid rgba(200,164,78,0.25);border-radius:12px;overflow:hidden;animation:popUp .3s}
+.pdf-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--bdr);background:rgba(0,0,0,0.5);flex-shrink:0}
+.pdf-modal-title{font-weight:600;font-size:14px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-modal-close{width:36px;height:36px;border:none;background:transparent;color:var(--cream);font-size:24px;line-height:1;cursor:pointer;border-radius:6px;opacity:0.8}
+.pdf-modal-close:hover{opacity:1;background:rgba(255,255,255,0.08)}
+.pdf-modal-body{flex:1;min-height:0;background:#000}
+.pdf-modal-iframe{width:100%;height:100%;border:0;display:block}
+.pdf-modal-footer{padding:12px 16px;border-top:1px solid var(--bdr);flex-shrink:0}
+.pdf-modal-back-btn{width:100%;margin:0}
+
 /* GOOGLE BTN */
 .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;margin:12px 0;border:1px solid var(--bdr);border-radius:8px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;cursor:pointer;transition:all .3s}
 .google-btn:hover{background:rgba(255,255,255,0.05);border-color:rgba(200,164,78,0.3)}
@@ -2573,10 +2586,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span class="user-bottom-nav-icon" aria-hidden="true">&#127919;</span>
         <span class="user-bottom-nav-label">Programs</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="progress" onclick="switchUserTab('progress')" aria-label="Progress">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#128200;</span>
-        <span class="user-bottom-nav-label">Progress</span>
-      </button>
       <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#9989;</span>
         <span class="user-bottom-nav-label">Check-in</span>
@@ -3360,6 +3369,22 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
 </div>
 
+<!-- PDF VIEWER MODAL (in-app, no new window) -->
+<div class="pdf-modal-overlay" id="pdfModalOverlay" onclick="if(event.target===this)closePdfModal()">
+  <div class="pdf-modal-box">
+    <div class="pdf-modal-header">
+      <span class="pdf-modal-title" id="pdfModalTitle">Program PDF</span>
+      <button type="button" class="pdf-modal-close" onclick="closePdfModal()" aria-label="Close">×</button>
+    </div>
+    <div class="pdf-modal-body">
+      <iframe id="pdfModalFrame" class="pdf-modal-iframe" title="Program PDF"></iframe>
+    </div>
+    <div class="pdf-modal-footer">
+      <button type="button" class="form-submit pdf-modal-back-btn" onclick="closePdfModal()">← Back to Programs</button>
+    </div>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav id="nv">
   <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
@@ -3959,10 +3984,10 @@ async function loadUserPrograms() {
     el.innerHTML = list.map(function(p) {
       var rawName = p.name || '';
       var name = escapeHtml(rawName);
-      var pdf = String(p.pdf_url || '');
-      var viewerUrl = '/program-viewer.html?file=' + encodeURIComponent(pdf) + '&name=' + encodeURIComponent(rawName);
+      var pdf = String(p.pdf_url || '').replace(/"/g, '&quot;');
+      var safeName = (rawName || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
       var actions = '<div class="prog-actions">' +
-        '<a class="form-submit" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;font-size:12px" href="' + viewerUrl + '" target="_blank" rel="noopener noreferrer">View PDF</a>' +
+        '<button type="button" class="form-submit" style="padding:10px 14px;font-size:12px" data-pdf="' + pdf + '" data-name="' + safeName + '" onclick="openPdfModal(this.getAttribute(\'data-pdf\'), this.getAttribute(\'data-name\'))">View PDF</button>' +
       '</div>';
       return '<div class="prog-card">' +
         '<div class="prog-meta"><div class="prog-title">' + name + '</div><div class="prog-sub">Assigned program PDF</div></div>' +
@@ -3972,6 +3997,29 @@ async function loadUserPrograms() {
   } catch (e) {
     el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050">Failed to load programs.</p>';
   }
+}
+
+function openPdfModal(pdfUrl, programName) {
+  var overlay = document.getElementById('pdfModalOverlay');
+  var frame = document.getElementById('pdfModalFrame');
+  var title = document.getElementById('pdfModalTitle');
+  if (!overlay || !frame) return;
+  if (pdfUrl && pdfUrl.indexOf('/programs/pdfs/') === 0) {
+    frame.src = pdfUrl;
+  } else {
+    frame.src = '';
+  }
+  if (title) title.textContent = programName || 'Program PDF';
+  overlay.classList.add('show');
+  if (typeof lockBodyScroll === 'function') lockBodyScroll();
+}
+
+function closePdfModal() {
+  var overlay = document.getElementById('pdfModalOverlay');
+  var frame = document.getElementById('pdfModalFrame');
+  if (overlay) overlay.classList.remove('show');
+  if (frame) frame.src = '';
+  if (typeof unlockBodyScroll === 'function') unlockBodyScroll();
 }
 
 async function checkProgramAssignmentPopup() {
