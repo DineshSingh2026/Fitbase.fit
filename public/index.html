@@ -3383,10 +3383,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <span class="pdf-modal-title" id="pdfModalTitle">Program PDF</span>
       <button type="button" class="pdf-modal-close" onclick="closePdfModal()" aria-label="Close">×</button>
     </div>
-    <div class="pdf-modal-open-tab">
-      <span class="pdf-modal-open-tab-txt">Need pinch-to-zoom? Open in new tab for best viewing on mobile.</span>
-      <a id="pdfModalOpenTabBtn" href="#" target="_blank" rel="noopener" class="pdf-modal-open-tab-btn">Open PDF in new tab</a>
-    </div>
     <div class="pdf-modal-body">
       <div class="pdf-modal-scalable" id="pdfModalScalable">
       <object id="pdfModalFrame" class="pdf-modal-iframe" type="application/pdf" data="" aria-label="Program PDF">
@@ -4015,25 +4011,14 @@ async function loadUserPrograms() {
 }
 
 async function openPdfModal(programId, programName) {
-  var overlay = document.getElementById('pdfModalOverlay');
-  var frame = document.getElementById('pdfModalFrame');
-  var title = document.getElementById('pdfModalTitle');
-  var fallbackLink = document.getElementById('pdfModalFallbackLink');
-  var openTabBtn = document.getElementById('pdfModalOpenTabBtn');
-  if (!overlay || !frame) return;
-  var url = '';
-  var viewUrl = '';
   try {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
-    if (res && res.url) url = res.url;
-    if (res && res.viewUrl) viewUrl = res.viewUrl;
-  } catch (e) {}
-  frame.setAttribute('data', url);
-  if (fallbackLink) fallbackLink.href = (viewUrl || url) || '#';
-  if (openTabBtn) openTabBtn.href = (viewUrl || url) || '#';
-  if (title) title.textContent = programName || 'Program PDF';
-  overlay.classList.add('show');
-  if (typeof lockBodyScroll === 'function') lockBodyScroll();
+    if (res && res.url) {
+      window.location.href = '/program-viewer.html?url=' + encodeURIComponent(res.url);
+    }
+  } catch (e) {
+    alert('Could not open program PDF. Please try again.');
+  }
 }
 
 function closePdfModal() {

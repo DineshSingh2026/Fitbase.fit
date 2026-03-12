@@ -2,201 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>BodyBank Program Viewer</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>BodyBank – Program PDF</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <style>
-    :root{
-      --black:#050505;
-      --dark2:#141414;
-      --gold:#c8a44e;
-      --cream:#f5f0e8;
-      --bdr:rgba(255,255,255,0.08);
-    }
     *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      margin:0;
-      min-height:100vh;
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-      background:radial-gradient(circle at top,var(--dark2),#020202 56%);
-      color:var(--cream);
-      display:flex;
-      flex-direction:column;
-    }
-    .pv-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:10px 16px;
-      border-bottom:1px solid var(--bdr);
-      background:rgba(0,0,0,0.85);
-      position:sticky;
-      top:0;
-      z-index:10;
-    }
-    .pv-brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:600;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      font-size:13px;
-    }
-    .pv-logo{
-      width:28px;
-      height:28px;
-      border-radius:50%;
-      border:1px solid rgba(200,164,78,0.6);
-      display:grid;
-      place-items:center;
-      font-size:16px;
-    }
-    .pv-actions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .pv-back-btn{
-      padding:8px 14px;
-      border-radius:999px;
-      border:1px solid var(--gold);
-      background:transparent;
-      color:var(--gold);
-      font-size:12px;
-      font-weight:600;
-      letter-spacing:0.5px;
-      text-transform:uppercase;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-    }
-    .pv-back-btn:hover{background:rgba(200,164,78,0.1)}
-    .pv-title{
-      font-size:13px;
-      opacity:0.85;
-      max-width:40vw;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .pv-main{
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      padding:10px;
-      gap:10px;
-    }
-    .pv-hint{
-      font-size:12px;
-      opacity:0.75;
-      text-align:center;
-    }
-    .pv-frame-wrap{
-      flex:1;
-      min-height:0;
-      border-radius:10px;
-      border:1px solid var(--bdr);
-      overflow:hidden;
-      background:#000;
-    }
-    .pv-frame{
+    html,body{width:100%;height:100%;overflow:hidden;background:#000}
+    #pvFrame{
+      position:fixed;
+      inset:0;
       width:100%;
       height:100%;
       border:0;
-      background:#000;
     }
-    .pv-close{
+    #pvClose{
       position:fixed;
-      top:12px;
-      right:12px;
+      top:max(14px, env(safe-area-inset-top, 14px));
+      right:max(14px, env(safe-area-inset-right, 14px));
       width:44px;
       height:44px;
       border-radius:50%;
-      border:1px solid var(--bdr);
-      background:rgba(0,0,0,0.8);
-      color:var(--cream);
-      font-size:24px;
+      border:none;
+      background:rgba(0,0,0,0.65);
+      color:#fff;
+      font-size:26px;
       line-height:1;
       display:flex;
       align-items:center;
       justify-content:center;
       cursor:pointer;
-      z-index:100;
-      transition:background .2s, border-color .2s;
+      z-index:999;
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      box-shadow:0 2px 12px rgba(0,0,0,0.4);
+      transition:background .2s;
     }
-    .pv-close:hover{
-      background:rgba(200,164,78,0.2);
-      border-color:var(--gold);
-      color:var(--gold);
+    #pvClose:hover,#pvClose:active{background:rgba(200,164,78,0.85);color:#000}
+    #pvLoading{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#0d0d0d;
+      color:#f5f0e8;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+      font-size:14px;
+      z-index:1;
+      flex-direction:column;
+      gap:12px;
     }
-    @media (max-width:600px){
-      .pv-header{flex-wrap:wrap;gap:8px}
-      .pv-title{max-width:100%;order:3;width:100%;text-align:left}
-      .pv-main{padding:8px}
-    }
+    .spinner{width:32px;height:32px;border:3px solid rgba(200,164,78,0.2);border-top-color:#c8a44e;border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
-  <button type="button" class="pv-close" id="pvClose" aria-label="Close">×</button>
-  <header class="pv-header">
-    <div class="pv-brand">
-      <div class="pv-logo">BB</div>
-      <div>BodyBank</div>
-    </div>
-    <div class="pv-actions">
-      <button type="button" class="pv-back-btn" id="pvBackBtn">
-        ← Back to My Programs
-      </button>
-    </div>
-    <div class="pv-title" id="pvTitle">Program PDF</div>
-  </header>
-  <main class="pv-main">
-    <div class="pv-hint">If the PDF does not load, make sure pop‑ups are allowed for this site.</div>
-    <div class="pv-frame-wrap">
-      <iframe id="pvFrame" class="pv-frame" title="Program PDF"></iframe>
-    </div>
-  </main>
+  <div id="pvLoading"><div class="spinner"></div><span>Loading PDF…</span></div>
+  <iframe id="pvFrame" title="Program PDF"></iframe>
+  <button id="pvClose" aria-label="Close">×</button>
   <script>
-    (function () {
-      try {
-        var params = new URLSearchParams(window.location.search);
-        var url = params.get('url') || '';
-        var file = params.get('file') || '';
-        var name = params.get('name') || '';
-        var frame = document.getElementById('pvFrame');
-        var titleEl = document.getElementById('pvTitle');
-        if (name && titleEl) titleEl.textContent = name;
-        if (url && frame) {
-          try {
-            var u = new URL(url, window.location.origin);
-            if (u.origin === window.location.origin && (u.pathname.indexOf('/api/me/programs/pdf') === 0 || u.pathname.indexOf('/programs/') === 0)) {
-              frame.src = url;
-            } else {
-              frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
-            }
-          } catch (_) {
-            frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
+    (function(){
+      var params = new URLSearchParams(window.location.search);
+      var url = params.get('url') || '';
+      var frame = document.getElementById('pvFrame');
+      var loading = document.getElementById('pvLoading');
+
+      if (url) {
+        try {
+          var u = new URL(url, window.location.origin);
+          if (u.origin === window.location.origin) {
+            frame.src = url;
+            frame.onload = function(){ if(loading) loading.style.display='none'; };
+            setTimeout(function(){ if(loading) loading.style.display='none'; }, 4000);
+          } else {
+            loading.innerHTML = '<span>Invalid link.</span>';
           }
-        } else if (file && frame) {
-          if (file.indexOf('/programs/pdfs/') === 0) frame.src = file;
-          else frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Invalid program link.</p>';
-        } else if (frame) {
-          frame.parentNode.innerHTML = '<p class="pv-hint" style="padding:16px">Program link not specified.</p>';
+        } catch(_) {
+          loading.innerHTML = '<span>Invalid link.</span>';
         }
-      } catch (e) {
-        console.error(e);
+      } else {
+        loading.innerHTML = '<span>No program specified.</span>';
       }
-      function closeOrBack() {
-        window.close();
-        setTimeout(function() { window.location.href = '/index.html'; }, 150);
-      }
-      var closeBtn = document.getElementById('pvClose');
-      if (closeBtn) closeBtn.addEventListener('click', closeOrBack);
-      var backBtn = document.getElementById('pvBackBtn');
-      if (backBtn) backBtn.addEventListener('click', closeOrBack);
+
+      document.getElementById('pvClose').addEventListener('click', function(){
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          window.location.href = '/index.html';
+        }
+      });
     })();
   </script>
 </body>
 </html>
-
