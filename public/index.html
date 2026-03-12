@@ -514,6 +514,20 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fcta-inner h2,.fcta h2{font-size:30px}
   .fcta p{font-size:17px}.fcta .bold{font-size:18px}
 }
+.checkin-hub-back{margin-bottom:16px}
+.checkin-back-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.checkin-back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.checkin-hub-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:720px}
+.checkin-option-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:20px 20px;background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;cursor:pointer;transition:all .3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.22)}
+.checkin-option-card:hover{border-color:rgba(200,164,78,0.28);transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,0.3)}
+.checkin-option-card .checkin-card-icon{width:48px;height:48px;border-radius:12px;background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.12);display:grid;place-items:center}
+.checkin-option-card .checkin-card-icon svg{width:28px;height:28px;stroke:var(--gold);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.checkin-option-card .checkin-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--cream);text-transform:uppercase;margin:0}
+.checkin-option-card .checkin-card-desc{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
+.checkin-sub .user-section-back{display:block!important;margin-bottom:16px}
+.checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
 .admin-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 0 16px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
 .admin-filter-bar label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 .admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;background:rgba(255,255,255,0.03);color:var(--cream);font-size:16px;min-width:130px}
@@ -1432,6 +1446,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .timer-digits{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:6px;color:var(--cream)}
 .timer-digits span{display:inline-block;min-width:70px;padding:8px 12px;background:var(--dark2);border-radius:8px;margin:0 4px}
 .timer-sep{color:var(--gold);font-size:48px;vertical-align:middle}
+.timer-paused-label{display:none;margin-top:12px;font-size:18px;font-weight:600;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.timer-paused-label.show{display:block}
 .timer-btn{display:block;margin:16px auto;padding:14px 60px;border:1.5px solid var(--gold);border-radius:10px;background:rgba(200,164,78,0.05);color:var(--gold);font-size:28px;cursor:pointer;transition:all .3s;box-shadow:0 0 20px rgba(200,164,78,0.1)}
 .timer-btn:hover{background:rgba(200,164,78,0.15);box-shadow:0 0 30px rgba(200,164,78,0.2)}
 .timer-reset{display:block;margin:8px auto;padding:8px 20px;border:none;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase}
@@ -2478,12 +2494,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="form-group"><label>Workout Name <span class="req">*</span></label><input type="text" class="form-input" id="wkName" placeholder="e.g. Upper body, Cardio"><span class="form-hint">Name this training session</span></div>
       <div class="timer-display">
         <div class="timer-digits"><span id="tHr">00</span><span class="timer-sep">:</span><span id="tMin">00</span><span class="timer-sep">:</span><span id="tSec">00</span></div>
+        <div id="timerPausedLabel" class="timer-paused-label" aria-live="polite">Paused</div>
       </div>
       <button class="timer-btn" id="timerBtn" onclick="toggleTimer()">▶</button>
       <button class="timer-reset" onclick="resetTimer()">Reset Timer</button>
       <div class="form-divider"></div>
       <div class="form-group"><label>Feedback <span class="req">*</span></label><textarea class="form-input" id="wkFeedback" placeholder="How did it go? Notes on intensity, sets, reps..." rows="4"></textarea><span class="form-hint">Brief notes help track progress</span></div>
       <button class="form-submit" onclick="submitWorkout()">Submit</button>
+      <div class="workout-programs-box" style="margin-top:28px">
+        <div class="welcome-card" onclick="switchUserTab('programs')">
+          <div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
+          <div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">Programs assigned by your lifestyle manager. View the PDF and click the video link to watch and perform.</div></div>
+        </div>
+      </div>
       <div id="wkHistorySkeleton" class="skeleton-wrapper" style="display:none">
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line"></div>
       </div>
@@ -2495,7 +2518,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="user-section" id="usec-programs">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div class="form-section-title">My Programs</div>
-      <p class="form-hint" style="margin-bottom:20px">Programs assigned by your lifestyle manager. View the PDF and click the video link to watch and perform.</p>
+      <div style="margin-bottom:16px">
+        <button type="button" class="checkin-back-btn" onclick="switchUserTab('workout')">← Back to Workout</button>
+      </div>
       <div id="userProgramsList" class="user-programs-grid"><p class="form-hint" style="padding:24px;text-align:center">Loading…</p></div>
     </div>
 
@@ -2545,11 +2570,35 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
-    <!-- SUNDAY CHECK-IN -->
+    <!-- CHECK-IN HUB (3 options) + sub-views -->
     <div class="user-section" id="usec-checkin">
-      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
-      <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
+      <!-- Hub: 3 options -->
+      <div id="checkin-hub" class="checkin-hub">
+        <div class="checkin-hub-back"><button type="button" class="checkin-back-btn" onclick="switchUserTab('home')">← Back</button></div>
+        <p class="form-hint" style="margin-bottom:20px">Choose what you want to do:</p>
+        <div class="checkin-hub-cards">
+          <div class="checkin-option-card" onclick="showCheckinSubView('daily')">
+            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
+            <div class="checkin-card-title">Daily Check-in</div>
+            <div class="checkin-card-desc">Log steps, water, protein & sleep for today</div>
+          </div>
+          <div class="checkin-option-card" onclick="showCheckinSubView('sunday')">
+            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <div class="checkin-card-title">Sunday Check-in</div>
+            <div class="checkin-card-desc">Complete your weekly review form</div>
+          </div>
+          <div class="checkin-option-card" onclick="showCheckinSubView('progress')">
+            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div>
+            <div class="checkin-card-title">My Progress</div>
+            <div class="checkin-card-desc">Log metrics by date and view your analytics</div>
+          </div>
+        </div>
+      </div>
+      <!-- Sunday Check-in -->
+      <div id="checkin-sunday" class="checkin-sub" style="display:none">
+        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
+        <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
         <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
         <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
         <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
@@ -2566,7 +2615,63 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="form-group"><label>Questions?</label><textarea class="form-input" id="scQuestions" rows="4" placeholder="Any questions or notes (optional)"></textarea></div>
         <button type="submit" class="form-submit" id="scSubmitBtn">Submit Check-in</button>
       </form>
-      <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
+        <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
+      </div>
+      <!-- Daily Check-in -->
+      <div id="checkin-daily" class="checkin-sub" style="display:none">
+        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <div class="micro-goals-wrap">
+          <h3>Daily check-in <span class="streak-badge" id="dailyStreakBadge">0 day streak</span></h3>
+          <form id="dailyCheckinForm" onsubmit="submitDailyCheckinForm();return false">
+            <div class="micro-goals-grid">
+              <div class="micro-goal-field">
+                <label>Steps</label>
+                <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Water (ml)</label>
+                <input type="number" id="dailyWater" placeholder="e.g. 2000" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Protein (g)</label>
+                <input type="number" id="dailyProtein" placeholder="e.g. 120" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Sleep (hrs)</label>
+                <input type="number" id="dailySleep" placeholder="e.g. 7.5" min="0" step="0.5">
+              </div>
+            </div>
+            <button type="submit" class="micro-goals-submit">Save today</button>
+          </form>
+        </div>
+      </div>
+      <!-- My Progress (embedded) -->
+      <div id="checkin-progress" class="checkin-sub" style="display:none">
+        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
+        <form id="progressFormC" onsubmit="submitProgressCheckin();return false" class="progress-form-grid">
+          <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDateC" required></div>
+          <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeightC" placeholder="e.g. 72.5"></div>
+          <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFatC" placeholder="e.g. 18"></div>
+          <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCaloriesC" placeholder="e.g. 2000"></div>
+          <div class="form-group"><label>Protein (g)</label><input type="number" class="form-input" id="proProteinC" placeholder="e.g. 120"></div>
+          <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDoneC"><span class="toggle-slider"></span></label></div>
+          <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutTypeC" placeholder="e.g. Upper body"></div>
+          <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBenchC" placeholder="e.g. 60"></div>
+          <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquatC" placeholder="e.g. 80"></div>
+          <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadliftC" placeholder="e.g. 100"></div>
+          <div class="form-group"><label>Sleep (hours)</label><input type="number" step="0.1" class="form-input" id="proSleepC" placeholder="e.g. 7.5"></div>
+          <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWaterC" placeholder="e.g. 2.5"></div>
+          <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit">Save for this date</button></div>
+        </form>
+        <p class="form-success" id="progressFormSuccessC" style="display:none;margin-top:12px">Saved. Your coach can share your progress report with you.</p>
+        <div class="progress-logs-section" style="margin-top:28px">
+          <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
+          <div id="progressLogsListC" class="progress-logs-list">
+            <p class="admin-cp-placeholder">No entries yet. Save a log above to see them here.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
@@ -3957,7 +4062,8 @@ document.querySelectorAll('.rv').forEach(e=>ob.observe(e));
 })();
 updateGoogleButtonVisibility();
 if(window.location.hash==='#login'){openModal('loginModal');history.replaceState(null,'',location.pathname+location.search)}
-if(window.location.hash==='#programs'){history.replaceState(null,'',location.pathname+location.search);var _waitPrograms=setInterval(function(){var el=document.getElementById('usec-programs');if(el){clearInterval(_waitPrograms);if(typeof switchUserTab==='function')switchUserTab('programs');}},50);}
+if(window.location.hash==='#programs'){history.replaceState(null,'',location.pathname+location.search);var _wait=setInterval(function(){var el=document.getElementById('usec-programs');if(el){clearInterval(_wait);if(typeof switchUserTab==='function')switchUserTab('programs');}},50);}
+if(window.location.hash==='#workout'){history.replaceState(null,'',location.pathname+location.search);var _w=setInterval(function(){var el=document.getElementById('usec-workout');if(el){clearInterval(_w);if(typeof switchUserTab==='function')switchUserTab('workout');}},50);}
 (function(){
   var params=new URLSearchParams(window.location.search);
   var resetToken=params.get('reset');
@@ -4034,12 +4140,61 @@ async function loadUserPrograms() {
   }
 }
 
+function saveWorkoutStateToStorage() {
+  try {
+    var wkNameEl = document.getElementById('wkName');
+    var wkFeedbackEl = document.getElementById('wkFeedback');
+    sessionStorage.setItem('bbWorkoutTimerSeconds', String(timerSeconds));
+    sessionStorage.setItem('bbWorkoutName', wkNameEl ? wkNameEl.value || '' : '');
+    sessionStorage.setItem('bbWorkoutFeedback', wkFeedbackEl ? wkFeedbackEl.value || '' : '');
+    sessionStorage.setItem('bbWorkoutSavedAt', String(Date.now()));
+  } catch (e) {}
+}
+
+function restoreWorkoutStateFromStorage() {
+  try {
+    var secs = parseInt(sessionStorage.getItem('bbWorkoutTimerSeconds') || '0', 10);
+    if (isNaN(secs) || secs < 0) return false;
+    var name = sessionStorage.getItem('bbWorkoutName') || '';
+    var feedback = sessionStorage.getItem('bbWorkoutFeedback') || '';
+    timerSeconds = secs;
+    timerRunning = false;
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    updateTimerDisplay();
+    var btn = document.getElementById('timerBtn');
+    if (btn) btn.textContent = '▶';
+    var wkNameEl = document.getElementById('wkName');
+    var wkFeedbackEl = document.getElementById('wkFeedback');
+    if (wkNameEl) wkNameEl.value = name;
+    if (wkFeedbackEl) wkFeedbackEl.value = feedback;
+    sessionStorage.removeItem('bbWorkoutTimerSeconds');
+    sessionStorage.removeItem('bbWorkoutName');
+    sessionStorage.removeItem('bbWorkoutFeedback');
+    sessionStorage.removeItem('bbWorkoutSavedAt');
+    return true;
+  } catch (e) { return false; }
+}
+
 async function openPdfModal(programId, programName) {
+  function doOpen() {
+    if (timerRunning && timerInterval) { clearInterval(timerInterval); timerInterval = null; timerRunning = false; }
+    saveWorkoutStateToStorage();
+    var url = '/program-viewer.html?url=' + encodeURIComponent(window._pdfResUrl || '') + '&name=' + encodeURIComponent(programName || 'Program PDF');
+    window.location.href = url;
+  }
   try {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
-    if (res && res.url) {
-      window.location.href = '/program-viewer.html?url=' + encodeURIComponent(res.url) + '&name=' + encodeURIComponent(programName || 'Program PDF');
+    if (!res || !res.url) { alert('Could not open program PDF.'); return; }
+    window._pdfResUrl = res.url;
+    if (timerRunning) {
+      showPopup('Workout Timer Paused', 'The timer has been temporarily paused while you review the program. Resume the timer when you\'re ready to continue, then save your workout after completion.', '', 'OK', doOpen);
+      return;
     }
+    if (!timerRunning && timerSeconds > 0) {
+      showPopup('Opening program', 'Your workout data is saved. Resume the timer when you return and save your workout.', '', 'OK', doOpen);
+      return;
+    }
+    showPopup('View program', 'You haven\'t started the timer yet. Start your workout and timer when ready, or view the program now.', '', 'View PDF', doOpen);
   } catch (e) {
     alert('Could not open program PDF. Please try again.');
   }
@@ -5999,7 +6154,7 @@ var USER_TAB_LABELS = {
   workout: 'My Workout',
   programs: 'My Programs',
   progress: 'My Progress',
-  checkin: 'Sunday Check-in',
+  checkin: 'Check-in',
   messages: 'Messages',
   profile: 'My Profile',
   contact: 'Contact Us'
@@ -6009,11 +6164,26 @@ var USER_TAB_SUBTITLES = {
   workout: 'Log sessions and review recent training history.',
   programs: 'Programs assigned by your lifestyle manager.',
   progress: 'Track body metrics and keep every entry visible.',
-  checkin: 'Complete your weekly review with no layout gaps.',
+  checkin: 'Daily check-in, Sunday check-in, or My progress.',
   messages: 'Chat directly with your coach in one clean thread.',
   profile: 'Keep your personal and contact details up to date.',
   contact: 'Schedule calls or send support requests quickly.'
 };
+function showCheckinSubView(view) {
+  var hub = document.getElementById('checkin-hub');
+  var sunday = document.getElementById('checkin-sunday');
+  var daily = document.getElementById('checkin-daily');
+  var progress = document.getElementById('checkin-progress');
+  if (hub) hub.style.display = view === 'hub' ? '' : 'none';
+  if (sunday) sunday.style.display = view === 'sunday' ? '' : 'none';
+  if (daily) daily.style.display = view === 'daily' ? '' : 'none';
+  if (progress) progress.style.display = view === 'progress' ? '' : 'none';
+  if (view === 'sunday') loadSundayCheckinDefaults();
+  if (view === 'daily') loadDailyCheckinForm();
+  if (view === 'progress') { var d = document.getElementById('proDateC'); if (d) d.value = new Date().toISOString().slice(0, 10); loadProgressLogsCheckin(); }
+  var wrap = document.getElementById('userTabContentWrap');
+  if (wrap) wrap.scrollTop = 0;
+}
 function switchUserTab(tab) {
   document.querySelectorAll('.user-sidebar-link[data-tab]').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-bottom-nav-item').forEach(function(t) { t.classList.remove('active'); });
@@ -6060,8 +6230,9 @@ function switchUserTab(tab) {
     if (mtgBtn) mtgBtn.textContent = 'Schedule Call';
     loadMyMeetings();
   }
-  if (tab === 'checkin') loadSundayCheckinDefaults();
+  if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
   if (tab === 'programs') loadUserPrograms();
+  if (tab === 'workout') restoreWorkoutStateFromStorage();
 }
 
 window._bbUserCharts = window._bbUserCharts || {};
@@ -6383,6 +6554,66 @@ async function submitMicroGoals() {
       return;
     }
     loadMicroGoals();
+    loadMicroGoals();
+    showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
+  } catch (e) {
+    showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
+  }
+}
+
+async function loadDailyCheckinForm() {
+  if (!window.currentUser) return;
+  try {
+    var [today, streak] = await Promise.all([
+      apiCall('GET', '/api/daily-checkin/today'),
+      apiCall('GET', '/api/daily-checkin/streak')
+    ]);
+    var el;
+    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null);
+    if (alreadyFilled) {
+      if (el = document.getElementById('dailySteps')) { el.value = today.steps != null ? today.steps : ''; el.disabled = true; }
+      if (el = document.getElementById('dailyWater')) { el.value = today.water_ml != null ? today.water_ml : ''; el.disabled = true; }
+      if (el = document.getElementById('dailyProtein')) { el.value = today.protein_g != null ? today.protein_g : ''; el.disabled = true; }
+      if (el = document.getElementById('dailySleep')) { el.value = today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = true; }
+      if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = true; el.textContent = 'Already checked in today'; }
+    } else {
+      if (el = document.getElementById('dailySteps')) { el.disabled = false; el.value = today && today.steps != null ? today.steps : ''; }
+      if (el = document.getElementById('dailyWater')) { el.disabled = false; el.value = today && today.water_ml != null ? today.water_ml : ''; }
+      if (el = document.getElementById('dailyProtein')) { el.disabled = false; el.value = today && today.protein_g != null ? today.protein_g : ''; }
+      if (el = document.getElementById('dailySleep')) { el.disabled = false; el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; }
+      if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = false; el.textContent = 'Save today'; }
+    }
+    if (streak && (el = document.getElementById('dailyStreakBadge'))) {
+      var n = streak.streak || 0;
+      el.textContent = (n >= 1 ? '\uD83D\uDCAA ' : '') + n + ' day streak';
+    }
+  } catch (e) {}
+}
+
+async function submitDailyCheckinForm() {
+  if (!window.currentUser) return;
+  var steps = parseInt(document.getElementById('dailySteps').value, 10);
+  var water = parseInt(document.getElementById('dailyWater').value, 10);
+  var protein = parseInt(document.getElementById('dailyProtein').value, 10);
+  var sleep = parseFloat(document.getElementById('dailySleep').value);
+  var body = {};
+  if (!isNaN(steps)) body.steps = steps;
+  if (!isNaN(water)) body.water_ml = water;
+  if (!isNaN(protein)) body.protein_g = protein;
+  if (!isNaN(sleep)) body.sleep_hours = sleep;
+  if (Object.keys(body).length === 0) return;
+  var btn = document.querySelector('#dailyCheckinForm .micro-goals-submit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    var res = await apiCall('POST', '/api/daily-checkin', body);
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
+      return;
+    }
+    loadDailyCheckinForm();
+    loadMicroGoals();
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
@@ -6681,6 +6912,80 @@ async function loadProgressLogs() {
       return '<tr><td data-label="Date">' + esc(d) + '</td><td data-label="Weight">' + esc(w) + '</td><td data-label="Summary">' + esc(summary) + '</td><td data-label="View"><button type="button" class="action-btn btn-view" onclick="viewProgressLog(' + i + ')">View</button></td></tr>';
     }).join('') + '</tbody></table>';
 }
+
+async function loadProgressLogsCheckin() {
+  var container = document.getElementById('progressLogsListC');
+  if (!container) return;
+  if (!window.currentUser) {
+    container.innerHTML = '<p class="progress-logs-empty">Sign in to see your logs.</p>';
+    return;
+  }
+  var data = await apiCall('GET', '/api/progress');
+  var logs = (data && data.logs) ? data.logs : [];
+  _userProgressLogs = logs.slice(0, 50);
+  if (logs.length === 0) {
+    container.innerHTML = '<p class="progress-logs-empty">No entries yet. Save a log above to see them here.</p>';
+    return;
+  }
+  function esc(s) { if (s == null || s === '') return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Summary</th><th>View</th></tr></thead><tbody>' +
+    _userProgressLogs.map(function(l, i) {
+      var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+      var w = l.weight != null ? l.weight + ' kg' : '—';
+      var parts = [];
+      if (l.body_fat != null) parts.push(l.body_fat + '% BF');
+      if (l.workout_completed) parts.push(l.workout_type || 'Workout');
+      var summary = parts.length ? parts.join(', ') : '—';
+      return '<tr><td data-label="Date">' + esc(d) + '</td><td data-label="Weight">' + esc(w) + '</td><td data-label="Summary">' + esc(summary) + '</td><td data-label="View"><button type="button" class="action-btn btn-view" onclick="viewProgressLog(' + i + ')">View</button></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+async function submitProgressCheckin() {
+  if (!window.currentUser) return;
+  var proDateEl = document.getElementById('proDateC');
+  var weight = document.getElementById('proWeightC');
+  var bodyFat = document.getElementById('proBodyFatC');
+  var calories = document.getElementById('proCaloriesC');
+  var protein = document.getElementById('proProteinC');
+  var workoutDone = document.getElementById('proWorkoutDoneC');
+  var workoutType = document.getElementById('proWorkoutTypeC');
+  var bench = document.getElementById('proBenchC');
+  var squat = document.getElementById('proSquatC');
+  var deadlift = document.getElementById('proDeadliftC');
+  var sleep = document.getElementById('proSleepC');
+  var water = document.getElementById('proWaterC');
+  var body = {
+    log_date: proDateEl && proDateEl.value ? proDateEl.value : null,
+    weight: weight && weight.value.trim() ? parseFloat(weight.value) : null,
+    body_fat: bodyFat && bodyFat.value.trim() ? parseFloat(bodyFat.value) : null,
+    calories_intake: calories && calories.value.trim() ? parseInt(calories.value, 10) : null,
+    protein_intake: protein && protein.value.trim() ? parseInt(protein.value, 10) : null,
+    workout_completed: workoutDone ? workoutDone.checked : false,
+    workout_type: workoutType && workoutType.value.trim() ? workoutType.value.trim() : null,
+    strength_bench: bench && bench.value.trim() ? parseFloat(bench.value) : null,
+    strength_squat: squat && squat.value.trim() ? parseFloat(squat.value) : null,
+    strength_deadlift: deadlift && deadlift.value.trim() ? parseFloat(deadlift.value) : null,
+    sleep_hours: sleep && sleep.value.trim() ? parseFloat(sleep.value) : null,
+    water_intake: water && water.value.trim() ? parseFloat(water.value) : null
+  };
+  var btn = document.querySelector('#progressFormC button[type="submit"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  var data = await apiCall('POST', '/api/progress', body);
+  if (btn) { btn.disabled = false; btn.textContent = 'Save for this date'; }
+  if (data.error) {
+    showPopup('Error', data.error || 'Failed to save progress', '', 'OK');
+    return;
+  }
+  var successEl = document.getElementById('progressFormSuccessC');
+  if (successEl) { successEl.style.display = 'block'; setTimeout(function() { successEl.style.display = 'none'; }, 5000); }
+  proDateEl.value = new Date().toISOString().slice(0, 10);
+  ['proWeightC','proBodyFatC','proCaloriesC','proProteinC','proWorkoutTypeC','proBenchC','proSquatC','proDeadliftC','proSleepC','proWaterC'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
+  });
+  loadProgressLogsCheckin();
+}
+
 function viewProgressLog(idx) {
   var l = _userProgressLogs[idx];
   if (!l) return;
@@ -6930,12 +7235,15 @@ function toggleTimer() {
 
 function resetTimer() {
   clearInterval(timerInterval);
+  timerInterval = null;
   timerRunning = false;
   timerSeconds = 0;
+  oneHourPopupShown = false;
   updateTimerDisplay();
   document.getElementById('timerBtn').textContent = '▶';
 }
 
+var oneHourPopupShown = false;
 function updateTimerDisplay() {
   const h = Math.floor(timerSeconds / 3600);
   const m = Math.floor((timerSeconds % 3600) / 60);
@@ -6943,6 +7251,14 @@ function updateTimerDisplay() {
   document.getElementById('tHr').textContent = String(h).padStart(2, '0');
   document.getElementById('tMin').textContent = String(m).padStart(2, '0');
   document.getElementById('tSec').textContent = String(s).padStart(2, '0');
+  var pausedEl = document.getElementById('timerPausedLabel');
+  if (pausedEl) pausedEl.classList.toggle('show', !timerRunning && timerSeconds > 0);
+  if (timerSeconds >= 3600 && timerRunning && !oneHourPopupShown) {
+    oneHourPopupShown = true;
+    if (!confirm('Workout has exceeded 1 hour. Continue timing?')) {
+      resetTimer();
+    }
+  }
 }
 
 async function submitWorkout() {
@@ -7120,7 +7436,7 @@ async function submitSundayCheckin() {
     document.getElementById('sundayCheckinForm').reset();
     var succ = document.getElementById('scSuccess'); if (succ) succ.style.display = 'none';
     showPopup('Check-in Submitted!', 'Your Sunday check-in has been sent successfully.', '', 'OK', function() {
-      switchUserTab('home');
+      showCheckinSubView('hub');
     });
   } catch (e) { if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; } alert('Failed to submit.'); }
 }

@@ -321,7 +321,9 @@
 
     /* ── CLOSE ── */
     document.getElementById('pvClose').addEventListener('click', function () {
-      window.location.href = '/index.html#programs';
+      var hasWorkout = false;
+      try { hasWorkout = !!sessionStorage.getItem('bbWorkoutTimerSeconds'); } catch (e) {}
+      window.location.href = hasWorkout ? '/index.html#workout' : '/index.html#programs';
     });
 
   })();
