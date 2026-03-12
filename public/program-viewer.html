@@ -217,14 +217,23 @@
 
     function renderOneInto(num, canvas, annotDiv, wrap) {
       return pdfDoc.getPage(num).then(function (page) {
+        var dpr      = window.devicePixelRatio || 1;
         var viewport = page.getViewport({ scale: scale });
-        canvas.width  = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        annotDiv.style.width  = canvas.width  + 'px';
-        annotDiv.style.height = canvas.height + 'px';
-        wrap.style.minHeight  = ''; // clear placeholder
 
-        var ctx  = canvas.getContext('2d');
+        // Render at full device resolution for sharp text on retina screens
+        canvas.width  = Math.floor(viewport.width  * dpr);
+        canvas.height = Math.floor(viewport.height * dpr);
+        // CSS size stays at logical pixels so layout is unchanged
+        canvas.style.width  = Math.floor(viewport.width)  + 'px';
+        canvas.style.height = Math.floor(viewport.height) + 'px';
+
+        annotDiv.style.width  = Math.floor(viewport.width)  + 'px';
+        annotDiv.style.height = Math.floor(viewport.height) + 'px';
+        wrap.style.minHeight  = '';
+
+        var ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr); // scale ctx so PDF.js draws at high res
+
         var task = page.render({ canvasContext: ctx, viewport: viewport });
         return task.promise.then(function () {
           return renderAnnotations(page, viewport, annotDiv);
