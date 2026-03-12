@@ -4026,6 +4026,7 @@ async function openPdfModal(programId, programName) {
     var res = await apiCall('POST', '/api/me/programs/pdf-token', { program_id: programId || '' });
     if (res && res.url) url = res.url;
   } catch (e) {}
+  _pdfBaseUrl = url;
   frame.setAttribute('data', url);
   if (fallbackLink) fallbackLink.href = url || '#';
   if (title) title.textContent = programName || 'Program PDF';
@@ -4036,6 +4037,7 @@ async function openPdfModal(programId, programName) {
 }
 
 var _pdfZoom = 1;
+var _pdfBaseUrl = '';
 
 function pdfZoomIn() {
   _pdfZoom = Math.min(2.5, _pdfZoom + 0.25);
@@ -4043,15 +4045,19 @@ function pdfZoomIn() {
 }
 
 function pdfZoomOut() {
-  _pdfZoom = Math.max(0.5, _pdfZoom - 0.25);
+  _pdfZoom = Math.max(1, _pdfZoom - 0.25);
   applyPdfZoom();
 }
 
 function applyPdfZoom() {
+  var frame = document.getElementById('pdfModalFrame');
   var scalable = document.getElementById('pdfModalScalable');
   var levelEl = document.getElementById('pdfZoomLevel');
+  if (frame && _pdfBaseUrl) {
+    frame.setAttribute('data', _pdfBaseUrl + '#zoom=' + Math.round(_pdfZoom * 100));
+  }
   if (scalable) {
-    scalable.style.zoom = _pdfZoom;
+    scalable.style.zoom = '';
     scalable.style.transform = '';
   }
   if (levelEl) levelEl.textContent = Math.round(_pdfZoom * 100) + '%';
@@ -4064,6 +4070,7 @@ function closePdfModal() {
   applyPdfZoom();
   if (overlay) overlay.classList.remove('show');
   if (frame) frame.removeAttribute('data');
+  _pdfBaseUrl = '';
   if (typeof unlockBodyScroll === 'function') unlockBodyScroll();
 }
 
