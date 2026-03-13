@@ -356,6 +356,10 @@ textarea.form-input{resize:vertical;min-height:80px}
 .form-quote .q{color:var(--gold);font-weight:600;font-style:italic;text-shadow:0 0 20px rgba(200,164,78,0.3)}
 .form-quote .attr{color:var(--creamd);font-size:14px;font-style:italic;margin-top:6px;display:block}
 
+/* LOGIN + SIGNUP MODALS: align from top so "Create your account" isn't cut off on mobile */
+#signupModal.modal-overlay,#loginModal.modal-overlay{align-items:flex-start;justify-content:flex-start;padding-top:max(16px,env(safe-area-inset-top),5vh);padding-bottom:max(24px,env(safe-area-inset-bottom));}
+#signupModal .modal,#loginModal .modal{margin:0 auto;margin-top:max(16px,5vh);}
+
 /* LOGIN MODAL */
 .login-modal .form-group{margin-bottom:14px}
 .login-modal h2{padding-right:48px;padding-left:0}
@@ -8540,7 +8544,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=15').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=16').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;
