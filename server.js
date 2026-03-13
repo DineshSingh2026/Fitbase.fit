@@ -2985,7 +2985,7 @@ async function processScheduledMessages() {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🏋️ BodyBank Server listening on port ${PORT}`);
   initDB().then(() => {
-    setInterval(processScheduledMessages, 30 * 1000); // every 30 sec
+    setInterval(processScheduledMessages, 2 * 60 * 60 * 1000); // every 2 hours
     processScheduledMessages();
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';
