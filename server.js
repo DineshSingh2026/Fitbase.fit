@@ -1344,9 +1344,12 @@ app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
 app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
   try {
     const rows = await queryAll(
-      `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 14`,
+      `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365`,
       [req.user.id]
     );
+    if (!rows || rows.length === 0) {
+      return res.json({ streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {}, days: [] });
+    }
     const toDateStr = (val) => {
       if (!val) return null;
       if (val instanceof Date) return val.toISOString().slice(0, 10);
@@ -1354,14 +1357,20 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     };
     const today = toDateStr(new Date());
     const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
+    const todaySaved = dates.has(today);
     let streak = 0;
     const d = new Date();
+    if (!todaySaved) d.setDate(d.getDate() - 1);
     for (let i = 0; i < 365; i++) {
       const ds = toDateStr(d);
       if (!dates.has(ds)) break;
       streak++;
       d.setDate(d.getDate() - 1);
     }
+    const atRisk = !todaySaved && streak > 0;
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const secondsUntilMidnight = Math.max(0, Math.floor((midnight - now) / 1000));
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
@@ -1370,7 +1379,14 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     const avgWater = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.water_ml || 0), 0) / weekData.length) : null;
     const avgProtein = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.protein_g || 0), 0) / weekData.length) : null;
     const avgSleep = weekData.length ? (weekData.reduce((s, r) => s + (r.sleep_hours || 0), 0) / weekData.length).toFixed(1) : null;
-    res.json({ streak, weekly: { avgSteps, avgWater, avgProtein, avgSleep }, days: rows });
+    res.json({
+      streak,
+      todaySaved: !!todaySaved,
+      atRisk: !!atRisk,
+      secondsUntilMidnight: atRisk ? secondsUntilMidnight : null,
+      weekly: { avgSteps, avgWater, avgProtein, avgSleep },
+      days: rows
+    });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load streak' });
   }
@@ -1503,11 +1519,20 @@ app.get('/api/admin/pending-signups', async (req, res) => {
 app.post('/api/admin/approve-user/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone, country FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     await run("UPDATE users SET approval_status = 'approved' WHERE id = ?", [id]);
     await syncUserCountryAndTimezone(user.id, user.email);
+    // Add to tribe_members so new member appears in Clients section
+    const existing = await queryOne("SELECT id FROM tribe_members WHERE LOWER(email) = ?", [(user.email || '').toLowerCase()]);
+    if (!existing) {
+      const tribeId = uuidv4();
+      const today = new Date().toISOString().split('T')[0];
+      const city = (user.country || '').trim() || '';
+      await run(`INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)`,
+        [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, today, null, null, null, '', 'Newly approved']);
+    }
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
@@ -1882,7 +1907,7 @@ app.get('/api/stats', async (req, res) => {
   const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
   const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
   const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
-  const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND approval_status='pending'");
+  const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status='pending')");
   const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
   const [unreadThreads] = await queryAll(
     "SELECT COUNT(*) as c FROM message_threads t WHERE (SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'"
@@ -2021,6 +2046,10 @@ app.get('/api/admin/performance-insights', async (req, res) => {
     ];
     const usersApproved = await queryOne("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved')");
     summary.users_approved = usersApproved?.c ?? 0;
+    const [pendingAudit] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
+    summary.pending_requests = pendingAudit?.c ?? 0;
+    const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
+    summary.daily_checkins = dailyCheckins?.c ?? 0;
 
     for (const { key, countSql, dateCol, userCol } of tables) {
       let sql = countSql;
@@ -2097,7 +2126,8 @@ app.get('/api/admin/performance-insights', async (req, res) => {
       }
     }
 
-    res.json({ summary, data, filters: { source: pickSource, dateFrom: dateFrom || null, dateTo: dateTo || null, user_id: filterUserId || null } });
+    const stats = { ...summary, sunday_checkins: summary.sunday_checkin };
+    res.json({ summary, stats, data, filters: { source: pickSource, dateFrom: dateFrom || null, dateTo: dateTo || null, user_id: filterUserId || null } });
   } catch (e) {
     console.error('Performance insights error:', e.message);
     res.status(500).json({ error: e.message, summary: {}, data: [] });
@@ -2500,6 +2530,8 @@ async function getSuperadminDashboardData(filters = {}) {
   const [meetingsCount] = await queryAll("SELECT COUNT(*) as c FROM meetings");
   const [signupsPending] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending')");
   const [usersApproved] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)");
+  const [dailyCheckinsCount] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
+  const [programAssignCount] = await queryAll("SELECT COUNT(*) as c FROM user_program_assignments WHERE removed_at IS NULL");
 
   const stats = {
     pending_requests: num(pendingReq?.c),
@@ -2509,6 +2541,8 @@ async function getSuperadminDashboardData(filters = {}) {
     workouts: num(workoutsCount?.c),
     part2: num(part2Count?.c),
     sunday_checkins: num(sundayCount?.c),
+    daily_checkins: num(dailyCheckinsCount?.c),
+    program_assignments: num(programAssignCount?.c),
     messages: num(messagesCount?.c),
     meetings: num(meetingsCount?.c),
     pending_signups: num(signupsPending?.c),
@@ -2523,6 +2557,12 @@ async function getSuperadminDashboardData(filters = {}) {
   let tribe = await queryAll("SELECT id, first_name, last_name, email, city, phase, start_date, activity_per_week, status FROM tribe_members ORDER BY start_date DESC LIMIT 200");
   let meetings = await queryAll("SELECT id, user_id, user_name, user_email, meeting_date, time_slot, status, created_at FROM meetings ORDER BY created_at DESC LIMIT 200");
   let messages = await queryAll("SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200");
+  let daily_checkins = await queryAll(
+    "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 200"
+  );
+  let program_assignments = await queryAll(
+    "SELECT a.id, a.user_id, a.program_id, a.assigned_at, p.name as program_name, u.first_name, u.last_name, u.email FROM user_program_assignments a JOIN programs p ON p.id = a.program_id LEFT JOIN users u ON u.id = a.user_id WHERE a.removed_at IS NULL ORDER BY a.assigned_at DESC LIMIT 200"
+  );
 
   if (hasDate || filterUserId) {
     const filterByDate = (rows, dateKey) => {
@@ -2540,7 +2580,13 @@ async function getSuperadminDashboardData(filters = {}) {
     workouts = filterByDate(workouts, 'created_at');
     meetings = filterByDate(meetings, 'created_at');
     messages = filterByDate(messages, 'created_at');
-    if (filterUserId) users = users.filter(r => r.id === filterUserId);
+    daily_checkins = filterByDate(daily_checkins, 'checkin_date');
+    program_assignments = filterByDate(program_assignments, 'assigned_at');
+    if (filterUserId) {
+      users = users.filter(r => r.id === filterUserId);
+      daily_checkins = daily_checkins.filter(r => r.user_id === filterUserId);
+      program_assignments = program_assignments.filter(r => r.user_id === filterUserId);
+    }
   }
 
   const performance = { ...stats };
@@ -2551,6 +2597,8 @@ async function getSuperadminDashboardData(filters = {}) {
     audit,
     part2,
     sunday_checkins,
+    daily_checkins,
+    program_assignments,
     users,
     workouts,
     tribe,
@@ -2625,6 +2673,50 @@ app.get('/api/superadmin/shared', async (req, res) => {
 });
 
 // ============ CRON ENDPOINT (must be before catch-all) ============
+// Streak reminder: send push to users who haven't checked in today and have a streak to lose
+app.get('/api/cron/streak-reminder', async (req, res) => {
+  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
+  if (CRON_SECRET && secret !== CRON_SECRET) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+  let sent = 0;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const subs = await queryAll('SELECT DISTINCT user_id FROM push_subscriptions WHERE user_id IS NOT NULL');
+    for (const { user_id } of subs) {
+      const hasToday = await queryOne('SELECT 1 FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [user_id, today]);
+      if (hasToday) continue;
+      const rows = await queryAll(
+        'SELECT checkin_date FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365',
+        [user_id]
+      );
+      const toDateStr = (v) => v ? String(v).slice(0, 10) : null;
+      const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      let streak = 0;
+      for (let i = 0; i < 365; i++) {
+        const ds = toDateStr(d);
+        if (!dates.has(ds)) break;
+        streak++;
+        d.setDate(d.getDate() - 1);
+      }
+      if (streak > 0) {
+        await sendPushToUser(user_id, JSON.stringify({
+          type: 'streak_reminder',
+          title: 'Don\'t lose your streak!',
+          body: `Save today's check-in to keep your ${streak}-day streak.`
+        }));
+        sent++;
+      }
+    }
+    res.json({ ok: true, sent });
+  } catch (e) {
+    console.error('Cron streak-reminder error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // External services (cron-job.org, UptimeRobot) call this to wake server and process scheduled messages.
 app.get('/api/cron/process-scheduled-messages', async (req, res) => {
   const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();

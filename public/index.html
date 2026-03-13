@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0a" />
 
 <!-- Safari / iOS -->
@@ -323,6 +323,11 @@ body.site-nav-hidden nav#nv{display:none !important}
 .form-group label .req{color:#e05050}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-width:0;width:100%}
 .form-input{width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:8px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;transition:border-color .3s;outline:none}
+/* Prevent zoom on input focus across iOS Safari, PWA, Chrome Android - 16px + touch-action */
+@media (max-width:1024px){
+  input,textarea,select{font-size:16px;touch-action:manipulation}
+  input.form-input,textarea.form-input,select.form-input,.micro-goal-field input,.thread-reply-wrap .form-input,.part2-link-input,.admin-ai-assist-input,.insights-select,.insights-input,.admin-filter-bar input,.superadmin-input,.superadmin-select,.superadmin-share-input{font-size:16px;touch-action:manipulation}
+}
 .form-input:focus{border-color:var(--gold)}
 .form-input[readonly]{cursor:default;opacity:0.9}
 .form-input::placeholder{color:var(--muted)}
@@ -1478,7 +1483,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .micro-goals-wrap .streak-badge[data-tier="rocket"]{background:linear-gradient(135deg,rgba(200,164,78,0.3),rgba(255,180,50,0.15));box-shadow:0 0 16px rgba(200,164,78,0.25)}
 .micro-goals-wrap .streak-badge[data-tier="diamond"]{background:linear-gradient(135deg,rgba(180,220,255,0.2),rgba(200,164,78,0.2));box-shadow:0 0 20px rgba(200,164,78,0.35)}
 .micro-goals-wrap .streak-badge[data-tier="legend"]{background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(200,164,78,0.25));box-shadow:0 0 24px rgba(255,215,0,0.4);animation:streakGlow 2s ease-in-out infinite alternate}
+.micro-goals-wrap .streak-badge[data-at-risk="true"],.streak-badge[data-at-risk="true"]{background:rgba(230,126,34,0.3);box-shadow:0 0 16px rgba(230,126,34,0.4);animation:streakPulse 1.5s ease-in-out infinite}
 @keyframes streakGlow{from{box-shadow:0 0 20px rgba(255,215,0,0.3)}to{box-shadow:0 0 28px rgba(255,215,0,0.5)}}
+@keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.85}}
+.streak-timer{font-size:11px;color:var(--gold);margin-top:6px;display:flex;align-items:center;gap:6px}
+.streak-timer-icon{font-size:14px;opacity:.9}
+.streak-at-risk-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
+.streak-at-risk-banner .icon{font-size:24px}
+.streak-at-risk-banner .text{flex:1;font-size:13px;font-weight:600;color:var(--cream)}
 .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
 @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
 .micro-goal-field{display:flex;flex-direction:column;gap:6px}
@@ -1732,16 +1744,22 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .progress-logs-list td{padding:10px 12px;color:var(--creamd);border-bottom:1px solid rgba(255,255,255,0.04)}
 .progress-logs-list tr:last-child td{border-bottom:none}
 .progress-logs-list .progress-logs-empty{color:var(--muted);padding:16px;text-align:center;font-size:14px}
-.admin-client-progress-wrap{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start;min-height:400px}
+.admin-client-progress-wrap{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:28px;align-items:start;min-height:400px}
 .admin-cp-user-list{position:sticky;top:20px;max-height:80vh;overflow-y:auto}
-.admin-cp-heading{font-size:14px;font-weight:600;letter-spacing:1px;color:var(--gold);margin-bottom:12px}
-.admin-cp-user-list .admin-cp-user-item{padding:12px 16px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;cursor:pointer;transition:background .2s}
-.admin-cp-user-list .admin-cp-user-item:hover{background:rgba(200,164,78,0.08)}
-.admin-cp-user-list .admin-cp-user-item.selected{border-color:var(--gold);background:rgba(200,164,78,0.1)}
-.admin-cp-suspended-badge{font-size:10px;font-weight:600;letter-spacing:0.5px;color:var(--gold);opacity:0.9;margin-left:6px}
-.admin-cp-placeholder{color:var(--muted);font-size:14px;padding:16px 0}
+.admin-cp-heading{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(200,164,78,0.7);margin-bottom:16px;font-family:var(--bb-font-heading,'Outfit',sans-serif)}
+.admin-cp-user-list-inner{background:rgba(0,0,0,0.3);border:1px solid rgba(200,164,78,0.12);border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2)}
+.admin-cp-user-list .admin-cp-user-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .25s ease}
+.admin-cp-user-list .admin-cp-user-item:last-child{border-bottom:none}
+.admin-cp-user-list .admin-cp-user-item:hover{background:rgba(200,164,78,0.06)}
+.admin-cp-user-list .admin-cp-user-item.selected{background:linear-gradient(90deg,rgba(200,164,78,0.12),rgba(200,164,78,0.04));border-left:3px solid var(--gold)}
+.admin-cp-user-list .admin-cp-user-item .cp-name{font-size:15px;font-weight:500;letter-spacing:0.3px;color:var(--cream);line-height:1.3}
+.admin-cp-user-list .admin-cp-user-item .cp-view-btn{padding:8px 18px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid rgba(200,164,78,0.4);border-radius:6px;color:var(--gold);cursor:pointer;transition:all .25s ease;white-space:nowrap}
+.admin-cp-user-list .admin-cp-user-item .cp-view-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);box-shadow:0 2px 12px rgba(200,164,78,0.2)}
+.admin-cp-user-list .admin-cp-user-item.selected .cp-view-btn{background:rgba(200,164,78,0.2);border-color:var(--gold)}
+.admin-cp-suspended-badge{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(230,126,34,0.9);margin-left:8px;opacity:0.95}
+.admin-cp-placeholder{color:rgba(255,255,255,0.35);font-size:14px;padding:24px 20px;letter-spacing:0.2px}
 .admin-cp-error-msg{background:rgba(200,80,80,0.15);border:1px solid rgba(200,80,80,0.4);color:#e8b4b4;padding:16px;border-radius:8px;font-size:14px;margin:12px 0}
-.admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:16px;overflow:visible;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px}
+.admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:20px;overflow:visible;background:rgba(0,0,0,0.25);border:1px solid rgba(200,164,78,0.1);border-radius:14px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,0.15)}
 .admin-cp-detail #adminCpDetail{flex-shrink:0;font-size:18px;color:var(--cream)}
 .admin-cp-detail #adminCpShareWrap{flex-shrink:0}
 .admin-cp-detail #adminCpKpis{flex-shrink:0}
@@ -1752,7 +1770,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-cp-kpi{background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:16px;text-align:center}
 .admin-cp-kpi .num{display:block;font-size:22px;font-weight:700;color:var(--gold)}
 .admin-cp-kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
-@media(max-width:900px){.admin-client-progress-wrap{grid-template-columns:1fr}}
+@media(max-width:900px){.admin-client-progress-wrap{grid-template-columns:1fr}.admin-cp-user-list{position:relative;max-height:none}}
 @media(max-width:768px){
   .admin-tab-content-wrap .insights-filters{flex-wrap:wrap;gap:10px}
   .insights-filter-row .insights-select,.insights-filter-row .insights-input{min-width:0}
@@ -2399,7 +2417,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
           <!-- Micro-goals: daily check-in + streaks -->
           <div class="micro-goals-wrap">
+            <div class="streak-at-risk-banner" id="streakAtRiskBanner" style="display:none">
+              <span class="icon" aria-hidden="true">⏱</span>
+              <span class="text">Save today&apos;s check-in to keep your streak!</span>
+              <span class="streak-timer" id="streakTimerCountdown"></span>
+            </div>
             <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
+            <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
             <form id="microGoalsForm" onsubmit="submitMicroGoals();return false">
               <div class="micro-goals-grid">
                 <div class="micro-goal-field">
@@ -3211,8 +3235,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-clientprogress">
       <div class="admin-client-progress-wrap">
         <div class="admin-cp-user-list">
-          <h3 class="admin-cp-heading">Select client</h3>
-          <div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div>
+          <h3 class="admin-cp-heading">Clients</h3>
+          <div class="admin-cp-user-list-inner"><div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div></div>
         </div>
         <div class="admin-cp-detail">
           <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
@@ -3405,6 +3429,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="superadmin-table-wrap" id="saSundayWrap"><div class="superadmin-cards" id="saSunday"></div></div>
       </section>
       <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Daily check-ins <button type="button" class="superadmin-csv" data-block="daily_checkins">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saDailyWrap"><div class="superadmin-cards" id="saDaily"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Program assignments <button type="button" class="superadmin-csv" data-block="program_assignments">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saProgramsWrap"><div class="superadmin-cards" id="saPrograms"></div></div>
+      </section>
+      <section class="superadmin-block">
         <h2 class="superadmin-block-title">Users <button type="button" class="superadmin-csv" data-block="users">Download CSV</button></h2>
         <div class="superadmin-table-wrap" id="saUsersWrap"><div class="superadmin-cards" id="saUsers"></div></div>
       </section>
@@ -3452,6 +3484,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <h2 class="superadmin-block-title">Part-2 form</h2>
           <div class="superadmin-chart-wrap"><canvas id="saChartPart2"></canvas></div>
           <p class="superadmin-chart-caption">Part-2 submissions over time</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Daily check-ins</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartDaily"></canvas></div>
+          <p class="superadmin-chart-caption">Steps, water, protein, sleep logs over time</p>
         </section>
         <section class="superadmin-chart-block">
           <h2 class="superadmin-block-title">Tribe & engagement</h2>
@@ -4740,16 +4777,15 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
     }
   }
 
-  // Use admin insights payload for richer desktop widgets
+  // Use admin insights payload for richer desktop widgets (stats = summary + sunday_checkins alias)
   var insights = await apiCall('GET', '/api/admin/performance-insights?source=all');
   if (!insights || insights.error) return;
 
-  // Program monitoring cards (scaled vs max)
-  var s = insights.stats || {};
+  var s = insights.stats || insights.summary || {};
   var prog = [
     { key: 'audit', label: 'Audit Pending', value: parseInt(s.pending_requests ?? 0, 10) || 0, numId: 'prog-audit', barId: 'prog-audit-bar', pctId: 'prog-audit-pct' },
     { key: 'part2', label: 'Part-2 Submissions', value: parseInt(s.part2 ?? 0, 10) || 0, numId: 'prog-part2', barId: 'prog-part2-bar', pctId: 'prog-part2-pct' },
-    { key: 'sunday', label: 'Sunday Check-ins', value: parseInt(s.sunday_checkins ?? 0, 10) || 0, numId: 'prog-sunday', barId: 'prog-sunday-bar', pctId: 'prog-sunday-pct' },
+    { key: 'sunday', label: 'Sunday Check-ins', value: parseInt(s.sunday_checkins ?? s.sunday_checkin ?? 0, 10) || 0, numId: 'prog-sunday', barId: 'prog-sunday-bar', pctId: 'prog-sunday-pct' },
     { key: 'workouts', label: 'Workouts Logged', value: parseInt(s.workouts ?? 0, 10) || 0, numId: 'prog-daily', barId: 'prog-daily-bar', pctId: 'prog-daily-pct' },
     { key: 'meetings', label: 'Meetings Scheduled', value: parseInt(s.meetings ?? 0, 10) || 0, numId: 'prog-tribe', barId: 'prog-tribe-bar', pctId: 'prog-tribe-pct' }
   ];
@@ -4982,10 +5018,12 @@ async function viewSignupRequest(id) {
 async function approveUser(id) {
   const res = await apiCall('POST', '/api/admin/approve-user/' + id);
   if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
-  showPopup('Approved', 'User can now log in.', '', 'OK');
+  showPopup('Approved', 'User can now log in and has been added to Clients.', '', 'OK');
   closeModal('signupViewModal');
   loadPendingSignups();
+  loadTribe();
   loadNotifications();
+  if (typeof loadDashboard === 'function') loadDashboard();
 }
 
 async function rejectUser(id) {
@@ -5099,31 +5137,35 @@ async function loadTribe() {
   
   grid.innerHTML = data.map(m => {
     const initials = ((m.first_name||'')[0] || '') + ((m.last_name||'')[0] || '');
-    const phaseClass = 'phase-' + (m.phase || 1);
+    const phase = m.phase ?? 1;
+    const phaseClass = 'phase-' + phase;
     const startDate = m.start_date ? new Date(m.start_date) : new Date();
-    const weeksIn = Math.max(1, Math.round((Date.now() - startDate) / (7*24*60*60*1000)));
+    const weeksIn = Math.max(0, Math.round((Date.now() - startDate) / (7*24*60*60*1000)));
+    const weeksLabel = weeksIn === 0 ? 'less than 1 week ago' : weeksIn + ' week' + (weeksIn > 1 ? 's' : '') + ' ago';
     const progress = Math.min(100, Math.round((weeksIn / 16) * 100));
-    const weightChange = m.starting_weight && m.current_weight 
+    const weightChange = m.starting_weight != null && m.current_weight != null
       ? m.starting_weight + ' → ' + m.current_weight + ' kg'
-      : (m.starting_weight ? m.starting_weight + ' kg' : '-');
-    
+      : (m.starting_weight != null ? m.starting_weight + ' kg' : '-');
+    const activity = m.activity_per_week ?? 0;
+    const nextCheckin = (m.next_checkin && String(m.next_checkin).trim()) ? m.next_checkin : '-';
+
     return `
       <div class="tribe-card">
         <div class="tribe-header">
           <div class="tribe-avatar">${initials}</div>
-          <span class="tribe-phase ${phaseClass}">Phase ${m.phase}</span>
+          <span class="tribe-phase ${phaseClass}">Phase ${phase}</span>
         </div>
-        <div class="tribe-name">${m.first_name} ${m.last_name}</div>
-        <div class="tribe-meta">Joined ${weeksIn} week${weeksIn>1?'s':''} ago · ${m.city || 'Unknown'}</div>
+        <div class="tribe-name">${escapeHtml(((m.first_name||'')+' '+(m.last_name||'')).trim()) || '—'}</div>
+        <div class="tribe-meta">Joined ${weeksLabel} · ${escapeHtml(m.city || '') || 'Unknown'}</div>
         <div class="tribe-progress">
           <div class="tribe-progress-label"><span>Progress</span><span>${progress}%</span></div>
           <div class="tribe-progress-bar"><div class="tribe-progress-fill" style="width:${progress}%"></div></div>
         </div>
         <div class="tribe-details">
           <div class="tribe-detail"><div class="label">Duration</div><div class="val">${weeksIn} / 16 weeks</div></div>
-          <div class="tribe-detail"><div class="label">Activity</div><div class="val">${m.activity_per_week}x / week</div></div>
+          <div class="tribe-detail"><div class="label">Activity</div><div class="val">${activity}x / week</div></div>
           <div class="tribe-detail"><div class="label">Weight</div><div class="val">${weightChange}</div></div>
-          <div class="tribe-detail"><div class="label">Next Check-in</div><div class="val">${m.next_checkin || '-'}</div></div>
+          <div class="tribe-detail"><div class="label">Next Check-in</div><div class="val">${nextCheckin}</div></div>
         </div>
       </div>
     `;
@@ -5749,8 +5791,8 @@ async function loadClientProgressUsers() {
     var name = (u.name || (u.first_name && u.last_name ? u.first_name + ' ' + u.last_name : u.email) || u.id || '').replace(/</g, '&lt;');
     var id = String(u.id || '');
     var suspended = !!(u.suspended === true || u.suspended === 't');
-    var badge = suspended ? ' <span class="admin-cp-suspended-badge">Suspended</span>' : '';
-    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '">' + name + badge + '</div>';
+    var badge = suspended ? '<span class="admin-cp-suspended-badge">Suspended</span>' : '';
+    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '"><span class="cp-name">' + name + badge + '</span><button type="button" class="cp-view-btn">View</button></div>';
   }).join('');
   if (!listEl._clientProgressClickBound) {
     listEl._clientProgressClickBound = true;
@@ -6387,9 +6429,10 @@ async function bbRefreshDesktopUserDashboard() {
   bbUserSetBar('u-prog-sleep-bar', sleep != null ? (sleep / sleepGoal) * 100 : 0);
   bbUserSetText('u-prog-sleep-pct', sleep != null ? Math.round((sleep / sleepGoal) * 100) + '% of ' + sleepGoal : '—');
 
+  var streakAtRisk = dailyStreak && dailyStreak.atRisk;
   bbUserSetText('u-prog-streak', String(streakN));
   bbUserSetBar('u-prog-streak-bar', Math.min(100, (streakN / 7) * 100));
-  bbUserSetText('u-prog-streak-pct', streakN ? (streakN + ' day streak') : 'Start today');
+  bbUserSetText('u-prog-streak-pct', streakN ? (streakN + ' day streak' + (streakAtRisk ? ' — save today!' : '')) : 'Start today');
 
   // Recent activity table (last 8 combined)
   var activity = [];
@@ -6509,17 +6552,44 @@ async function loadMicroGoals() {
     }
     if (streak && (el = document.getElementById('microStreakBadge'))) {
       var n = streak.streak || 0;
+      var atRisk = !!(streak.atRisk);
       var tier = 'seed';
-      var emoji = '\uD83C\uDF31';
-      if (n >= 100) { emoji = '\uD83D\uDC51'; tier = 'legend'; }
-      else if (n >= 50) { emoji = '\uD83D\uDC8E'; tier = 'diamond'; }
-      else if (n >= 21) { emoji = '\uD83D\uDE80'; tier = 'rocket'; }
-      else if (n >= 7) { emoji = '\uD83D\uDD25\uD83D\uDD25'; tier = 'fire'; }
-      else if (n >= 3) { emoji = '\uD83D\uDD25'; tier = 'fire'; }
-      else if (n >= 1) { emoji = '\uD83D\uDCAA'; tier = 'seed'; }
-      el.textContent = emoji + ' ' + n + ' day streak';
-      el.removeAttribute('data-tier');
-      el.setAttribute('data-tier', tier);
+      var emoji = atRisk ? '\u23F1' : '\uD83C\uDF31';
+      if (!atRisk) {
+        if (n >= 100) { emoji = '\uD83D\uDC51'; tier = 'legend'; }
+        else if (n >= 50) { emoji = '\uD83D\uDC8E'; tier = 'diamond'; }
+        else if (n >= 21) { emoji = '\uD83D\uDE80'; tier = 'rocket'; }
+        else if (n >= 7) { emoji = '\uD83D\uDD25\uD83D\uDD25'; tier = 'fire'; }
+        else if (n >= 3) { emoji = '\uD83D\uDD25'; tier = 'fire'; }
+        else if (n >= 1) { emoji = '\uD83D\uDCAA'; tier = 'seed'; }
+      }
+      el.textContent = emoji + ' ' + n + ' day streak' + (atRisk ? ' — save today!' : '');
+      el.removeAttribute('data-tier'); el.setAttribute('data-tier', tier);
+      el.setAttribute('data-at-risk', atRisk ? 'true' : 'false');
+    }
+    var banner = document.getElementById('streakAtRiskBanner');
+    var timerEl = document.getElementById('microStreakTimer');
+    var timerText = document.getElementById('microStreakTimerText');
+    if (streak && streak.atRisk && streak.streak > 0) {
+      if (banner) banner.style.display = 'flex';
+      if (timerEl) timerEl.style.display = 'flex';
+      function updateStreakCountdown() {
+        var secs = streak.secondsUntilMidnight;
+        if (secs == null) return;
+        var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+        var str = h + 'h ' + m + 'm left to save';
+        if (timerText) timerText.textContent = str;
+        var cd = document.getElementById('streakTimerCountdown');
+        if (cd) cd.textContent = str;
+        streak.secondsUntilMidnight = Math.max(0, (streak.secondsUntilMidnight || 0) - 1);
+      }
+      updateStreakCountdown();
+      if (window._streakTimerInterval) clearInterval(window._streakTimerInterval);
+      window._streakTimerInterval = setInterval(updateStreakCountdown, 1000);
+    } else {
+      if (banner) banner.style.display = 'none';
+      if (timerEl) timerEl.style.display = 'none';
+      if (window._streakTimerInterval) { clearInterval(window._streakTimerInterval); window._streakTimerInterval = null; }
     }
     if (streak && streak.weekly) {
       var w = streak.weekly;
@@ -6586,7 +6656,9 @@ async function loadDailyCheckinForm() {
     }
     if (streak && (el = document.getElementById('dailyStreakBadge'))) {
       var n = streak.streak || 0;
-      el.textContent = (n >= 1 ? '\uD83D\uDCAA ' : '') + n + ' day streak';
+      var atRisk = !!(streak.atRisk);
+      el.textContent = (atRisk ? '\u23F1 ' : (n >= 1 ? '\uD83D\uDCAA ' : '')) + n + ' day streak' + (atRisk ? ' — save today!' : '');
+      el.setAttribute('data-at-risk', atRisk ? 'true' : 'false');
     }
   } catch (e) {}
 }
@@ -8032,6 +8104,7 @@ function drawSuperadminCharts(data) {
   var workoutBuckets = bucketByPeriod(data.workouts || [], 'created_at');
   var sundayBuckets = bucketByPeriod(data.sunday_checkins || [], 'created_at');
   var part2Buckets = bucketByPeriod(data.part2 || [], 'created_at');
+  var dailyBuckets = bucketByPeriod(data.daily_checkins || [], 'checkin_date');
   var tribeBuckets = bucketByPeriod(data.tribe || [], 'start_date');
   if (tribeBuckets.labels.length === 0) tribeBuckets = bucketByPeriod(data.tribe || [], 'created_at');
   var msgBuckets = bucketByPeriod(data.messages || [], 'created_at');
@@ -8073,6 +8146,8 @@ function drawSuperadminCharts(data) {
   drawBar('saChartSunday', sundayBuckets.labels, barDs);
   barDs = [{ label: 'Part-2', data: part2Buckets.values, backgroundColor: 'rgba(200,164,78,0.5)', borderColor: gold, borderWidth: 1 }];
   drawBar('saChartPart2', part2Buckets.labels, barDs);
+  barDs = [{ label: 'Daily check-ins', data: dailyBuckets.values, backgroundColor: 'rgba(100,200,120,0.5)', borderColor: 'rgba(100,200,120,0.9)', borderWidth: 1 }];
+  drawBar('saChartDaily', dailyBuckets.labels, barDs);
   var merged = mergeBucketLabels(tribeBuckets, msgBuckets, meetBuckets);
   var tribeLabels = merged.labels.length ? merged.labels : ['No data'];
   var keys = merged.keys || [];
@@ -8139,6 +8214,8 @@ function renderSuperadminData(data, readOnly) {
       { lbl: 'Workouts', num: s.workouts },
       { lbl: 'Part-2', num: s.part2 },
       { lbl: 'Sunday check-ins', num: s.sunday_checkins },
+      { lbl: 'Daily check-ins', num: s.daily_checkins },
+      { lbl: 'Program assignments', num: s.program_assignments },
       { lbl: 'Approved users', num: s.approved_users },
       { lbl: 'Pending sign-ups', num: s.pending_signups },
       { lbl: 'Meetings', num: s.meetings },
@@ -8159,6 +8236,8 @@ function renderSuperadminData(data, readOnly) {
   renderCards('saAudit', data.audit, ['first_name', 'last_name', 'email', 'city', 'goals', 'status', 'created_at']);
   renderCards('saPart2', data.part2, ['name', 'email', 'mobile', 'activity_level', 'created_at']);
   renderCards('saSunday', data.sunday_checkins, ['full_name', 'reply_email', 'total_weight_loss', 'achievements', 'created_at']);
+  renderCards('saDaily', data.daily_checkins, ['first_name', 'last_name', 'email', 'checkin_date', 'steps', 'water_ml', 'protein_g', 'sleep_hours', 'created_at']);
+  renderCards('saPrograms', data.program_assignments, ['first_name', 'last_name', 'email', 'program_name', 'assigned_at']);
   renderCards('saUsers', data.users, ['first_name', 'last_name', 'email', 'approval_status', 'created_at']);
   renderCards('saWorkouts', data.workouts, ['workout_name', 'duration_seconds', 'feedback', 'first_name', 'last_name', 'created_at']);
   renderCards('saTribe', data.tribe, ['first_name', 'last_name', 'email', 'city', 'phase', 'start_date', 'activity_per_week', 'status']);
