@@ -1337,20 +1337,21 @@ app.post('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, rateL
     const adminId = req.user.id;
 
     const targets = broadcast === true
-      ? await queryAll("SELECT id, country, timezone FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")
-      : (user_id ? await queryAll("SELECT id, country, timezone FROM users WHERE id = ?", [user_id]) : []);
+      ? await queryAll("SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")
+      : (user_id ? await queryAll("SELECT id FROM users WHERE id = ?", [user_id]) : []);
 
     if (targets.length === 0) return res.status(400).json({ error: 'Select at least one user or use broadcast to send to all' });
 
+    const IST = 'Asia/Kolkata';
+    const scheduledAtIso = requestedSchedule && !requestedSchedule.hasExplicitTimezone
+      ? localDateTimeToUtcIso(requestedSchedule.date, requestedSchedule.time, IST)
+      : parsedAt.toISOString();
+    if (new Date(scheduledAtIso) <= new Date()) {
+      return res.status(400).json({ error: 'Scheduled time must be in the future (IST)' });
+    }
+
     const ids = [];
     for (const target of targets) {
-      const targetTimezone = getUserTimezone(target);
-      const scheduledAtIso = requestedSchedule && !requestedSchedule.hasExplicitTimezone
-        ? localDateTimeToUtcIso(requestedSchedule.date, requestedSchedule.time, targetTimezone)
-        : parsedAt.toISOString();
-      if (new Date(scheduledAtIso) <= new Date()) {
-        return res.status(400).json({ error: `Scheduled time must be in the future for ${targetTimezone}` });
-      }
       const id = uuidv4();
       await run(
         'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',

@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 /**
- * Seed scheduled messages using each client's local timezone.
- * Weekly schedule: Sunday–Saturday at specified local times for each user.
+ * Seed scheduled messages at IST (India) times for all users.
+ * Weekly schedule: Sunday–Saturday at specified IST times.
  * Run: node scripts/seed-indian-client-messages.js [weeksAhead]
  * Default: schedules for the next 1 week. Use weeksAhead=2 to schedule 2 weeks, etc.
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
-const { getUserTimezone, getLocalDateParts, addDaysToDateString, localDateTimeToUtcIso } = require('../utils/timezone');
+const { getLocalDateParts, addDaysToDateString, localDateTimeToUtcIso } = require('../utils/timezone');
+
+const IST = 'Asia/Kolkata';
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 
-// Day 0=Sunday, 1=Monday, ... 6=Saturday. Time in "HH:MM" 24h local time. Message text.
+// Day 0=Sunday, 1=Monday, ... 6=Saturday. Time in "HH:MM" 24h IST. Message text.
 const SCHEDULE = [
   { day: 0, time: '09:00', msg: 'Sunday CHECK-IN today' },
   { day: 0, time: '11:00', msg: 'Drink ORS / Hydrate well' },
@@ -70,7 +72,7 @@ async function main() {
   const adminId = admin.id;
 
   const users = await queryAll(
-    "SELECT id, country, timezone FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)"
+    "SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)"
   );
   if (users.length === 0) {
     console.log('No approved users. Scheduling messages anyway (they will be created per-user when users exist).');
@@ -79,8 +81,7 @@ async function main() {
   let inserted = 0;
 
   for (const user of users) {
-    const timeZone = getUserTimezone(user);
-    const localToday = getLocalDateParts(new Date(), timeZone);
+    const localToday = getLocalDateParts(new Date(), IST);
     const daysUntilNextSunday = localToday.weekday === 0 ? 7 : 7 - localToday.weekday;
     const nextSundayDate = addDaysToDateString(localToday.date, daysUntilNextSunday);
 
@@ -89,7 +90,7 @@ async function main() {
 
       for (const s of SCHEDULE) {
         const scheduledDate = addDaysToDateString(weekStartDate, s.day);
-        const scheduledAt = localDateTimeToUtcIso(scheduledDate, s.time, timeZone);
+        const scheduledAt = localDateTimeToUtcIso(scheduledDate, s.time, IST);
         const id = uuidv4();
         await run(
           'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',

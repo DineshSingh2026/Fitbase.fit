@@ -3582,8 +3582,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <textarea id="schedMessageBody" class="form-input admin-sched-textarea" rows="2" placeholder="Message…"></textarea>
         </div>
         <div class="admin-sched-row admin-sched-datetime">
-          <input type="date" id="schedDate" class="form-input admin-meeting-date" aria-label="Date">
-          <input type="time" id="schedTime" class="form-input admin-meeting-time" aria-label="Time">
+          <input type="date" id="schedDate" class="form-input admin-meeting-date" aria-label="Date (IST)">
+          <input type="time" id="schedTime" class="form-input admin-meeting-time" aria-label="Time (IST)">
+          <span class="form-hint" style="margin-left:8px;align-self:center">IST</span>
           <button type="button" class="form-submit" onclick="createScheduledMessage()">Schedule</button>
         </div>
       </div>
@@ -7695,7 +7696,7 @@ async function loadAdminScheduledMessages() {
     el.innerHTML = '<div class="admin-scheduled-list-inner">' + list.map(function(s) {
       var name = s.first_name || s.last_name ? [s.first_name, s.last_name].filter(Boolean).join(' ') : (s.email || (s.user_id ? 'User' : '—'));
       var preview = (s.message_body || '').slice(0, 40) + ((s.message_body || '').length > 40 ? '…' : '');
-      var when = s.scheduled_at ? new Date(s.scheduled_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
+      var when = s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' }) + ' IST' : '';
       var status = s.status || 'pending';
       var meta = [preview, when, status].filter(Boolean).join(' • ');
       var cancelBtn = status === 'pending' ? '<button type="button" class="sched-cancel-btn" onclick="cancelScheduledMessage(\'' + (s.id || '').replace(/'/g,"\\'") + '\')">Cancel</button>' : '<span class="sched-item-meta" style="font-style:italic">' + escapeHtml(status) + '</span>';
