@@ -637,6 +637,11 @@ async function seedData() {
 // Lightweight health check (no DB) — Render uses this for deploy success
 app.get('/health', (req, res) => res.json({ ok: true, status: 'live' }));
 
+app.get('/api/debug-reset-setup', (req, res) => {
+  const base = RESET_BASE_URL || '(from request)';
+  res.json({ reset_base_set: !!RESET_BASE_URL, reset_base_preview: base ? base.slice(0, 40) + (base.length > 40 ? '...' : '') : 'empty', node_env: NODE_ENV });
+});
+
 app.get('/api/config', (req, res) => {
   const cid = process.env.GOOGLE_CLIENT_ID || process.env['GOOGLE-CLIENT-ID'] || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
   res.set('Cache-Control', 'no-store');
@@ -892,12 +897,14 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     await run("UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0", [user.id]);
 
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
     const id = uuidv4();
     await run("INSERT INTO password_resets (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)", [id, user.id, token, expiresAt]);
 
-    const base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || req.get('x-forwarded-host') || 'localhost:3000'));
-    const resetLink = `${base.replace(/\/$/, '')}/index.html?reset=${encodeURIComponent(token)}`;
+    let base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || req.get('x-forwarded-host') || 'localhost:3000'));
+    base = String(base).trim().replace(/\/$/, '');
+    if (NODE_ENV === 'production' && base.startsWith('http://')) base = 'https://' + base.slice(7);
+    const resetLink = `${base}/index.html?reset=${encodeURIComponent(token)}`;
 
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
       try {
@@ -918,7 +925,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
           from: fromAddr,
           to: emailNorm,
           subject: 'Reset your BodyBank password',
-          html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
+          html: `<p>Click the link below to reset your password. It expires in 24 hours.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
         });
         console.log('[ForgotPassword] Reset email sent to', emailNorm, '| link base:', base);
       } catch (err) {
