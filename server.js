@@ -634,6 +634,9 @@ async function seedData() {
 }
 
 // ============ CONFIG ============
+// Lightweight health check (no DB) — Render uses this for deploy success
+app.get('/health', (req, res) => res.json({ ok: true, status: 'live' }));
+
 app.get('/api/config', (req, res) => {
   res.json({
     google_client_id: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'
@@ -777,12 +780,14 @@ app.post('/api/auth/google', async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      // Auto-create account (pending approval)
-      const id = uuidv4();
-      const hash = bcrypt.hashSync('google_' + google_id, 10);
-      await run("INSERT INTO users (id, email, password, first_name, last_name, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        [id, emailNorm, hash, given_name || '', family_name || '', picture || '', '', '', 'user', 'pending']);
-      return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+      // New user: require profile completion (phone, password) before creating
+      return res.json({
+        needs_profile: true,
+        email: emailNorm,
+        given_name: given_name || '',
+        family_name: family_name || '',
+        picture: picture || ''
+      });
     }
     const status = user.approval_status || 'approved';
     if (status === 'rejected') {
@@ -802,6 +807,42 @@ app.post('/api/auth/google', async (req, res) => {
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });
+  }
+});
+
+// Google Sign-up: complete profile (phone, password) for new Google users
+app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { id_token, phone, password } = req.body || {};
+    if (!id_token) return res.status(400).json({ error: 'ID token required' });
+    if (!phone || typeof phone !== 'string' || !phone.trim()) return res.status(400).json({ error: 'Mobile (WhatsApp) number is required' });
+    if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Password is required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const parts = id_token.split('.');
+    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token' });
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    const { email, given_name, family_name, sub: google_id, picture } = payload;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+
+    const emailNorm = String(email).trim().toLowerCase();
+    const phoneTrimmed = String(phone || '').trim();
+    const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
+
+    const id = uuidv4();
+    const hash = bcrypt.hashSync(password, 10);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
+    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access` })).catch(() => {});
+    res.json({
+      id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
+      country: '', timezone: '', pending_approval: true,
+      message: 'Your account has been created and is pending admin approval.'
+    });
+  } catch (e) {
+    console.error('Google complete error:', e);
+    res.status(500).json({ error: 'Failed to complete sign-up. Please try again.' });
   }
 });
 
@@ -844,7 +885,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     const user = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [emailNorm]);
     // Only allow password reset for role='user'. Never reset admin/superadmin via this flow.
     if (!user || user.role !== 'user') {
-      return res.json({ ok: true, message: "If an account exists for that email, you'll receive a reset link shortly." });
+      return res.json({ ok: true, message: "Please check your email if an account exists with this address." });
     }
 
     // Invalidate any existing pending resets for this user
@@ -890,7 +931,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     }
 
     const includeLink = NODE_ENV !== 'production';
-    return res.json({ ok: true, message: "If an account exists for that email, you'll receive a reset link shortly.", resetLink: includeLink ? resetLink : undefined });
+    return res.json({ ok: true, message: "Please check your email if an account exists with this address.", resetLink: includeLink ? resetLink : undefined });
   } catch (e) {
     console.error('[ForgotPassword] Error:', e.message);
     return res.status(500).json({ error: 'Server error. Please try again.' });
@@ -2977,20 +3018,16 @@ async function processScheduledMessages() {
 }
 
 // ============ START ============
-initDB().then(() => {
-  setInterval(processScheduledMessages, 30 * 1000); // every 30 sec
-  processScheduledMessages();
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);
-    console.log(`🔐 Forgot password: /api/auth/forgot-password (users only)`);
-    console.log(`📬 Password reset email: ${SMTP_HOST && SMTP_USER && SMTP_PASS ? 'SMTP configured (' + SMTP_HOST + ')' : 'NOT configured (set SMTP_HOST, SMTP_USER, SMTP_PASS)'}`);
-    console.log(`📧 Admin: ${ADMIN_EMAIL}`);
-    console.log(`👔 Superadmin: ${SUPERADMIN_EMAIL}`);
-    console.log(`🔔 Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'Enabled' : 'Disabled (set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)'}`);
-    console.log(`⏰ Cron: ${CRON_SECRET ? 'Secret set' : 'No CRON_SECRET (optional for local)'}`);
-    console.log(`🌍 Environment: ${NODE_ENV}\n`);
+// Listen first so Render health check passes; initDB runs in background
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🏋️ BodyBank Server listening on port ${PORT}`);
+  initDB().then(() => {
+    setInterval(processScheduledMessages, 30 * 1000); // every 30 sec
+    processScheduledMessages();
+    console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
+    console.log(`🔐 Forgot password: /api/auth/forgot-password | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);
+  }).catch(err => {
+    console.error('Failed to init DB:', err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('Failed to start:', err);
-  process.exit(1);
 });
