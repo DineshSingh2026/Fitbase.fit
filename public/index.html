@@ -8544,7 +8544,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=16').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=17').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;

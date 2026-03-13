@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v16';
+const CACHE_NAME = 'bodybank-v17';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -60,6 +60,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
+  /* Only cache http/https — chrome-extension etc. unsupported */
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   /* API: network only */
   if (url.pathname.startsWith('/api/')) return;
@@ -72,9 +74,9 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(
       fetch(req)
         .then((res) => {
-          if (!res || res.status !== 200) return res;
+          if (!res || res.status !== 200 || res.type !== 'basic') return res;
           const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
           return res;
         })
         .catch(() =>
@@ -91,7 +93,7 @@ self.addEventListener('fetch', (e) => {
       return fetch(req).then((res) => {
         if (!res || res.status !== 200 || res.type !== 'basic') return res;
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
         return res;
       }).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
     })
