@@ -638,9 +638,9 @@ async function seedData() {
 app.get('/health', (req, res) => res.json({ ok: true, status: 'live' }));
 
 app.get('/api/config', (req, res) => {
-  res.json({
-    google_client_id: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'
-  });
+  const cid = process.env.GOOGLE_CLIENT_ID || process.env['GOOGLE-CLIENT-ID'] || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+  res.set('Cache-Control', 'no-store');
+  res.json({ google_client_id: cid });
 });
 
 // Health check: API + DB connection test
