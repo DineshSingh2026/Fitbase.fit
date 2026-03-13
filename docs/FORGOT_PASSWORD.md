@@ -28,6 +28,18 @@ Password reset is available **only for users** (role `user`). Admins and superad
    - `RESET_BASE_URL` – optional, e.g. `https://bodybank.fit`
 3. Users receive the reset link by email within seconds
 
+### Gmail
+
+- Use **App Password**, not your regular Gmail password (Google Account → Security → 2-Step Verification → App passwords)
+- Set `SMTP_HOST` = `smtp.gmail.com` (or `gmail`) – the server auto-detects and uses Gmail config
+- Do **not** set `SMTP_FROM` to a custom domain when using Gmail – the From address must be your Gmail account
+- Check Render logs for `[ForgotPassword] Reset email sent to` (success) or `[ForgotPassword] SMTP failed:` (error details)
+
+### Troubleshooting
+
+- **No email received:** Check Render logs. If you see `SMTP failed:` with `535` or `Invalid login`, use an App Password (Gmail) or verify SMTP credentials.
+- **Emails in spam:** Add SPF/DKIM for your domain if using a custom SMTP_FROM.
+
 ## API Endpoints
 
 | Method | Path | Description |

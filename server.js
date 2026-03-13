@@ -861,20 +861,29 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
       try {
         const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: SMTP_HOST,
-          port: SMTP_PORT,
-          secure: SMTP_SECURE,
-          auth: { user: SMTP_USER, pass: SMTP_PASS }
-        });
+        const isGmail = SMTP_HOST === 'smtp.gmail.com' || SMTP_HOST === 'gmail';
+        const transporter = nodemailer.createTransport(isGmail
+          ? { service: 'gmail', auth: { user: SMTP_USER, pass: SMTP_PASS } }
+          : {
+              host: SMTP_HOST,
+              port: SMTP_PORT,
+              secure: SMTP_SECURE,
+              auth: { user: SMTP_USER, pass: SMTP_PASS },
+              connectionTimeout: 10000,
+              greetingTimeout: 10000
+            });
+        const fromAddr = isGmail ? `BodyBank <${SMTP_USER}>` : (SMTP_FROM || `BodyBank <${SMTP_USER}>`);
         await transporter.sendMail({
-          from: SMTP_FROM,
+          from: fromAddr,
           to: emailNorm,
           subject: 'Reset your BodyBank password',
           html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
         });
+        console.log('[ForgotPassword] Reset email sent to', emailNorm);
       } catch (err) {
-        console.error('[ForgotPassword] SMTP email failed:', err.message);
+        console.error('[ForgotPassword] SMTP failed:', err.message);
+        if (err.response) console.error('[ForgotPassword] SMTP response:', err.response);
+        if (err.responseCode) console.error('[ForgotPassword] SMTP code:', err.responseCode);
       }
     } else if (NODE_ENV === 'production') {
       console.warn('[ForgotPassword] SMTP not configured (SMTP_HOST, SMTP_USER, SMTP_PASS) – user did not receive reset link');
@@ -2974,6 +2983,7 @@ initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);
     console.log(`🔐 Forgot password: /api/auth/forgot-password (users only)`);
+    console.log(`📬 Password reset email: ${SMTP_HOST && SMTP_USER && SMTP_PASS ? 'SMTP configured (' + SMTP_HOST + ')' : 'NOT configured (set SMTP_HOST, SMTP_USER, SMTP_PASS)'}`);
     console.log(`📧 Admin: ${ADMIN_EMAIL}`);
     console.log(`👔 Superadmin: ${SUPERADMIN_EMAIL}`);
     console.log(`🔔 Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'Enabled' : 'Disabled (set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)'}`);
