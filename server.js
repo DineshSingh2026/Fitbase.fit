@@ -946,9 +946,10 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
 
 app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
   try {
-    const token = String(req.params.token || '').trim().replace(/[\r\n\s]/g, '');
-    if (!token) {
-      console.log('[VerifyResetToken] Empty token');
+    // Strip any chars that email clients might add (line breaks, zero-width, etc). Keep only UUID chars [a-fA-F0-9-]
+    let token = String(req.params.token || '').replace(/[^a-fA-F0-9-]/g, '');
+    if (!token || token.length < 32) {
+      console.log('[VerifyResetToken] Token too short or empty (len=' + (token && token.length) + ')');
       return res.json({ valid: false });
     }
 
