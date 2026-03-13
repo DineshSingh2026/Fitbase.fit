@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v17';
+const CACHE_NAME = 'bodybank-v18';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -65,6 +65,8 @@ self.addEventListener('fetch', (e) => {
 
   /* API: network only */
   if (url.pathname.startsWith('/api/')) return;
+  /* Reset password: always network, never cache */
+  if (url.pathname === '/reset-password') return;
   if (req.method !== 'GET') return;
 
   const isNavigation = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');

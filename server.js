@@ -903,7 +903,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     let base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || req.get('x-forwarded-host') || 'localhost:3000'));
     base = String(base).trim().replace(/\/$/, '');
     if (NODE_ENV === 'production' && base.startsWith('http://')) base = 'https://' + base.slice(7);
-    const resetLink = `${base}/index.html?reset=${encodeURIComponent(token)}`;
+    const resetLink = `${base}/reset-password?token=${encodeURIComponent(token)}`;
 
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
       try {
@@ -2894,6 +2894,70 @@ app.get(['/', '/index.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// Server-rendered reset password page — token validated on server, no client-side URL parsing
+app.get('/reset-password', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  let token = String(req.query.token || '').replace(/[^a-fA-F0-9-]/g, '');
+  if (!token || token.length < 32) {
+    return res.send(resetPasswordHtml(false, 'Invalid or expired link. Please use Forgot Password to request a new one.'));
+  }
+  try {
+    const row = await queryOne(
+      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      [token]
+    );
+    if (!row || row.used || new Date(row.expires_at) < new Date() || row.role !== 'user') {
+      return res.send(resetPasswordHtml(false, 'This reset link is invalid or has expired. Please use Forgot Password to request a new one.'));
+    }
+    return res.send(resetPasswordHtml(true, null, token));
+  } catch (e) {
+    console.error('[ResetPassword page]', e.message);
+    return res.send(resetPasswordHtml(false, 'Something went wrong. Please try again.'));
+  }
+});
+
+function resetPasswordHtml(valid, errorMsg, token) {
+  const base = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset Password - BodyBank</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;background:#060606;color:#e8e4dc;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
+.box{background:#0d0d0d;border:1.5px solid #c8a44e;border-radius:20px;padding:40px;max-width:400px;width:100%}
+h1{font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:12px;color:#e8e4dc}
+p{margin-bottom:20px;font-size:14px;color:rgba(232,228,220,0.8)}
+input{width:100%;padding:14px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#e8e4dc;font-size:16px;margin-bottom:16px}
+button{width:100%;padding:14px;background:linear-gradient(135deg,#d4af37,#c8a44e);border:none;border-radius:8px;color:#060606;font-weight:700;font-size:15px;cursor:pointer}
+button:hover{opacity:.95}
+a{color:#c8a44e;text-decoration:none;font-size:14px;display:inline-block;margin-top:16px}
+a:hover{text-decoration:underline}
+.err{color:#e05050;margin-bottom:16px}
+</style></head><body><div class="box">`;
+  if (!valid) {
+    return base + `<h1>Invalid or Expired Link</h1><p class="err">${(errorMsg || 'This reset link is invalid or has expired.').replace(/</g, '&lt;')}</p><a href="/index.html">← Back to Home</a></div></body></html>`;
+  }
+  return base + `<h1>Set New Password</h1><p>Enter your new password below.</p>
+<form id="f" onsubmit="return false;"><input type="hidden" name="token" value="${token.replace(/"/g, '&quot;')}">
+<input type="password" name="new_password" placeholder="New password (min 6 characters)" minlength="6" required>
+<input type="password" name="confirm" placeholder="Confirm password" minlength="6" required>
+<button type="submit">Update Password</button></form>
+<p id="msg"></p><a href="/index.html">← Back to Home</a></div>
+<script>
+document.getElementById('f').onsubmit=async function(){
+  var np=this.new_password.value, cf=this.confirm.value, tok=this.token.value;
+  if(np.length<6){document.getElementById('msg').innerHTML='<span class="err">Password must be at least 6 characters.</span>';return;}
+  if(np!==cf){document.getElementById('msg').innerHTML='<span class="err">Passwords do not match.</span>';return;}
+  this.querySelector('button').disabled=true;
+  try{
+    var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,new_password:np})});
+    var d=await r.json();
+    if(d.error){document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';}else{
+      document.getElementById('msg').innerHTML='<span style="color:#50c878">Password updated! <a href="/index.html">Log in</a></span>';
+      this.querySelector('button').textContent='Done';
+    }
+  }catch(e){document.getElementById('msg').innerHTML='<span class="err">Network error. Try again.</span>';}
+  this.querySelector('button').disabled=false;
+};
+</script></body></html>`;
+}
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
