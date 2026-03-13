@@ -974,7 +974,7 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     const row = await queryOne(
-      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password, u.email, u.first_name, u.last_name, u.profile_picture, u.country, u.timezone FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
       [token]
     );
     if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -989,7 +989,20 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     await run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
     await run("UPDATE password_resets SET used = 1 WHERE id = ?", [row.id]);
 
-    return res.json({ ok: true, message: 'Password updated successfully. You can now log in with your new password.' });
+    const sessionToken = signToken({ id: row.user_id, email: row.email, role: row.role });
+    return res.json({
+      ok: true,
+      message: 'Password updated successfully.',
+      id: row.user_id,
+      email: row.email,
+      first_name: row.first_name || '',
+      last_name: row.last_name || '',
+      profile_picture: row.profile_picture || '',
+      role: row.role,
+      country: row.country || '',
+      timezone: row.timezone || '',
+      token: sessionToken
+    });
   } catch (e) {
     console.error('[ResetPassword] Error:', e.message);
     return res.status(500).json({ error: 'Server error. Please try again.' });
@@ -2860,18 +2873,29 @@ a:hover{text-decoration:underline}
 <script>
 document.getElementById('f').onsubmit=async function(){
   var np=this.new_password.value, cf=this.confirm.value, tok=this.token.value;
-  if(np.length<6){document.getElementById('msg').innerHTML='<span class="err">Password must be at least 6 characters.</span>';return;}
-  if(np!==cf){document.getElementById('msg').innerHTML='<span class="err">Passwords do not match.</span>';return;}
-  this.querySelector('button[type=submit]').disabled=true;
+  var submitBtn=this.querySelector('button[type=submit]');
+  if(np.length<6){alert('Password must be at least 6 characters.');return;}
+  if(np!==cf){alert('Passwords do not match.');return;}
+  submitBtn.disabled=true;
   try{
     var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,new_password:np})});
     var d=await r.json();
-    if(d.error){document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';}else{
-      document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully! Sign in now to continue.</span><br><a href="/index.html#login" style="margin-top:12px;display:inline-block;color:#c8a44e;font-weight:600">Sign in now →</a>';
+    if(d.error){
+      alert(d.error);
+      document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';
+    }else{
+      try{ localStorage.setItem('bodybank_session', JSON.stringify(d)); }catch(_){}
+      document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully. Signing you in now...</span>';
       this.style.display='none';
+      alert('Password updated successfully. You are now being signed in.');
+      window.location.replace('/index.html');
+      return;
     }
-  }catch(e){document.getElementById('msg').innerHTML='<span class="err">Network error. Try again.</span>';}
-  this.querySelector('button[type=submit]').disabled=false;
+  }catch(e){
+    alert('Network error. Try again.');
+    document.getElementById('msg').innerHTML='<span class="err">Network error. Try again.</span>';
+  }
+  submitBtn.disabled=false;
 };
 </script></body></html>`;
 }

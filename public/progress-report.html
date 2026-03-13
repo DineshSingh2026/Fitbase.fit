@@ -14,8 +14,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
 
   <link rel="manifest" href="/manifest.json" />
-<link rel="stylesheet" href="/mobile-fix.css?v=11" />
-<link rel="stylesheet" href="/ios-pwa-fix.css?v=11" />
+<link rel="stylesheet" href="/mobile-fix.css?v=20" />
+<link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
   <!-- Google tag (gtag.js) - GA4 -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
   <script>
@@ -211,7 +211,7 @@
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-      navigator.serviceWorker.register('/sw.js').then(function(r) { console.log('SW registered', r.scope); }).catch(function(e) { console.log('SW failed', e); });
+      navigator.serviceWorker.register('/sw.js?v=20').then(function(r) { console.log('SW registered', r.scope); }).catch(function(e) { console.log('SW failed', e); });
     });
   }
   </script>

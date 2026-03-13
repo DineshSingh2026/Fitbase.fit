@@ -312,7 +312,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .gold-exclaim{color:var(--gold);margin-left:2px}
 
 /* MODAL OVERLAY */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:10030;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box}
 .modal-overlay.open{display:flex}
 .modal{background:var(--dark2);border:1.5px solid var(--gold);border-radius:20px;padding:44px 40px;max-width:440px;width:100%;position:relative;max-height:90vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:auto;box-sizing:border-box;flex-shrink:0}
 .modal-close{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:8px;transition:background .2s;-webkit-tap-highlight-color:transparent}
@@ -356,17 +356,27 @@ textarea.form-input{resize:vertical;min-height:80px}
 .form-quote .q{color:var(--gold);font-weight:600;font-style:italic;text-shadow:0 0 20px rgba(200,164,78,0.3)}
 .form-quote .attr{color:var(--creamd);font-size:14px;font-style:italic;margin-top:6px;display:block}
 
-/* LOGIN + SIGNUP + GOOGLE COMPLETE MODALS: align from top, ensure gold border fully visible */
-#signupModal.modal-overlay,#loginModal.modal-overlay,#googleCompleteModal.modal-overlay{align-items:flex-start;justify-content:flex-start;padding:max(24px,env(safe-area-inset-top),6vh) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));}
-#signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{margin:0 auto;margin-top:0;margin-bottom:max(20px,env(safe-area-inset-bottom));}
+/* LOGIN + SIGNUP + GOOGLE COMPLETE MODALS: center modal so full box + X are visible */
+#signupModal.modal-overlay,#loginModal.modal-overlay,#googleCompleteModal.modal-overlay{align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));}
+#signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{margin:0 auto;margin-top:0;margin-bottom:max(20px,env(safe-area-inset-bottom));border:2px solid var(--gold);max-height:min(88vh,calc(100dvh - 48px));min-width:0;width:100%;max-width:min(440px,calc(100vw - 40px));box-sizing:border-box}
+#signupModal .modal .modal-close,#loginModal .modal .modal-close,#googleCompleteModal .modal .modal-close{font-size:28px;font-weight:700;color:var(--gold)}
+/* Signup & Google Complete: fixed header (title + close), scrollable body so nothing is cut */
+.modal-with-scroll{display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.modal-with-scroll .modal-close,.modal-with-scroll h2{flex-shrink:0;min-width:0}
+.modal-with-scroll .modal-body-scroll{flex:1;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-right:4px}
+.login-modal .form-row,.login-modal .form-group,.login-modal .form-input{min-width:0}
+.modal-with-scroll .modal-body-scroll::-webkit-scrollbar{width:6px}
+.modal-with-scroll .modal-body-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,0.05);border-radius:3px}
+.modal-with-scroll .modal-body-scroll::-webkit-scrollbar-thumb{background:rgba(200,164,78,0.4);border-radius:3px}
 
-/* LOGIN MODAL */
+/* LOGIN MODAL – consistent left alignment */
 .login-modal .form-group{margin-bottom:14px}
-.login-modal h2{padding-right:48px;padding-left:0}
+.login-modal h2{padding-right:48px;padding-left:0;text-align:left}
 .login-modal .form-input,.login-modal .form-submit,.login-modal .google-btn{width:100%;box-sizing:border-box}
-.forgot-link{float:right;font-size:12px;color:var(--gold);text-decoration:none;transition:opacity .3s}
+.login-modal .form-submit{text-align:center}
+.forgot-link{display:block;font-size:12px;color:var(--gold);text-decoration:none;transition:opacity .3s;margin-top:8px}
 .forgot-link:hover{opacity:.7}
-.login-footer{text-align:center;margin-top:20px;font-size:14px;color:var(--creamd)}
+.login-footer{text-align:left;margin-top:20px;font-size:14px;color:var(--creamd)}
 .login-footer a{color:var(--gold);text-decoration:none;font-weight:600;display:inline-block;padding:10px 6px;margin:-10px -6px;border-radius:6px;-webkit-tap-highlight-color:transparent}
 .login-footer a:hover{text-decoration:underline}
 .pw-wrap{position:relative;display:block}
@@ -488,8 +498,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .pwa-standalone .nav-right{gap:14px}
   .pwa-standalone .nt{margin-left:12px;padding:10px 12px}
   .modal{padding:28px 20px;max-height:85vh;margin:12px;max-width:calc(100% - 24px)}
+  #signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{max-width:calc(100vw - 32px);width:100%;min-width:0}
   .modal h2{font-size:28px;margin-bottom:24px}
-  .login-modal h2{padding-right:40px}
+  .login-modal h2{padding-right:40px;word-break:break-word}
   .form-group label{font-size:15px}
   .form-input,.form-submit{font-size:16px}
   .form-input{padding:14px 16px}
@@ -515,8 +526,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fail-item h4{font-size:16px}
   .fail-item p{font-size:17px}
   .modal{padding:24px 16px;max-width:calc(100% - 20px);margin:10px}
+  #signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{max-width:calc(100vw - 24px);width:100%;min-width:0}
   .modal h2{font-size:26px;margin-bottom:20px}
-  .login-modal h2{padding-right:44px}
+  .login-modal h2{padding-right:44px;word-break:break-word}
   .modal-close{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
   .popup-box,.forgot-box{padding:28px 20px;width:95%;max-width:calc(100vw - 24px);margin:0 auto;box-sizing:border-box}
   .popup-overlay{padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
@@ -1672,7 +1684,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 
 /* SUCCESS POPUP */
-.popup-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);place-items:center;animation:fadeIn .3s;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));box-sizing:border-box}
+.popup-overlay{display:none;position:fixed;inset:0;z-index:10040;background:rgba(0,0,0,0.85);place-items:center;animation:fadeIn .3s;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));box-sizing:border-box}
 .popup-overlay.show{display:grid}
 .popup-box{text-align:center;padding:52px 44px;max-width:min(420px,calc(100vw - 48px));width:90%;background:#0d0d0d;border:1.5px solid rgba(200,164,78,0.3);border-radius:20px;animation:popUp .4s ease-out;box-sizing:border-box;margin:auto}
 .popup-icon{width:80px;height:80px;margin:0 auto 20px;border-radius:50%;border:3px solid var(--gold);display:grid;place-items:center}
@@ -1695,7 +1707,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 @media(max-width:600px){.forgot-box h3{font-size:22px}.forgot-box p{font-size:15px}}
 
 /* PDF VIEWER MODAL */
-.pdf-modal-overlay{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));box-sizing:border-box;animation:fadeIn .3s}
+.pdf-modal-overlay{display:none;position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,0.9);align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));box-sizing:border-box;animation:fadeIn .3s}
 .pdf-modal-overlay.show{display:flex}
 .pdf-modal-box{display:flex;flex-direction:column;width:100%;max-width:900px;height:100%;max-height:90vh;background:#0d0d0d;border:1px solid rgba(200,164,78,0.25);border-radius:12px;overflow:hidden;animation:popUp .3s}
 .pdf-modal-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);background:rgba(0,0,0,0.5);flex-shrink:0}
@@ -2222,8 +2234,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 
 </style>
-<link rel="stylesheet" href="/mobile-fix.css?v=11">
-<link rel="stylesheet" href="/ios-pwa-fix.css?v=11">
+<link rel="stylesheet" href="/mobile-fix.css?v=20">
+<link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -3631,9 +3643,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- SIGNUP MODAL -->
 <div class="modal-overlay" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
-  <div class="modal login-modal">
+  <div class="modal login-modal modal-with-scroll">
     <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
     <h2>Create your account</h2>
+    <div class="modal-body-scroll">
     <div class="form-row">
       <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="First name" required></div>
       <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="Last name" required></div>
@@ -3645,14 +3658,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
     <div id="googleBtnSignup" class="google-btn-wrap" style="margin-top:12px;min-height:48px"></div>
     <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
+    </div>
   </div>
 </div>
 
 <!-- GOOGLE SIGNUP: Complete Profile Modal (shown after Google auth for new users) -->
 <div class="modal-overlay" id="googleCompleteModal" onclick="if(event.target===this)closeModal('googleCompleteModal')">
-  <div class="modal login-modal">
+  <div class="modal login-modal modal-with-scroll">
     <button class="modal-close" onclick="closeModal('googleCompleteModal')">&times;</button>
     <h2>Complete your profile</h2>
+    <div class="modal-body-scroll">
     <div class="form-row">
       <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="gcFirst" placeholder="First name" readonly style="opacity:0.9"></div>
       <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="gcLast" placeholder="Last name" readonly style="opacity:0.9"></div>
@@ -3662,6 +3677,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" id="gcPw" placeholder="Create a password"><button class="pw-toggle" onclick="var i=document.getElementById('gcPw');i.type=i.type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="gcPwConfirm" placeholder="Confirm your password"></div>
     <button class="form-submit" onclick="handleGoogleCompleteSubmit()">Complete Sign-up</button>
+    </div>
   </div>
 </div>
 
@@ -7849,7 +7865,9 @@ async function handleResetPassword() {
     } else {
       closePopup('resetModal');
       history.replaceState(null, '', location.pathname);
-      showPopup('Password Updated Successfully', 'You can now sign in with your new password.', '', 'Sign in now', function() { openModal('loginModal'); });
+      window.currentUser = data;
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
+      showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() { openUserDashboard(data); });
     }
   } catch (e) {
     showPopup('Error', 'Failed to update password. The link may have expired.', '', 'OK');
@@ -8390,7 +8408,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=18').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=20').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;
