@@ -990,12 +990,16 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     const row = await queryOne(
-      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
       [token]
     );
     if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset token' });
     if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Invalid or expired reset token' });
     if (row.role !== 'user') return res.status(400).json({ error: 'Invalid or expired reset token' });
+
+    if (row.password && bcrypt.compareSync(pw, row.password)) {
+      return res.status(400).json({ error: 'You cannot use the same password as your previous one. Please choose a different password.' });
+    }
 
     const hash = bcrypt.hashSync(pw, 10);
     await run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
@@ -2930,14 +2934,16 @@ button:hover{opacity:.95}
 a{color:#c8a44e;text-decoration:none;font-size:14px;display:inline-block;margin-top:16px}
 a:hover{text-decoration:underline}
 .err{color:#e05050;margin-bottom:16px}
+.pw-wrap{position:relative;display:block;margin-bottom:16px}.pw-wrap input{padding-right:44px;margin-bottom:0}.pw-toggle{position:absolute;right:0;top:0;bottom:0;width:44px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:rgba(232,228,220,0.6);cursor:pointer;font-size:18px;-webkit-tap-highlight-color:transparent}.pw-toggle:hover{color:#e8e4dc}
+.ok{color:#50c878;font-weight:600;margin-top:12px}
 </style></head><body><div class="box">`;
   if (!valid) {
     return base + `<h1>Invalid or Expired Link</h1><p class="err">${(errorMsg || 'This reset link is invalid or has expired.').replace(/</g, '&lt;')}</p><a href="/index.html">← Back to Home</a></div></body></html>`;
   }
   return base + `<h1>Set New Password</h1><p>Enter your new password below.</p>
 <form id="f" onsubmit="return false;"><input type="hidden" name="token" value="${token.replace(/"/g, '&quot;')}">
-<input type="password" name="new_password" placeholder="New password (min 6 characters)" minlength="6" required>
-<input type="password" name="confirm" placeholder="Confirm password" minlength="6" required>
+<div class="pw-wrap"><input type="password" name="new_password" id="rpNew" placeholder="New password (min 6 characters)" minlength="6" required><button type="button" class="pw-toggle" onclick="var i=document.getElementById('rpNew');i.type=i.type==='password'?'text':'password'" title="Show password">&#128065;</button></div>
+<div class="pw-wrap"><input type="password" name="confirm" id="rpConfirm" placeholder="Confirm password" minlength="6" required><button type="button" class="pw-toggle" onclick="var i=document.getElementById('rpConfirm');i.type=i.type==='password'?'text':'password'" title="Show password">&#128065;</button></div>
 <button type="submit">Update Password</button></form>
 <p id="msg"></p><a href="/index.html">← Back to Home</a></div>
 <script>
@@ -2945,16 +2951,16 @@ document.getElementById('f').onsubmit=async function(){
   var np=this.new_password.value, cf=this.confirm.value, tok=this.token.value;
   if(np.length<6){document.getElementById('msg').innerHTML='<span class="err">Password must be at least 6 characters.</span>';return;}
   if(np!==cf){document.getElementById('msg').innerHTML='<span class="err">Passwords do not match.</span>';return;}
-  this.querySelector('button').disabled=true;
+  this.querySelector('button[type=submit]').disabled=true;
   try{
     var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,new_password:np})});
     var d=await r.json();
     if(d.error){document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';}else{
-      document.getElementById('msg').innerHTML='<span style="color:#50c878">Password updated! <a href="/index.html">Log in</a></span>';
-      this.querySelector('button').textContent='Done';
+      document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully! Sign in now to continue.</span><br><a href="/index.html#login" style="margin-top:12px;display:inline-block;color:#c8a44e;font-weight:600">Sign in now →</a>';
+      this.style.display='none';
     }
   }catch(e){document.getElementById('msg').innerHTML='<span class="err">Network error. Try again.</span>';}
-  this.querySelector('button').disabled=false;
+  this.querySelector('button[type=submit]').disabled=false;
 };
 </script></body></html>`;
 }

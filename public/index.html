@@ -356,9 +356,9 @@ textarea.form-input{resize:vertical;min-height:80px}
 .form-quote .q{color:var(--gold);font-weight:600;font-style:italic;text-shadow:0 0 20px rgba(200,164,78,0.3)}
 .form-quote .attr{color:var(--creamd);font-size:14px;font-style:italic;margin-top:6px;display:block}
 
-/* LOGIN + SIGNUP MODALS: align from top so "Create your account" isn't cut off on mobile */
-#signupModal.modal-overlay,#loginModal.modal-overlay{align-items:flex-start;justify-content:flex-start;padding-top:max(16px,env(safe-area-inset-top),5vh);padding-bottom:max(24px,env(safe-area-inset-bottom));}
-#signupModal .modal,#loginModal .modal{margin:0 auto;margin-top:max(16px,5vh);}
+/* LOGIN + SIGNUP + GOOGLE COMPLETE MODALS: align from top, ensure gold border fully visible */
+#signupModal.modal-overlay,#loginModal.modal-overlay,#googleCompleteModal.modal-overlay{align-items:flex-start;justify-content:flex-start;padding:max(24px,env(safe-area-inset-top),6vh) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));}
+#signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{margin:0 auto;margin-top:0;margin-bottom:max(20px,env(safe-area-inset-bottom));}
 
 /* LOGIN MODAL */
 .login-modal .form-group{margin-bottom:14px}
@@ -3607,11 +3607,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <input type="hidden" id="resetToken" value="">
     <div class="form-group">
       <label>New password</label>
-      <input type="password" class="form-input" id="resetNewPassword" placeholder="At least 6 characters" minlength="6">
+      <div class="pw-wrap"><input type="password" class="form-input" id="resetNewPassword" placeholder="At least 6 characters" minlength="6"><button type="button" class="pw-toggle" onclick="var i=document.getElementById('resetNewPassword');i.type=i.type==='password'?'text':'password'" aria-label="Toggle password visibility">&#128065;</button></div>
     </div>
     <div class="form-group">
       <label>Confirm password</label>
-      <input type="password" class="form-input" id="resetConfirmPassword" placeholder="Confirm new password">
+      <div class="pw-wrap"><input type="password" class="form-input" id="resetConfirmPassword" placeholder="Confirm new password"><button type="button" class="pw-toggle" onclick="var i=document.getElementById('resetConfirmPassword');i.type=i.type==='password'?'text':'password'" aria-label="Toggle password visibility">&#128065;</button></div>
     </div>
     <button class="form-submit" id="resetSubmitBtn" onclick="handleResetPassword()">Update Password</button>
     <p style="text-align:center;margin-top:12px"><a href="#" style="color:var(--gold);font-size:13px" onclick="closePopup('resetModal');history.replaceState(null,'',location.pathname);return false">Cancel</a></p>
@@ -3724,7 +3724,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="modal login-modal">
     <button class="modal-close" onclick="closeModal('googleCompleteModal')">&times;</button>
     <h2>Complete your profile</h2>
-    <p class="form-hint" style="margin-bottom:12px;color:var(--cream);font-size:13px;opacity:0.9">We have your name and email from Google. Please add the required details below.</p>
     <div class="form-row">
       <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="gcFirst" placeholder="First name" readonly style="opacity:0.9"></div>
       <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="gcLast" placeholder="Last name" readonly style="opacity:0.9"></div>
@@ -8003,7 +8002,7 @@ async function handleResetPassword() {
     } else {
       closePopup('resetModal');
       history.replaceState(null, '', location.pathname);
-      showPopup('Password Updated', data.message || 'You can now log in with your new password.', '', 'OK', function() { openModal('loginModal'); });
+      showPopup('Password Updated Successfully', 'You can now sign in with your new password.', '', 'Sign in now', function() { openModal('loginModal'); });
     }
   } catch (e) {
     showPopup('Error', 'Failed to update password. The link may have expired.', '', 'OK');
