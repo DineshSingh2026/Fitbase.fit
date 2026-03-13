@@ -26,6 +26,12 @@ const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
 const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
 const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || '').trim() || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
+const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
+const SMTP_USER = (process.env.SMTP_USER || '').trim();
+const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
+const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
@@ -851,7 +857,29 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
 
     const base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || 'localhost:3000'));
     const resetLink = `${base.replace(/\/$/, '')}/index.html?reset=${encodeURIComponent(token)}`;
-    // In development, return link for E2E and manual testing. In production, only return if email not configured (admin can use logs)
+
+    if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+      try {
+        const nodemailer = require('nodemailer');
+        const transporter = nodemailer.createTransport({
+          host: SMTP_HOST,
+          port: SMTP_PORT,
+          secure: SMTP_SECURE,
+          auth: { user: SMTP_USER, pass: SMTP_PASS }
+        });
+        await transporter.sendMail({
+          from: SMTP_FROM,
+          to: emailNorm,
+          subject: 'Reset your BodyBank password',
+          html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
+        });
+      } catch (err) {
+        console.error('[ForgotPassword] SMTP email failed:', err.message);
+      }
+    } else if (NODE_ENV === 'production') {
+      console.warn('[ForgotPassword] SMTP not configured (SMTP_HOST, SMTP_USER, SMTP_PASS) – user did not receive reset link');
+    }
+
     const includeLink = NODE_ENV !== 'production';
     return res.json({ ok: true, message: "If an account exists for that email, you'll receive a reset link shortly.", resetLink: includeLink ? resetLink : undefined });
   } catch (e) {

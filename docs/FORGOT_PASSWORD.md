@@ -15,11 +15,18 @@ Password reset is available **only for users** (role `user`). Admins and superad
 - Run `node scripts/ensure-password-resets-table.js` if the table doesn't exist (or `npm test` does this automatically)
 - **Important:** Restart the server (`Ctrl+C`, then `npm start`) after pulling changes so forgot-password routes load. Startup log shows `🔐 Forgot password: /api/auth/forgot-password` when available.
 
-## Production
+## Production (Nodemailer + SMTP)
 
-- Reset link base URL: uses `RESET_BASE_URL` or `APP_BASE_URL` if set; otherwise derives from request (`https://your-domain.com` on Render).
-- Set `RESET_BASE_URL` in Render env (e.g. `https://bodybank.fit`) if your canonical domain differs from the request host.
-- In production the link is not returned in the API response; add email (nodemailer, Resend, etc.) to send it to users.
+1. Choose an SMTP provider: Gmail, Mailgun, AWS SES, Postmark, SendGrid SMTP, etc.
+2. In Render, add these environment variables:
+   - `SMTP_HOST` – SMTP server (e.g. `smtp.gmail.com`, `smtp.mailgun.org`)
+   - `SMTP_PORT` – optional, default `587` (use `465` for secure)
+   - `SMTP_SECURE` – optional, `true` for port 465
+   - `SMTP_USER` – SMTP username
+   - `SMTP_PASS` – SMTP password / app password
+   - `SMTP_FROM` – optional, e.g. `BodyBank <noreply@bodybank.fit>`
+   - `RESET_BASE_URL` – optional, e.g. `https://bodybank.fit`
+3. Users receive the reset link by email within seconds
 
 ## API Endpoints
 
