@@ -25,6 +25,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursit
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
 const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
+const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || '').trim() || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
@@ -35,9 +36,16 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 }
 
 async function sendPushToUser(userId, payload) {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
+    console.warn('[Push] Skipped: VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in env.');
+    return;
+  }
   try {
     const rows = await queryAll('SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?', [userId]);
+    if (!rows || rows.length === 0) {
+      console.warn('[Push] No subscriptions for user', userId, '- user must enable notifications in the app.');
+      return;
+    }
     const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
     const sent = new Set();
     for (const sub of rows) {
@@ -51,10 +59,15 @@ async function sendPushToUser(userId, payload) {
       } catch (e) {
         if (e.statusCode === 410 || e.statusCode === 404) {
           await run('DELETE FROM push_subscriptions WHERE endpoint = ?', [sub.endpoint]);
+          console.warn('[Push] Removed expired subscription for user', userId);
+        } else {
+          console.warn('[Push] Send failed for user', userId, ':', e.message);
         }
       }
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    console.warn('[Push] Error:', e.message);
+  }
 }
 
 async function sendPushToAdmins(payload) {
@@ -436,6 +449,18 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`); } catch (e) { /* ignore */ }
 
+  // Password reset tokens (users only, not admin/superadmin)
+  await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_expires ON password_resets(expires_at)`); } catch (e) { /* ignore */ }
+
   // Scheduled messages (admin can schedule messages to send at specific times)
   await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_messages (
     id TEXT PRIMARY KEY,
@@ -799,6 +824,86 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============ FORGOT PASSWORD (users only, not admin/superadmin) ============
+app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') return res.status(400).json({ error: 'Email required' });
+    const emailNorm = String(email).trim().toLowerCase();
+    if (!emailNorm) return res.status(400).json({ error: 'Email required' });
+
+    const user = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    // Only allow password reset for role='user'. Never reset admin/superadmin via this flow.
+    if (!user || user.role !== 'user') {
+      return res.json({ ok: true, message: "If an account exists for that email, you'll receive a reset link shortly." });
+    }
+
+    // Invalidate any existing pending resets for this user
+    await run("UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0", [user.id]);
+
+    const token = uuidv4();
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+    const id = uuidv4();
+    await run("INSERT INTO password_resets (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)", [id, user.id, token, expiresAt]);
+
+    const base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || 'localhost:3000'));
+    const resetLink = `${base.replace(/\/$/, '')}/index.html?reset=${encodeURIComponent(token)}`;
+    // In development, return link for E2E and manual testing. In production, only return if email not configured (admin can use logs)
+    const includeLink = NODE_ENV !== 'production';
+    return res.json({ ok: true, message: "If an account exists for that email, you'll receive a reset link shortly.", resetLink: includeLink ? resetLink : undefined });
+  } catch (e) {
+    console.error('[ForgotPassword] Error:', e.message);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
+  try {
+    const token = String(req.params.token || '').trim();
+    if (!token) return res.json({ valid: false });
+
+    const row = await queryOne(
+      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      [token]
+    );
+    if (!row || row.used) return res.json({ valid: false });
+    if (new Date(row.expires_at) < new Date()) return res.json({ valid: false });
+    if (row.role !== 'user') return res.json({ valid: false });
+
+    return res.json({ valid: true });
+  } catch (e) {
+    console.error('[VerifyResetToken] Error:', e.message);
+    return res.json({ valid: false });
+  }
+});
+
+app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) => {
+  try {
+    const { token, new_password } = req.body || {};
+    if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Invalid reset token' });
+    if (!new_password || typeof new_password !== 'string') return res.status(400).json({ error: 'New password required' });
+    const pw = String(new_password).trim();
+    if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const row = await queryOne(
+      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      [token]
+    );
+    if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Invalid or expired reset token' });
+    if (row.role !== 'user') return res.status(400).json({ error: 'Invalid or expired reset token' });
+
+    const hash = bcrypt.hashSync(pw, 10);
+    await run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
+    await run("UPDATE password_resets SET used = 1 WHERE id = ?", [row.id]);
+
+    return res.json({ ok: true, message: 'Password updated successfully. You can now log in with your new password.' });
+  } catch (e) {
+    console.error('[ResetPassword] Error:', e.message);
+    return res.status(500).json({ error: 'Server error. Please try again.' });
   }
 });
 
@@ -2839,8 +2944,11 @@ initDB().then(() => {
   processScheduledMessages();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);
+    console.log(`🔐 Forgot password: /api/auth/forgot-password (users only)`);
     console.log(`📧 Admin: ${ADMIN_EMAIL}`);
     console.log(`👔 Superadmin: ${SUPERADMIN_EMAIL}`);
+    console.log(`🔔 Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'Enabled' : 'Disabled (set VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)'}`);
+    console.log(`⏰ Cron: ${CRON_SECRET ? 'Secret set' : 'No CRON_SECRET (optional for local)'}`);
     console.log(`🌍 Environment: ${NODE_ENV}\n`);
   });
 }).catch(err => {

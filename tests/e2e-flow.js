@@ -107,6 +107,53 @@ async function runTests() {
   const userToken = login.body?.token;
   console.log(login.status === 200 ? '  OK' : '  FAIL', login.body?.email);
 
+  console.log('=== E2E: Forgot password – admin email (no reset, generic response) ===');
+  const saEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const forgotAdmin = await request('POST', '/api/auth/forgot-password', { email: saEmail });
+  if (forgotAdmin.status === 404) console.log('  (404 – restart server to load forgot-password routes)');
+  assert(forgotAdmin.status === 200 && forgotAdmin.body?.ok === true, 'Forgot for admin returns ok');
+  assert(!forgotAdmin.body?.resetLink, 'Admin should not get reset link');
+  console.log(forgotAdmin.status === 200 && !forgotAdmin.body?.resetLink ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Forgot password (user only) ===');
+  const forgotResp = await request('POST', '/api/auth/forgot-password', { email: testUser.email });
+  assert(forgotResp.status === 200 && forgotResp.body?.ok === true, 'Forgot password should return ok (restart server if 404)');
+  let resetToken = null;
+  if (forgotResp.body?.resetLink) {
+    resetToken = new URL(forgotResp.body.resetLink).searchParams.get('reset');
+  }
+  if (!resetToken) {
+    const rows = await queryDb('SELECT token FROM password_resets WHERE user_id = ? AND used = 0 ORDER BY created_at DESC LIMIT 1', [userId]);
+    assert(rows.length > 0, 'Reset token should exist in DB');
+    resetToken = rows[0]?.token || null;
+  }
+  assert(resetToken, 'Reset token required for reset flow');
+  console.log(forgotResp.status === 200 && resetToken ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Verify reset token ===');
+  const verifyResp = await request('GET', `/api/auth/verify-reset-token/${encodeURIComponent(resetToken)}`);
+  assert(verifyResp.status === 200 && verifyResp.body?.valid === true, 'Verify reset token should return valid');
+  console.log(verifyResp.status === 200 && verifyResp.body?.valid ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Reset password ===');
+  const newPassword = 'NewPassword789!';
+  const resetResp = await request('POST', '/api/auth/reset-password', { token: resetToken, new_password: newPassword });
+  assert(resetResp.status === 200 && resetResp.body?.ok === true, 'Reset password should succeed');
+  console.log(resetResp.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Login with old password (should fail) ===');
+  const loginOldPw = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
+  assert(loginOldPw.status === 401, 'Login with old password should fail');
+  console.log(loginOldPw.status === 401 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Login with new password ===');
+  const loginNewPw = await request('POST', '/api/auth/login', { email: testUser.email, password: newPassword });
+  assert(loginNewPw.status === 200 && loginNewPw.body?.id, 'Login with new password should succeed');
+  const userTokenAfterReset = loginNewPw.body?.token;
+  console.log(loginNewPw.status === 200 ? '  OK' : '  FAIL');
+  // Use new password for subsequent tests
+  testUser.password = newPassword;
+
   console.log('=== E2E: Profile get & update ===');
   const profileGet = await request('GET', `/api/profile/${userId}`);
   assert(profileGet.status === 200 && profileGet.body?.email === testUser.email, 'Profile GET');

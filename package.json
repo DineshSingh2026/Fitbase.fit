@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
-    "test": "node tests/e2e-flow.js",
+    "test": "node scripts/ensure-password-resets-table.js && node tests/e2e-flow.js",
     "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js"
   },
