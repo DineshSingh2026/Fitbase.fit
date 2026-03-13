@@ -1,6 +1,5 @@
 # Render Blueprint — BodyBank
 # Add a PostgreSQL database (Render Postgres) and set DATABASE_URL in environment variables.
-# For scheduled messages: set CRON_SECRET on both web + cron services (same value).
 
 services:
   - type: web

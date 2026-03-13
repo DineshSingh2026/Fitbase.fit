@@ -24,7 +24,6 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
-const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
 const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '') || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -2879,66 +2878,6 @@ app.get('/api/superadmin/shared', async (req, res) => {
   }
 });
 
-// ============ CRON ENDPOINT (must be before catch-all) ============
-// Streak reminder: send push to users who haven't checked in today and have a streak to lose
-app.get('/api/cron/streak-reminder', async (req, res) => {
-  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
-  if (CRON_SECRET && secret !== CRON_SECRET) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  let sent = 0;
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const subs = await queryAll('SELECT DISTINCT user_id FROM push_subscriptions WHERE user_id IS NOT NULL');
-    for (const { user_id } of subs) {
-      const hasToday = await queryOne('SELECT 1 FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [user_id, today]);
-      if (hasToday) continue;
-      const rows = await queryAll(
-        'SELECT checkin_date FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365',
-        [user_id]
-      );
-      const toDateStr = (v) => v ? String(v).slice(0, 10) : null;
-      const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
-      const d = new Date();
-      d.setDate(d.getDate() - 1);
-      let streak = 0;
-      for (let i = 0; i < 365; i++) {
-        const ds = toDateStr(d);
-        if (!dates.has(ds)) break;
-        streak++;
-        d.setDate(d.getDate() - 1);
-      }
-      if (streak > 0) {
-        await sendPushToUser(user_id, JSON.stringify({
-          type: 'streak_reminder',
-          title: 'Don\'t lose your streak!',
-          body: `Save today's check-in to keep your ${streak}-day streak.`
-        }));
-        sent++;
-      }
-    }
-    res.json({ ok: true, sent });
-  } catch (e) {
-    console.error('Cron streak-reminder error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// External services (cron-job.org, UptimeRobot) call this to wake server and process scheduled messages.
-app.get('/api/cron/process-scheduled-messages', async (req, res) => {
-  const secret = (req.query.secret || req.headers['x-cron-secret'] || '').trim();
-  if (CRON_SECRET && secret !== CRON_SECRET) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  try {
-    const result = await processScheduledMessages();
-    res.json({ ok: true, message: 'Scheduled messages job completed', processed: result.processed, failed: result.failed });
-  } catch (e) {
-    console.error('Cron process-scheduled-messages error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // ============ SERVE FRONTEND ============
 // PWA: serve service worker and manifest with no-cache so updates apply quickly
 app.get('/sw.js', (req, res) => {
@@ -2991,7 +2930,7 @@ app.use((err, req, res, next) => {
 async function processScheduledMessages() {
   const result = { processed: 0, failed: 0 };
   try {
-    // Use DB NOW() to avoid Node/DB clock skew; include 2-min buffer for cron drift
+    // Use DB NOW() to avoid Node/DB clock skew; include 2-min buffer for timing
     const rows = await queryAll(
       "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= (NOW() + INTERVAL '2 minutes') ORDER BY scheduled_at ASC LIMIT 50"
     );
