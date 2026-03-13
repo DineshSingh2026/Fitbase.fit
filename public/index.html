@@ -3709,8 +3709,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Your WhatsApp number" required></div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" placeholder="Create a password" id="pwSignup"><button class="pw-toggle" onclick="document.getElementById('pwSignup').type=document.getElementById('pwSignup').type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" placeholder="Confirm your password"></div>
-    <div id="googleBtnSignup" class="google-btn-wrap" style="margin-bottom:12px;min-height:48px"></div>
     <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
+    <div id="googleBtnSignup" class="google-btn-wrap" style="margin-top:12px;min-height:48px"></div>
     <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
   </div>
 </div>
@@ -8540,7 +8540,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=14').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=15').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;
