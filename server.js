@@ -1680,7 +1680,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           notifications.push({
             id: 'chat-' + m.id,
             type: 'chat',
-            title: 'New message from coach',
+            title: 'New message from Lifestyle Manager',
             desc: preview,
             time: m.created_at,
             link: 'messages'

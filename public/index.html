@@ -2452,7 +2452,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <div class="weekly-recap-item"><span class="lbl">Avg sleep</span><span class="num" id="recapSleep">—</span></div>
             </div>
             <div class="push-enable-wrap" id="pushEnableWrap">
-              <p>Get workout &amp; check-in reminders, and know when your coach replies.</p>
+              <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
               <button type="button" class="push-enable-btn" id="pushEnableBtn" onclick="enablePushNotifications()">Enable notifications</button>
             </div>
           </div>
@@ -2462,7 +2462,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-copy"><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics and view analytics</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Complete your weekly check-in form</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your coach</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
@@ -2548,11 +2548,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div id="userProgramsList" class="user-programs-grid"><p class="form-hint" style="padding:24px;text-align:center">Loading…</p></div>
     </div>
 
-    <!-- MESSAGES (single chat with coach, no subject) -->
+    <!-- MESSAGES (single chat with Lifestyle Manager, no subject) -->
     <div class="user-section" id="usec-messages">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div class="chat-header-strip">
-        <p class="chat-header-desc">Chat with your coach. Just type and send.</p>
+        <p class="chat-header-desc">Chat with your Lifestyle Manager. Just type and send.</p>
       </div>
       <div class="chat-container">
         <div id="userThreadMessages" class="thread-messages-box"></div>
@@ -2672,7 +2672,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <!-- My Progress (embedded) -->
       <div id="checkin-progress" class="checkin-sub" style="display:none">
         <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
-        <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
+        <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your Lifestyle Manager can share a link with you to view your progress and graphs.</p>
         <form id="progressFormC" onsubmit="submitProgressCheckin();return false" class="progress-form-grid">
           <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDateC" required></div>
           <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeightC" placeholder="e.g. 72.5"></div>
@@ -2688,7 +2688,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWaterC" placeholder="e.g. 2.5"></div>
           <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit">Save for this date</button></div>
         </form>
-        <p class="form-success" id="progressFormSuccessC" style="display:none;margin-top:12px">Saved. Your coach can share your progress report with you.</p>
+        <p class="form-success" id="progressFormSuccessC" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
         <div class="progress-logs-section" style="margin-top:28px">
           <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
           <div id="progressLogsListC" class="progress-logs-list">
@@ -2701,7 +2701,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
     <div class="user-section" id="usec-progress">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
+      <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your Lifestyle Manager can share a link with you to view your progress and graphs.</p>
       <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
         <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDate" required></div>
         <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeight" placeholder="e.g. 72.5"></div>
@@ -2717,7 +2717,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWater" placeholder="e.g. 2.5"></div>
         <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit" id="progressSubmitBtn">Save for this date</button></div>
       </form>
-      <p class="form-success" id="progressFormSuccess" style="display:none;margin-top:12px">Saved. Your coach can share your progress report with you.</p>
+      <p class="form-success" id="progressFormSuccess" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
       <div class="progress-logs-section" style="margin-top:28px">
         <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
         <div id="progressLogsList" class="progress-logs-list">
@@ -6207,7 +6207,7 @@ var USER_TAB_SUBTITLES = {
   programs: 'Programs assigned by your lifestyle manager.',
   progress: 'Track body metrics and keep every entry visible.',
   checkin: 'Daily check-in, Sunday check-in, or My progress.',
-  messages: 'Chat directly with your coach in one clean thread.',
+  messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
   profile: 'Keep your personal and contact details up to date.',
   contact: 'Schedule calls or send support requests quickly.'
 };
@@ -6368,7 +6368,7 @@ async function bbRefreshDesktopUserDashboard() {
   bbUserSetText('u-stat-days', daysSince !== null ? String(daysSince) : '—');
   bbUserSetText('u-stat-days-sub', 'Since last workout');
   bbUserSetText('u-stat-lastmsg', lastMsgShort);
-  bbUserSetText('u-stat-lastmsg-sub', lastMsg ? 'Most recent coach reply' : 'No messages yet');
+  bbUserSetText('u-stat-lastmsg-sub', lastMsg ? 'Most recent Lifestyle Manager reply' : 'No messages yet');
 
   // Chart 1: workouts trend (last 14 workout logs grouped by date)
   var byDay = {};
@@ -6744,7 +6744,7 @@ async function enablePushNotifications() {
     if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
     var wrap = document.getElementById('pushEnableWrap');
     if (wrap) wrap.style.display = 'none';
-    showPopup('Enabled', 'You will get reminders and coach replies.', '', 'OK', null, 'success');
+    showPopup('Enabled', 'You will get reminders and Lifestyle Manager replies.', '', 'OK', null, 'success');
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
     showPopup('Error', e.message || 'Failed to enable.', '', 'OK', null, 'error');
@@ -7557,7 +7557,7 @@ async function userLoadThreadMessages(threadId) {
       box.innerHTML = msgs.map(function(m) {
         var role = m.sender_role === 'admin' ? 'admin' : 'user';
         var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-        var label = role === 'admin' ? 'Coach' : 'You';
+        var label = role === 'admin' ? 'Lifestyle Manager' : 'You';
         var avatar = label.charAt(0);
         return '<div class="thread-msg ' + role + '"><div class="thread-msg-avatar">' + escapeHtml(avatar) + '</div><div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
       }).join('');

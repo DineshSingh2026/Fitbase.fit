@@ -56,7 +56,7 @@
 <body>
   <div class="report-wrap">
     <h1>Your Progress Report</h1>
-    <p class="sub">Shared by your coach — view your metrics and trends.</p>
+    <p class="sub">Shared by your Lifestyle Manager — view your metrics and trends.</p>
     <div id="reportError" class="err" style="display:none"></div>
     <div id="reportLoading" class="loading">Loading your report…</div>
     <div id="reportContent" style="display:none">
@@ -188,7 +188,7 @@
       var params = new URLSearchParams(window.location.search);
       var token = params.get('t') || params.get('token');
       if (!token) {
-        showError('Invalid or expired link. Ask your coach for a new progress report link.');
+        showError('Invalid or expired link. Ask your Lifestyle Manager for a new progress report link.');
         return;
       }
       fetch(window.location.origin + '/api/progress-report?token=' + encodeURIComponent(token))
