@@ -920,7 +920,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
           subject: 'Reset your BodyBank password',
           html: `<p>Click the link below to reset your password. It expires in 1 hour.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
         });
-        console.log('[ForgotPassword] Reset email sent to', emailNorm);
+        console.log('[ForgotPassword] Reset email sent to', emailNorm, '| link base:', base);
       } catch (err) {
         console.error('[ForgotPassword] SMTP failed:', err.message);
         if (err.response) console.error('[ForgotPassword] SMTP response:', err.response);
@@ -940,16 +940,32 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
 
 app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
   try {
-    const token = String(req.params.token || '').trim();
-    if (!token) return res.json({ valid: false });
+    const token = String(req.params.token || '').trim().replace(/[\r\n\s]/g, '');
+    if (!token) {
+      console.log('[VerifyResetToken] Empty token');
+      return res.json({ valid: false });
+    }
 
     const row = await queryOne(
       "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
       [token]
     );
-    if (!row || row.used) return res.json({ valid: false });
-    if (new Date(row.expires_at) < new Date()) return res.json({ valid: false });
-    if (row.role !== 'user') return res.json({ valid: false });
+    if (!row) {
+      console.log('[VerifyResetToken] Token not found in DB (len=' + token.length + ')');
+      return res.json({ valid: false });
+    }
+    if (row.used) {
+      console.log('[VerifyResetToken] Token already used');
+      return res.json({ valid: false });
+    }
+    if (new Date(row.expires_at) < new Date()) {
+      console.log('[VerifyResetToken] Token expired');
+      return res.json({ valid: false });
+    }
+    if (row.role !== 'user') {
+      console.log('[VerifyResetToken] Wrong role');
+      return res.json({ valid: false });
+    }
 
     return res.json({ valid: true });
   } catch (e) {

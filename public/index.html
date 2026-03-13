@@ -4190,7 +4190,7 @@ if(window.location.hash==='#programs'){history.replaceState(null,'',location.pat
 if(window.location.hash==='#workout'){history.replaceState(null,'',location.pathname+location.search);var _w=setInterval(function(){var el=document.getElementById('usec-workout');if(el){clearInterval(_w);if(typeof switchUserTab==='function')switchUserTab('workout');}},50);}
 (function(){
   var params=new URLSearchParams(window.location.search);
-  var resetToken=params.get('reset');
+  var resetToken=(params.get('reset')||'').trim().replace(/[\r\n\s]+/g,'');
   if(resetToken){
     apiCall('GET','/api/auth/verify-reset-token/'+encodeURIComponent(resetToken)).then(function(r){
       if(r&&r.valid){
