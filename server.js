@@ -2884,10 +2884,12 @@ document.getElementById('f').onsubmit=async function(){
       alert(d.error);
       document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';
     }else{
-      try{ localStorage.setItem('bodybank_session', JSON.stringify(d)); }catch(_){}
-      document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully. Signing you in now...</span>';
+      try{
+        localStorage.setItem('bodybank_session', JSON.stringify(d));
+        localStorage.setItem('bodybank_reset_success', '1');
+      }catch(_){}
+      document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully. Taking you to your dashboard...</span>';
       this.style.display='none';
-      alert('Password updated successfully. You are now being signed in.');
       window.location.replace('/index.html');
       return;
     }

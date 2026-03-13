@@ -4467,6 +4467,7 @@ async function loadDashboard() {
 }
 
 const SESSION_KEY = 'bodybank_session';
+const RESET_SUCCESS_KEY = 'bodybank_reset_success';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
 const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
@@ -8014,6 +8015,18 @@ function restoreSession() {
       lockBodyScroll();
       loadSuperadminDashboard();
     } else {
+      var justResetPassword = false;
+      try {
+        justResetPassword = localStorage.getItem(RESET_SUCCESS_KEY) === '1';
+        if (justResetPassword) localStorage.removeItem(RESET_SUCCESS_KEY);
+      } catch (e) {}
+      if (justResetPassword) {
+        window._pendingUser = data;
+        showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() {
+          openUserDashboard(window._pendingUser);
+        });
+        return;
+      }
       openUserDashboard(data);
     }
   } catch (e) {}

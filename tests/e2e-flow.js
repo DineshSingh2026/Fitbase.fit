@@ -120,7 +120,7 @@ async function runTests() {
   assert(forgotResp.status === 200 && forgotResp.body?.ok === true, 'Forgot password should return ok (restart server if 404)');
   let resetToken = null;
   if (forgotResp.body?.resetLink) {
-    resetToken = new URL(forgotResp.body.resetLink).searchParams.get('reset');
+    resetToken = new URL(forgotResp.body.resetLink).searchParams.get('token');
   }
   if (!resetToken) {
     const rows = await queryDb('SELECT token FROM password_resets WHERE user_id = ? AND used = 0 ORDER BY created_at DESC LIMIT 1', [userId]);
