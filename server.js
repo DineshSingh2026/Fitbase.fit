@@ -2871,11 +2871,12 @@ a:hover{text-decoration:underline}
 <button type="submit">Update Password</button></form>
 <p id="msg"></p><a href="/index.html">← Back to Home</a></div>
 <script>
-document.getElementById('f').onsubmit=async function(){
+document.getElementById('f').onsubmit=async function(e){
+  if(e){e.preventDefault();e.stopPropagation();}
   var np=this.new_password.value, cf=this.confirm.value, tok=this.token.value;
   var submitBtn=this.querySelector('button[type=submit]');
-  if(np.length<6){alert('Password must be at least 6 characters.');return;}
-  if(np!==cf){alert('Passwords do not match.');return;}
+  if(np.length<6){alert('Password must be at least 6 characters.');return false;}
+  if(np!==cf){alert('Passwords do not match.');return false;}
   submitBtn.disabled=true;
   try{
     var r=await fetch('/api/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tok,new_password:np})});
