@@ -51,7 +51,3 @@ Or use a process manager (e.g. PM2, systemd). PostgreSQL is persistent; no file 
 ## Health check
 
 - `GET /api/health` — returns `{ ok: true, db: 'connected' }` when the app and database are ready.
-
-## Scheduled messages
-
-Scheduled messages are sent every 30 seconds by the in-process job while the server is running. Create and manage them from the admin dashboard. No external cron is required.

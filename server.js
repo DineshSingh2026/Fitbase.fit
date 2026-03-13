@@ -11,7 +11,7 @@ const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrS
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
-const { inferTimezoneFromCountry, getUserTimezone, extractLocalDateTimeParts, localDateTimeToUtcIso } = require('./utils/timezone');
+const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -465,22 +465,6 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_expires ON password_resets(expires_at)`); } catch (e) { /* ignore */ }
-
-  // Scheduled messages (admin can schedule messages to send at specific times)
-  await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_messages (
-    id TEXT PRIMARY KEY,
-    admin_id TEXT NOT NULL,
-    user_id TEXT,
-    message_body TEXT NOT NULL,
-    scheduled_at TIMESTAMPTZ NOT NULL,
-    status TEXT DEFAULT 'pending',
-    thread_id TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`);
-  try {
-    await pool.query(`ALTER TABLE scheduled_messages ALTER COLUMN scheduled_at TYPE TIMESTAMPTZ USING scheduled_at AT TIME ZONE 'UTC'`);
-  } catch (e) { /* column may already be correct */ }
-  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_messages_status_at ON scheduled_messages(status, scheduled_at)`); } catch (e) { /* ignore */ }
 
   // Programs (PDF + YouTube) - admin assigns to users, max 4 per user
   await pool.query(`CREATE TABLE IF NOT EXISTS programs (
@@ -1402,78 +1386,6 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
   }
 });
 
-// ============ SCHEDULED MESSAGES (Admin) ============
-// Create scheduled message
-app.post('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, rateLimiter(20, 60000), async (req, res) => {
-  try {
-    const { user_id, message_body, scheduled_at, broadcast } = req.body || {};
-    if (!message_body || !String(message_body).trim()) return res.status(400).json({ error: 'Message body is required' });
-    const requestedSchedule = extractLocalDateTimeParts(scheduled_at);
-    const parsedAt = scheduled_at ? new Date(scheduled_at) : null;
-    if ((!requestedSchedule && (!parsedAt || isNaN(parsedAt.getTime())))) return res.status(400).json({ error: 'Valid scheduled date/time is required' });
-    const adminId = req.user.id;
-
-    const targets = broadcast === true
-      ? await queryAll("SELECT id FROM users WHERE role = 'user' AND (approval_status = 'approved' OR approval_status IS NULL)")
-      : (user_id ? await queryAll("SELECT id FROM users WHERE id = ?", [user_id]) : []);
-
-    if (targets.length === 0) return res.status(400).json({ error: 'Select at least one user or use broadcast to send to all' });
-
-    const IST = 'Asia/Kolkata';
-    const scheduledAtIso = requestedSchedule && !requestedSchedule.hasExplicitTimezone
-      ? localDateTimeToUtcIso(requestedSchedule.date, requestedSchedule.time, IST)
-      : parsedAt.toISOString();
-    if (new Date(scheduledAtIso) <= new Date()) {
-      return res.status(400).json({ error: 'Scheduled time must be in the future (IST)' });
-    }
-
-    const ids = [];
-    for (const target of targets) {
-      const id = uuidv4();
-      await run(
-        'INSERT INTO scheduled_messages (id, admin_id, user_id, message_body, scheduled_at, status) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, adminId, target.id, String(message_body).trim().slice(0, 5000), scheduledAtIso, 'pending']
-      );
-      ids.push(id);
-    }
-    const created = await queryAll('SELECT * FROM scheduled_messages WHERE id = ANY($1)', [ids]);
-    res.status(201).json(created.length === 1 ? created[0] : { created: ids.length, ids });
-  } catch (e) {
-    console.error('Create scheduled message error:', e.message);
-    res.status(500).json({ error: 'Failed to create scheduled message' });
-  }
-});
-
-// List scheduled messages
-app.get('/api/scheduled-messages', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
-  try {
-    const rows = await queryAll(
-      `SELECT sm.id, sm.admin_id, sm.user_id, sm.message_body, sm.scheduled_at, sm.status, sm.thread_id, sm.created_at,
-       u.first_name, u.last_name, u.email
-       FROM scheduled_messages sm
-       LEFT JOIN users u ON u.id = sm.user_id
-       ORDER BY sm.scheduled_at DESC
-       LIMIT 200`
-    );
-    res.json(rows);
-  } catch (e) {
-    console.error('List scheduled messages error:', e.message);
-    res.status(500).json({ error: 'Failed to load scheduled messages' });
-  }
-});
-
-// Cancel scheduled message
-app.delete('/api/scheduled-messages/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
-  try {
-    const r = await run('UPDATE scheduled_messages SET status = ? WHERE id = ? AND status = ?', ['cancelled', req.params.id, 'pending']);
-    if (r.rowCount === 0) return res.status(404).json({ error: 'Scheduled message not found or already sent/cancelled' });
-    res.json({ message: 'Scheduled message cancelled' });
-  } catch (e) {
-    console.error('Cancel scheduled message error:', e.message);
-    res.status(500).json({ error: 'Failed to cancel' });
-  }
-});
-
 // ============ SUNDAY CHECK-IN (User submit) ============
 app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
   try {
@@ -2222,7 +2134,6 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
       }
     }
     await run('DELETE FROM message_threads WHERE user_id = ?', [id]);
-    await run('DELETE FROM scheduled_messages WHERE user_id = ?', [id]);
     await run('DELETE FROM workout_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM contact_messages WHERE user_id = ?', [id]);
     await run('DELETE FROM meetings WHERE user_id = ?', [id]);
@@ -2997,66 +2908,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// ============ SCHEDULED MESSAGES BACKGROUND JOB ============
-async function processScheduledMessages() {
-  const result = { processed: 0, failed: 0 };
-  try {
-    // Use DB NOW() to avoid Node/DB clock skew; include 2-min buffer for timing
-    const rows = await queryAll(
-      "SELECT id, admin_id, user_id, message_body, thread_id FROM scheduled_messages WHERE status = 'pending' AND scheduled_at <= (NOW() + INTERVAL '2 minutes') ORDER BY scheduled_at ASC LIMIT 50"
-    );
-    if (rows.length === 0) {
-      const pending = await queryAll("SELECT COUNT(*) as n FROM scheduled_messages WHERE status = 'pending'");
-      const n = (pending[0] && Number(pending[0].n)) || 0;
-      if (n > 0) {
-        const next = await queryAll("SELECT id, user_id, scheduled_at FROM scheduled_messages WHERE status = 'pending' ORDER BY scheduled_at ASC LIMIT 3");
-        console.log(`[ScheduledMessages] No messages due yet. Pending: ${n}. Next:`, next.map(r => ({ id: r.id, user_id: r.user_id, at: r.scheduled_at })));
-      }
-    } else {
-      console.log(`[ScheduledMessages] Processing ${rows.length} due message(s)`);
-    }
-    for (const row of rows) {
-      try {
-        let threadId = row.thread_id;
-        if (!threadId) {
-          const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [row.user_id]);
-          if (!thread) {
-            threadId = uuidv4();
-            await run('INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)', [threadId, row.user_id, '']);
-          } else {
-            threadId = thread.id;
-          }
-          await run('UPDATE scheduled_messages SET thread_id = ? WHERE id = ?', [threadId, row.id]);
-        }
-        const msgId = uuidv4();
-        await run(
-          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
-          [msgId, threadId, row.admin_id, 'admin', (row.message_body || '').slice(0, 5000)]
-        );
-        await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
-        await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['sent', row.id]);
-        sendPushToUser(row.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager', body: (row.message_body || '').slice(0, 100) })).catch(() => {});
-        console.log(`[ScheduledMessages] Sent message ${row.id} to user ${row.user_id}`);
-        result.processed++;
-      } catch (err) {
-        console.error('[ScheduledMessages] Send error:', row?.id, err.message);
-        await run('UPDATE scheduled_messages SET status = ? WHERE id = ?', ['failed', row.id]).catch(() => {});
-        result.failed++;
-      }
-    }
-  } catch (e) {
-    console.error('processScheduledMessages error:', e.message);
-  }
-  return result;
-}
-
 // ============ START ============
 // Listen first so Render health check passes; initDB runs in background
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🏋️ BodyBank Server listening on port ${PORT}`);
   initDB().then(() => {
-    setInterval(processScheduledMessages, 2 * 60 * 60 * 1000); // every 2 hours
-    processScheduledMessages();
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';
     console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);

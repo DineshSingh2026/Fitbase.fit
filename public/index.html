@@ -953,41 +953,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-subsection-wrap:last-child{margin-bottom:0}
 .admin-subsection-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
 
-/* Scheduled messages – compact inline + modal */
-.admin-sched-compact{display:flex;align-items:center;gap:12px}
-.admin-sched-label{font-size:13px;color:var(--muted)}
-.admin-sched-view-btn{padding:6px 14px;font-size:12px;font-weight:600;letter-spacing:0.5px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--cream);cursor:pointer;transition:all .2s}
-.admin-sched-view-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(200,164,78,0.08)}
-
-.sched-modal-box{width:100%;max-width:480px;max-height:85vh;overflow-y:auto;background:#0d0d0d;border:1px solid rgba(200,164,78,0.2);border-radius:12px;animation:popUp .3s}
-.sched-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bdr)}
-.sched-modal-title{font-size:15px;font-weight:600;color:var(--gold);margin:0;letter-spacing:0.5px}
-.sched-modal-close{width:32px;height:32px;border:none;background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;border-radius:6px;transition:all .2s}
-.sched-modal-close:hover{color:var(--cream);background:rgba(255,255,255,0.06)}
-.sched-modal-body{padding:16px}
-
-.admin-sched-form{margin-bottom:16px}
-.admin-sched-targets{display:flex;gap:16px;margin-bottom:10px}
-.admin-sched-radio{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer}
-.admin-sched-radio input{accent-color:var(--gold)}
-.admin-sched-radio:has(input:checked){color:var(--cream)}
-.admin-sched-row{margin-bottom:10px}
-.admin-sched-textarea{width:100%;min-height:56px;resize:vertical;font-size:13px}
-.admin-sched-datetime{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.admin-sched-datetime .form-input{flex:0 0 auto}
-.admin-scheduled-list .admin-table-wrap{margin:0}
-.admin-scheduled-list .admin-table{font-size:12px}
-.admin-scheduled-list .admin-table th,.admin-scheduled-list .admin-table td{padding:8px 10px}
-.admin-scheduled-list-inner{background:rgba(0,0,0,0.3);border:1px solid rgba(200,164,78,0.12);border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2)}
-.admin-scheduled-list .admin-sched-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .25s ease}
-.admin-scheduled-list .admin-sched-item:last-child{border-bottom:none}
-.admin-scheduled-list .admin-sched-item:hover{background:rgba(200,164,78,0.06)}
-.admin-scheduled-list .admin-sched-item .sched-item-info{display:flex;flex-direction:column;gap:4px;min-width:0}
-.admin-scheduled-list .admin-sched-item .sched-item-name{font-size:15px;font-weight:600;letter-spacing:0.3px;color:var(--cream);line-height:1.3}
-.admin-scheduled-list .admin-sched-item .sched-item-meta{font-size:12px;color:var(--muted);line-height:1.4}
-.admin-scheduled-list .admin-sched-item .sched-cancel-btn{padding:8px 18px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;background:transparent;border:1px solid rgba(200,164,78,0.4);border-radius:6px;color:var(--gold);cursor:pointer;transition:all .25s ease;white-space:nowrap}
-.admin-scheduled-list .admin-sched-item .sched-cancel-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);box-shadow:0 2px 12px rgba(200,164,78,0.2)}
-
 .admin-mobile-nav-bar{display:none!important}
 @media(max-width:768px){
   .admin-mobile-nav-bar{display:none!important}
@@ -3139,11 +3104,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-title">Messages &amp; Meetings</span>
             <span class="admin-section-card-desc">Contact messages and meeting requests</span>
           </a>
-          <a class="admin-section-card" href="#" onclick="openScheduledMessagesModal();return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128197;</span>
-            <span class="admin-section-card-title">Scheduled Messages</span>
-            <span class="admin-section-card-desc">Schedule messages to send at a specific time</span>
-          </a>
         </div>
       </div>
     </div>
@@ -3565,37 +3525,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="form-group"><input type="email" class="form-input" id="forgotEmail" placeholder="Enter your email"></div>
     <button class="form-submit" id="forgotSubmitBtn" onclick="handleForgotPassword()">Send Reset Link</button>
     <p style="text-align:center;margin-top:12px"><a href="#" style="color:var(--gold);font-size:13px" onclick="openModal('loginModal');closePopup('forgotModal');return false">Back to Login</a></p>
-  </div>
-</div>
-
-<!-- SCHEDULED MESSAGES MODAL -->
-<div class="popup-overlay" id="scheduledMessagesModal" onclick="if(event.target===this)closePopup('scheduledMessagesModal')">
-  <div class="sched-modal-box" onclick="event.stopPropagation()">
-    <div class="sched-modal-header">
-      <h3 class="sched-modal-title">Scheduled Messages</h3>
-      <button type="button" class="sched-modal-close" onclick="closePopup('scheduledMessagesModal')" aria-label="Close">&times;</button>
-    </div>
-    <div class="sched-modal-body">
-      <div class="admin-sched-form">
-        <div class="admin-sched-targets">
-          <label class="admin-sched-radio"><input type="radio" name="schedTarget" value="user" checked> One client</label>
-          <label class="admin-sched-radio"><input type="radio" name="schedTarget" value="broadcast"> All users</label>
-        </div>
-        <div id="schedUserWrap" class="admin-sched-row">
-          <select id="schedUserId" class="form-input admin-meeting-select" style="min-width:180px"><option value="">Select client</option></select>
-        </div>
-        <div class="admin-sched-row">
-          <textarea id="schedMessageBody" class="form-input admin-sched-textarea" rows="2" placeholder="Message…"></textarea>
-        </div>
-        <div class="admin-sched-row admin-sched-datetime">
-          <input type="date" id="schedDate" class="form-input admin-meeting-date" aria-label="Date (IST)">
-          <input type="time" id="schedTime" class="form-input admin-meeting-time" aria-label="Time (IST)">
-          <span class="form-hint" style="margin-left:8px;align-self:center">IST</span>
-          <button type="button" class="form-submit" onclick="createScheduledMessage()">Schedule</button>
-        </div>
-      </div>
-      <div id="adminScheduledList" class="admin-scheduled-list"><p class="form-hint" style="margin:0;padding:16px">No scheduled messages.</p></div>
-    </div>
   </div>
 </div>
 
@@ -7701,88 +7630,6 @@ async function userSendThreadMessage() {
     }
   } catch (e) {
     alert('Failed to send message.');
-  }
-}
-
-// ========== SCHEDULED MESSAGES ==========
-function openScheduledMessagesModal() {
-  openPopup('scheduledMessagesModal');
-  loadAdminScheduledMessages();
-}
-async function loadAdminScheduledMessages() {
-  var el = document.getElementById('adminScheduledList');
-  if (!el) return;
-  var userSelect = document.getElementById('schedUserId');
-  if (userSelect && userSelect.options.length <= 1) {
-    try {
-      var users = await apiCall('GET', '/api/admin/users');
-      if (Array.isArray(users)) {
-        users.forEach(function(u) {
-          var opt = document.createElement('option');
-          opt.value = u.id;
-          opt.textContent = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || u.id;
-          userSelect.appendChild(opt);
-        });
-      }
-    } catch (e) { /* ignore */ }
-  }
-  document.querySelectorAll('input[name="schedTarget"]').forEach(function(r) {
-    r.onchange = function() {
-      var wrap = document.getElementById('schedUserWrap');
-      if (wrap) wrap.style.display = r.value === 'user' ? 'block' : 'none';
-    };
-  });
-  el.innerHTML = '<p class="form-hint">Loading…</p>';
-  try {
-    var list = await apiCall('GET', '/api/scheduled-messages');
-    if (list && list.error) { el.innerHTML = '<p class="form-hint" style="color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
-    if (!Array.isArray(list)) list = [];
-    if (list.length === 0) { el.innerHTML = '<p class="form-hint">No scheduled messages.</p>'; return; }
-    el.innerHTML = '<div class="admin-scheduled-list-inner">' + list.map(function(s) {
-      var name = s.first_name || s.last_name ? [s.first_name, s.last_name].filter(Boolean).join(' ') : (s.email || (s.user_id ? 'User' : '—'));
-      var preview = (s.message_body || '').slice(0, 40) + ((s.message_body || '').length > 40 ? '…' : '');
-      var when = s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'short', timeStyle: 'short' }) + ' IST' : '';
-      var status = s.status || 'pending';
-      var meta = [preview, when, status].filter(Boolean).join(' • ');
-      var cancelBtn = status === 'pending' ? '<button type="button" class="sched-cancel-btn" onclick="cancelScheduledMessage(\'' + (s.id || '').replace(/'/g,"\\'") + '\')">Cancel</button>' : '<span class="sched-item-meta" style="font-style:italic">' + escapeHtml(status) + '</span>';
-      return '<div class="admin-sched-item"><div class="sched-item-info"><span class="sched-item-name">' + escapeHtml(name) + '</span><span class="sched-item-meta">' + escapeHtml(meta) + '</span></div>' + cancelBtn + '</div>';
-    }).join('') + '</div>';
-  } catch (e) {
-    el.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load scheduled messages.</p>';
-  }
-}
-
-async function createScheduledMessage() {
-  var target = document.querySelector('input[name="schedTarget"]:checked');
-  var broadcast = target && target.value === 'broadcast';
-  var userId = broadcast ? null : (document.getElementById('schedUserId').value || '').trim();
-  var body = (document.getElementById('schedMessageBody').value || '').trim();
-  var dateStr = (document.getElementById('schedDate').value || '').trim();
-  var timeStr = (document.getElementById('schedTime').value || '').trim();
-  if (!body) { alert('Message is required'); return; }
-  var scheduledAt = dateStr && timeStr ? (dateStr + 'T' + timeStr) : null;
-  if (!scheduledAt) { alert('Date and time are required'); return; }
-  if (new Date(scheduledAt) <= new Date()) { alert('Scheduled time must be in the future'); return; }
-  if (!broadcast && !userId) { alert('Select a user or choose "All approved users"'); return; }
-  try {
-    var res = await apiCall('POST', '/api/scheduled-messages', { user_id: userId || undefined, message_body: body, scheduled_at: scheduledAt, broadcast: broadcast });
-    if (res && res.error) { alert(res.error); return; }
-    document.getElementById('schedMessageBody').value = '';
-    document.getElementById('schedDate').value = '';
-    document.getElementById('schedTime').value = '';
-    loadAdminScheduledMessages();
-  } catch (e) {
-    alert('Failed to schedule message.');
-  }
-}
-
-async function cancelScheduledMessage(id) {
-  if (!id || !confirm('Cancel this scheduled message?')) return;
-  try {
-    await apiCall('DELETE', '/api/scheduled-messages/' + id);
-    loadAdminScheduledMessages();
-  } catch (e) {
-    alert('Failed to cancel.');
   }
 }
 
