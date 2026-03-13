@@ -7930,7 +7930,7 @@ async function handleForgotPassword() {
     } else {
       closePopup('forgotModal');
       var msg = "If an account exists for that email, you'll receive a password reset link shortly.";
-      if (data.resetLink) msg += " (For testing, use this link: " + data.resetLink + ")";
+      if (data.resetLink && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) msg += " (For testing, use this link: " + data.resetLink + ")";
       showPopup('Reset Link Sent', msg, '', 'OK');
       document.getElementById('forgotEmail').value = '';
     }
