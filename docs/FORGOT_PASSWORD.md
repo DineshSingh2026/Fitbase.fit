@@ -25,7 +25,7 @@ Password reset is available **only for users** (role `user`). Admins and superad
    - `SMTP_USER` – SMTP username
    - `SMTP_PASS` – SMTP password / app password
    - `SMTP_FROM` – optional, e.g. `BodyBank <noreply@bodybank.fit>`
-   - `RESET_BASE_URL` – optional, e.g. `https://bodybank.fit`
+   - `RESET_BASE_URL` – optional. On Render, `RENDER_EXTERNAL_URL` is used automatically. Set `RESET_BASE_URL` for custom domains, e.g. `https://bodybank.fit`
 3. Users receive the reset link by email within seconds
 
 ### Gmail

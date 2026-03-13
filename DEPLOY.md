@@ -23,7 +23,7 @@ The service worker will then install the new version, clear old caches, and the 
    - Set `ADMIN_PASS` to a strong password (default `admin123` is refused in production).
    - Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` for the business-overview dashboard (default superadmin password is refused in production).
    - Set `JWT_SECRET` to a long random string (recommended for auth and share-link tokens).
-   - Set `SITE_URL` to your public URL (e.g. `https://yoursite.com`) for password-reset links.
+   - On Render, password-reset links use `RENDER_EXTERNAL_URL` automatically. For a custom domain, set `RESET_BASE_URL` or `SITE_URL` (e.g. `https://yoursite.com`).
    - Optionally set `PUBLIC_URL` for superadmin share links (e.g. `https://your-app.onrender.com`).
    - Optionally set `ALLOWED_ORIGIN` to restrict CORS (e.g. `https://yoursite.com`).
 

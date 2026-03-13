@@ -25,7 +25,7 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursit
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
 const CRON_SECRET = (process.env.CRON_SECRET || '').trim();
-const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || '').trim() || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '') || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
@@ -896,7 +896,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     const id = uuidv4();
     await run("INSERT INTO password_resets (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)", [id, user.id, token, expiresAt]);
 
-    const base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || 'localhost:3000'));
+    const base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || req.get('x-forwarded-host') || 'localhost:3000'));
     const resetLink = `${base.replace(/\/$/, '')}/index.html?reset=${encodeURIComponent(token)}`;
 
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
@@ -3025,7 +3025,8 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(processScheduledMessages, 30 * 1000); // every 30 sec
     processScheduledMessages();
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
-    console.log(`🔐 Forgot password: /api/auth/forgot-password | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);
+    const resetBase = RESET_BASE_URL || '(from request)';
+    console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);
   }).catch(err => {
     console.error('Failed to init DB:', err);
     process.exit(1);
