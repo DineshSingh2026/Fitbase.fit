@@ -345,8 +345,10 @@ input[type="date"].form-input::-webkit-datetime-edit-text{color:var(--cream)}
 input[type="date"].form-input::-webkit-datetime-edit-month-field,input[type="date"].form-input::-webkit-datetime-edit-day-field,input[type="date"].form-input::-webkit-datetime-edit-year-field{color:var(--cream)}
 input[type="time"].form-input::-webkit-datetime-edit-hour-field,input[type="time"].form-input::-webkit-datetime-edit-minute-field{color:var(--cream)}
 .admin-meeting-date,.admin-meeting-time{flex:1;min-width:120px}
+.admin-meeting-field{display:flex;flex-direction:column;flex:1;min-width:120px}
+.admin-meeting-label{display:block;font-size:13px;font-weight:600;color:var(--cream);margin-bottom:6px;letter-spacing:.5px}
 @media(max-width:600px){
-  .admin-meeting-form .admin-meeting-select,.admin-meeting-form .admin-meeting-date,.admin-meeting-form .admin-meeting-time{max-width:100%;min-width:0;flex:1 1 100%}
+  .admin-meeting-form .admin-meeting-select,.admin-meeting-form .admin-meeting-date,.admin-meeting-form .admin-meeting-time,.admin-meeting-form .admin-meeting-field{max-width:100%;min-width:0;flex:1 1 100%}
   input[type="date"].form-input,input[type="time"].form-input{max-width:100%}
 }
 textarea.form-input{resize:vertical;min-height:80px}
@@ -3192,8 +3194,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <p class="form-hint" style="margin-bottom:12px">Schedule a call or view upcoming meetings.</p>
         <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:20px">
           <select id="meetingUserId" class="form-input admin-meeting-select" style="min-width:160px;flex:1"><option value="">Select client</option></select>
-          <input type="date" id="meetingDate" class="form-input admin-meeting-date" aria-label="Meeting date">
-          <input type="time" id="meetingTime" class="form-input admin-meeting-time" aria-label="Meeting time">
+          <div class="admin-meeting-field">
+            <label for="meetingDate" class="admin-meeting-label">Date</label>
+            <input type="date" id="meetingDate" class="form-input admin-meeting-date" aria-label="Meeting date">
+          </div>
+          <div class="admin-meeting-field">
+            <label for="meetingTime" class="admin-meeting-label">Time</label>
+            <input type="time" id="meetingTime" class="form-input admin-meeting-time" aria-label="Meeting time">
+          </div>
           <button type="button" class="form-submit" onclick="adminScheduleCall()">Schedule</button>
         </div>
         <div id="meetingsList" class="admin-meetings-list" style="max-width:520px"><p class="form-hint" style="margin:0;padding:24px">Loading…</p></div>
