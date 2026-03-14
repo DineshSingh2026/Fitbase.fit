@@ -2884,6 +2884,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
       <div class="admin-tab" data-tab="programs" onclick="switchTab('programs')">Programs</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
+      <div class="admin-tab" data-tab="campaigns" onclick="switchTab('campaigns')">Campaigns</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -3105,6 +3106,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-icon" aria-hidden="true">&#128200;</span>
             <span class="admin-section-card-title">Performance Insights</span>
             <span class="admin-section-card-desc">Filters, charts, and CSV export</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('campaigns');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128228;</span>
+            <span class="admin-section-card-title">Campaigns</span>
+            <span class="admin-section-card-desc">Scheduled broadcast messages to all users</span>
           </a>
         </div>
       </div>
@@ -3355,6 +3361,69 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
         <span class="admin-h-scroll-label">Scroll to see all columns</span>
         <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
+    </div>
+
+    <!-- TAB: Campaigns -->
+    <div class="admin-tab-content" id="tab-campaigns">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Campaign Scheduler</h3>
+        <p class="form-hint" style="margin-bottom:16px">Automated weekly broadcast messages sent to all active users via push notification. Timezone: <strong>IST (Asia/Kolkata)</strong>.</p>
+
+        <!-- AI Command Box -->
+        <div style="background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.25);border-radius:12px;padding:18px 20px;margin-bottom:24px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">&#129302; AI Campaign Command</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <textarea id="campaignAiInput" class="form-input" rows="2" placeholder='Try: "Create reminder campaign: Hydrate well every monday at 2 PM" or "List campaigns"' style="flex:1;min-width:200px;resize:none"></textarea>
+            <button type="button" class="form-submit" style="width:auto;padding:12px 22px;margin:0" onclick="sendCampaignAICommand()">Send</button>
+          </div>
+          <div id="campaignAiReply" style="margin-top:12px;font-size:13px;color:var(--cream);line-height:1.6;display:none;white-space:pre-wrap;background:rgba(0,0,0,0.2);border-radius:8px;padding:12px 14px"></div>
+        </div>
+
+        <!-- Broadcast Now -->
+        <div style="margin-bottom:24px">
+          <div class="admin-subsection-title" style="margin-bottom:12px">Broadcast Now</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <input type="text" id="campaignBroadcastMsg" class="form-input" placeholder="Type an instant message to all active users…" style="flex:1;min-width:200px">
+            <button type="button" class="form-submit" style="width:auto;padding:12px 22px;margin:0" onclick="broadcastCampaignNow()">Broadcast</button>
+          </div>
+        </div>
+
+        <!-- Create Campaign Form -->
+        <div style="margin-bottom:24px">
+          <div class="admin-subsection-title" style="margin-bottom:12px">Add Campaign</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+            <div class="admin-meeting-field" style="flex:2;min-width:180px">
+              <label class="admin-meeting-label">Message</label>
+              <input type="text" id="campNewMessage" class="form-input" placeholder="e.g. Hydrate well! 💧">
+            </div>
+            <div class="admin-meeting-field" style="flex:1;min-width:130px">
+              <label class="admin-meeting-label">Day</label>
+              <select id="campNewDay" class="form-input">
+                <option value="">Select day</option>
+                <option value="daily">Daily (every day)</option>
+                <option value="sunday">Sunday</option>
+                <option value="monday">Monday</option>
+                <option value="tuesday">Tuesday</option>
+                <option value="wednesday">Wednesday</option>
+                <option value="thursday">Thursday</option>
+                <option value="friday">Friday</option>
+                <option value="saturday">Saturday</option>
+              </select>
+            </div>
+            <div class="admin-meeting-field" style="flex:1;min-width:120px">
+              <label class="admin-meeting-label">Time (IST)</label>
+              <input type="time" id="campNewTime" class="form-input">
+            </div>
+            <button type="button" class="form-submit" style="width:auto;padding:12px 22px;margin:0" onclick="addCampaign()">Add</button>
+          </div>
+        </div>
+
+        <!-- Campaign List -->
+        <div class="admin-subsection-title" style="margin-bottom:12px">All Campaigns <span id="campCount" style="font-size:12px;color:var(--muted);font-weight:400;letter-spacing:0;text-transform:none"></span></div>
+        <div id="campaignsList" style="max-width:760px">
+          <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
+        </div>
       </div>
     </div>
 
@@ -5570,7 +5639,7 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
 var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
 function switchToSection(section) {
   if (typeof closeAdminNavDrawer === 'function') closeAdminNavDrawer();
@@ -5648,6 +5717,7 @@ function switchTab(tab) {
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
   if (tab === 'programs') loadProgramsAdmin();
+  if (tab === 'campaigns') loadCampaigns();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -7694,6 +7764,133 @@ async function adminScheduleCall() {
   } catch (e) {
     alert('Failed to schedule call.');
   }
+}
+
+// ========== CAMPAIGNS ==========
+var CAMP_DAYS_ORDER = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday','daily'];
+
+async function loadCampaigns() {
+  var el = document.getElementById('campaignsList');
+  var ct = document.getElementById('campCount');
+  if (!el) return;
+  el.innerHTML = '<p class="form-hint" style="padding:16px;margin:0">Loading…</p>';
+  try {
+    var list = await apiCall('GET', '/api/campaigns');
+    if (!Array.isArray(list)) list = [];
+    if (ct) ct.textContent = '(' + list.length + ' total, ' + list.filter(function(c){return c.is_active;}).length + ' active)';
+    if (list.length === 0) {
+      el.innerHTML = '<p class="form-hint" style="padding:16px;margin:0;color:var(--muted)">No campaigns yet. Use the form above to add one.</p>';
+      return;
+    }
+    // Group by day
+    var grouped = {};
+    list.forEach(function(c) {
+      var d = String(c.day_of_week || 'other');
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(c);
+    });
+    var html = '';
+    CAMP_DAYS_ORDER.forEach(function(day) {
+      if (!grouped[day]) return;
+      html += '<div style="margin-bottom:18px">';
+      html += '<div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--bdr)">' + day.charAt(0).toUpperCase() + day.slice(1) + '</div>';
+      grouped[day].forEach(function(c) {
+        var active = c.is_active;
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:10px;margin-bottom:8px;flex-wrap:wrap">';
+        html += '<span style="font-size:18px">' + (active ? '🟢' : '🔴') + '</span>';
+        html += '<span style="font-size:13px;font-weight:600;color:var(--gold);min-width:44px">' + escapeHtml(c.time_of_day) + '</span>';
+        html += '<span style="flex:1;font-size:14px;color:var(--cream)">' + escapeHtml(c.message) + '</span>';
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        if (active) {
+          html += '<button type="button" class="action-btn btn-reject" style="padding:6px 12px;font-size:12px" onclick="pauseCampaignItem(\'' + c.id + '\')">Pause</button>';
+        } else {
+          html += '<button type="button" class="action-btn btn-approve" style="padding:6px 12px;font-size:12px" onclick="resumeCampaignItem(\'' + c.id + '\')">Resume</button>';
+        }
+        html += '<button type="button" class="action-btn btn-reject" style="padding:6px 12px;font-size:12px;background:rgba(224,80,80,0.15)" onclick="deleteCampaignItem(\'' + c.id + '\')">Delete</button>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<p class="form-hint" style="padding:16px;color:#e05050">Failed to load campaigns. ' + (e.message || '') + '</p>';
+  }
+}
+
+async function addCampaign() {
+  var msg  = (document.getElementById('campNewMessage') || {}).value || '';
+  var day  = (document.getElementById('campNewDay') || {}).value || '';
+  var time = (document.getElementById('campNewTime') || {}).value || '';
+  if (!msg.trim() || !day || !time) { showPopup('Missing Fields', 'Please fill in message, day, and time.', '', 'OK', null, 'error'); return; }
+  try {
+    var res = await apiCall('POST', '/api/campaigns', { message: msg.trim(), day_of_week: day, time_of_day: time });
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    document.getElementById('campNewMessage').value = '';
+    document.getElementById('campNewDay').value = '';
+    document.getElementById('campNewTime').value = '';
+    showPopup('Campaign Added', 'The campaign has been scheduled. It will broadcast to all active users at the specified time (IST).', '', 'OK');
+    loadCampaigns();
+  } catch (e) {
+    showPopup('Error', 'Failed to add campaign.', '', 'OK', null, 'error');
+  }
+}
+
+async function pauseCampaignItem(id) {
+  try {
+    var res = await apiCall('POST', '/api/campaigns/' + id + '/pause');
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    loadCampaigns();
+  } catch (e) { showPopup('Error', 'Failed to pause.', '', 'OK', null, 'error'); }
+}
+
+async function resumeCampaignItem(id) {
+  try {
+    var res = await apiCall('POST', '/api/campaigns/' + id + '/resume');
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    loadCampaigns();
+  } catch (e) { showPopup('Error', 'Failed to resume.', '', 'OK', null, 'error'); }
+}
+
+async function deleteCampaignItem(id) {
+  if (!confirm('Delete this campaign? This cannot be undone.')) return;
+  try {
+    var res = await apiCall('DELETE', '/api/campaigns/' + id);
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    loadCampaigns();
+  } catch (e) { showPopup('Error', 'Failed to delete.', '', 'OK', null, 'error'); }
+}
+
+async function broadcastCampaignNow() {
+  var msg = (document.getElementById('campaignBroadcastMsg') || {}).value || '';
+  if (!msg.trim()) { showPopup('Missing', 'Please enter a message to broadcast.', '', 'OK', null, 'error'); return; }
+  try {
+    var res = await apiCall('POST', '/api/campaigns/broadcast', { message: msg.trim() });
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    document.getElementById('campaignBroadcastMsg').value = '';
+    showPopup('Broadcast Sent', 'Message sent to ' + (res.sent || 0) + ' active user(s).', '', 'OK');
+  } catch (e) {
+    showPopup('Error', 'Broadcast failed. Push notifications may not be configured (VAPID keys required).', '', 'OK', null, 'error');
+  }
+}
+
+async function sendCampaignAICommand() {
+  var input = document.getElementById('campaignAiInput');
+  var replyEl = document.getElementById('campaignAiReply');
+  var text = input ? input.value.trim() : '';
+  if (!text) return;
+  var btn = document.querySelector('#tab-campaigns button[onclick="sendCampaignAICommand()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  if (replyEl) { replyEl.style.display = 'none'; replyEl.textContent = ''; }
+  try {
+    var res = await apiCall('POST', '/api/admin/ai-assist', { message: text });
+    if (replyEl) { replyEl.textContent = (res && res.reply) || 'No response.'; replyEl.style.display = 'block'; }
+    if (input) input.value = '';
+    // Reload campaigns list if the command was likely a campaign action
+    if (/create|pause|resume|delete|list/i.test(text)) loadCampaigns();
+  } catch (e) {
+    if (replyEl) { replyEl.textContent = 'Error: ' + (e.message || 'Failed to send command.'); replyEl.style.display = 'block'; }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
 }
 
 // ========== ADMIN THREADS ==========

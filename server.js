@@ -12,6 +12,8 @@ const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
+const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
+const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -466,6 +468,36 @@ async function initDB() {
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_expires ON password_resets(expires_at)`); } catch (e) { /* ignore */ }
 
+  // ── Campaign messages (scheduled broadcast to all active users) ──────────
+  await pool.query(`CREATE TABLE IF NOT EXISTS campaign_messages (
+    id TEXT PRIMARY KEY,
+    day_of_week TEXT NOT NULL,
+    time_of_day TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_messages_active ON campaign_messages(is_active, day_of_week, time_of_day)`); } catch (e) { /* ignore */ }
+
+  // ── Campaign send log ────────────────────────────────────────────────────
+  await pool.query(`CREATE TABLE IF NOT EXISTS campaign_send_log (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT,
+    message TEXT NOT NULL,
+    sent_to INTEGER DEFAULT 0,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_send_log_sent_at ON campaign_send_log(sent_at DESC)`); } catch (e) { /* ignore */ }
+
+  // Seed default weekly campaigns if table is empty
+  try {
+    const campaignRow = await queryOne('SELECT COUNT(*) as c FROM campaign_messages');
+    if (parseInt(campaignRow?.c ?? 0, 10) === 0) {
+      await seedDefaultCampaigns();
+      console.log('✅ Default campaigns seeded (22 messages, IST schedule)');
+    }
+  } catch (e) { console.warn('Campaign seed check error:', e.message); }
+
   // Programs (PDF + YouTube) - admin assigns to users, max 4 per user
   await pool.query(`CREATE TABLE IF NOT EXISTS programs (
     id TEXT PRIMARY KEY,
@@ -580,6 +612,47 @@ async function initDB() {
     }
   } catch (e) {
     console.error('Seed check error:', e.message);
+  }
+}
+
+// ============ DEFAULT CAMPAIGN SEED ============
+async function seedDefaultCampaigns() {
+  const campaigns = [
+    // SUNDAY
+    { day: 'sunday',    time: '09:00', msg: 'Sunday CHECK-IN today 🙌 Don\'t forget to submit!' },
+    { day: 'sunday',    time: '11:00', msg: 'Drink ORS / Hydrate well 💧' },
+    { day: 'sunday',    time: '16:00', msg: 'Eat good protein today 🥩' },
+    { day: 'sunday',    time: '21:30', msg: 'Let\'s win this week! 💪' },
+    // MONDAY
+    { day: 'monday',    time: '09:00', msg: 'Let\'s win this week! 💪' },
+    { day: 'monday',    time: '12:00', msg: 'Hydrate well! 💧' },
+    { day: 'monday',    time: '16:30', msg: 'Chew snacks well! 🥜' },
+    { day: 'monday',    time: '21:00', msg: 'How many steps so far? 👟' },
+    // TUESDAY
+    { day: 'tuesday',   time: '09:00', msg: 'Use time well and stay active.' },
+    { day: 'tuesday',   time: '12:00', msg: 'Chew food well! 🍽️' },
+    { day: 'tuesday',   time: '20:00', msg: 'Hydration good so far? 💧' },
+    // WEDNESDAY
+    { day: 'wednesday', time: '09:00', msg: 'I hope you\'re not skipping meals 🍽️' },
+    { day: 'wednesday', time: '12:00', msg: 'Take tiny breathing breaks! 🧘' },
+    { day: 'wednesday', time: '20:00', msg: 'How\'s it going so far? 💬' },
+    // THURSDAY
+    { day: 'thursday',  time: '10:00', msg: 'I hope digestion is going well! 🌿' },
+    { day: 'thursday',  time: '13:00', msg: 'How have your energy levels been so far? ⚡' },
+    { day: 'thursday',  time: '22:00', msg: 'Sleep on time — rest is part of the plan 🌙' },
+    // FRIDAY
+    { day: 'friday',    time: '11:00', msg: 'How\'re you feeling mentally? 🧠' },
+    { day: 'friday',    time: '18:00', msg: 'Take care of food — it\'s the weekend! 🍽️' },
+    // SATURDAY
+    { day: 'saturday',  time: '11:00', msg: 'Hydrate well, drink ORS! 💧' },
+    { day: 'saturday',  time: '16:00', msg: 'Don\'t forget to carry your snack if you\'re heading out! 🎒' },
+    { day: 'saturday',  time: '19:30', msg: 'Sunday CHECK-In tomorrow morning — don\'t forget! ⏰' },
+  ];
+  for (const c of campaigns) {
+    await run(
+      'INSERT INTO campaign_messages (id, day_of_week, time_of_day, message, is_active) VALUES (?, ?, ?, ?, TRUE)',
+      [uuidv4(), c.day, c.time, c.msg]
+    );
   }
 }
 
@@ -2575,8 +2648,60 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
       return res.json({ reply });
     }
 
+
+    // ── Campaign command detection (before OpenAI) ──────────────────────────
+    const campaignCmd = parseAICampaignCommand(text);
+    if (campaignCmd) {
+      try {
+        if (campaignCmd.action === 'list') {
+          const campaigns = await queryAll('SELECT * FROM campaign_messages ORDER BY day_of_week, time_of_day');
+          reply = formatCampaignListReply(campaigns);
+        } else if (campaignCmd.action === 'create') {
+          const { message: cMsg, day_of_week: cDay, time_of_day: cTime } = campaignCmd.data;
+          const cId = uuidv4();
+          const cDayN = (cDay === 'daily') ? 'daily' : (normalizeCampaignDay(cDay) || cDay);
+          const cTimeN = normalizeCampaignTime(cTime) || cTime;
+          await run('INSERT INTO campaign_messages (id, day_of_week, time_of_day, message, is_active) VALUES (?, ?, ?, ?, TRUE)', [cId, cDayN, cTimeN, String(cMsg).trim()]);
+          await restartCampaignScheduler().catch(() => {});
+          reply = 'Campaign created! Day: ' + cDayN + ' | Time: ' + cTimeN + ' IST | Message: "' + cMsg + '". It will be broadcast to all active users at the scheduled time.';
+        } else if (campaignCmd.action === 'pause') {
+          const cRow = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
+          if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
+          else {
+            await run('UPDATE campaign_messages SET is_active = FALSE WHERE id = ?', [campaignCmd.id]);
+            await restartCampaignScheduler().catch(() => {});
+            reply = 'Campaign paused: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
+          }
+        } else if (campaignCmd.action === 'resume') {
+          const cRow = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
+          if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
+          else {
+            await run('UPDATE campaign_messages SET is_active = TRUE WHERE id = ?', [campaignCmd.id]);
+            await restartCampaignScheduler().catch(() => {});
+            reply = 'Campaign resumed: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
+          }
+        } else if (campaignCmd.action === 'delete') {
+          const cRow = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
+          if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
+          else {
+            await run('DELETE FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
+            await restartCampaignScheduler().catch(() => {});
+            reply = 'Campaign deleted: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
+          }
+        } else if (campaignCmd.action === 'broadcast') {
+          const bSent = await broadcastCampaignMessage(campaignCmd.message);
+          reply = 'Broadcast sent! Message: "' + campaignCmd.message + '". Reached ' + bSent + ' user(s).';
+        }
+      } catch (cErr) {
+        console.error('[ai-assist campaign]', cErr.message);
+        reply = 'Campaign action failed. Please try again or use the Campaigns tab directly.';
+      }
+      return res.json({ reply });
+    }
+    // ── End campaign command detection ───────────────────────────────────────
+
     const context = await getAdminAIContext();
-    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
+    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());;
 
     if (hasOpenAI) {
       reply = await callOpenAIChat(context, text);
@@ -2817,6 +2942,140 @@ app.get('/manifest.json', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
+// ============ CAMPAIGN API ============
+
+// GET /api/campaigns — list all campaigns (admin)
+app.get('/api/campaigns', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const activeOnly = req.query.active === 'true';
+    const rows = activeOnly
+      ? await queryAll('SELECT * FROM campaign_messages WHERE is_active = TRUE ORDER BY day_of_week, time_of_day')
+      : await queryAll('SELECT * FROM campaign_messages ORDER BY day_of_week, time_of_day');
+    res.json(rows);
+  } catch (e) {
+    console.error('[campaigns] GET error:', e.message);
+    res.status(500).json({ error: 'Failed to load campaigns' });
+  }
+});
+
+// POST /api/campaigns — create a new campaign (admin)
+app.post('/api/campaigns', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { message, day_of_week, time_of_day } = req.body || {};
+    if (!message || !day_of_week || !time_of_day) {
+      return res.status(400).json({ error: 'message, day_of_week, and time_of_day are required' });
+    }
+    const day  = normalizeCampaignDay(day_of_week);
+    const time = normalizeCampaignTime(time_of_day);
+    if (!day && day_of_week !== 'daily') {
+      return res.status(400).json({ error: 'Invalid day_of_week. Use: sunday–saturday or daily' });
+    }
+    if (!time) {
+      return res.status(400).json({ error: 'Invalid time_of_day. Use HH:MM or H:MM AM/PM' });
+    }
+    const id = uuidv4();
+    await run(
+      'INSERT INTO campaign_messages (id, day_of_week, time_of_day, message, is_active) VALUES (?, ?, ?, ?, TRUE)',
+      [id, day || 'daily', time, String(message).trim()]
+    );
+    const row = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [id]);
+    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    res.json({ ok: true, campaign: row });
+  } catch (e) {
+    console.error('[campaigns] POST error:', e.message);
+    res.status(500).json({ error: 'Failed to create campaign' });
+  }
+});
+
+// PUT /api/campaigns/:id — update a campaign (admin)
+app.put('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { message, day_of_week, time_of_day, is_active } = req.body || {};
+    const updates = [];
+    const params  = [];
+    if (message     !== undefined) { updates.push('message = ?');     params.push(String(message).trim()); }
+    if (day_of_week !== undefined) {
+      const d = normalizeCampaignDay(day_of_week) || (day_of_week === 'daily' ? 'daily' : null);
+      if (!d) return res.status(400).json({ error: 'Invalid day_of_week' });
+      updates.push('day_of_week = ?'); params.push(d);
+    }
+    if (time_of_day !== undefined) {
+      const t = normalizeCampaignTime(time_of_day);
+      if (!t) return res.status(400).json({ error: 'Invalid time_of_day' });
+      updates.push('time_of_day = ?'); params.push(t);
+    }
+    if (is_active !== undefined) { updates.push('is_active = ?'); params.push(Boolean(is_active)); }
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    params.push(req.params.id);
+    await run(`UPDATE campaign_messages SET ${updates.join(', ')} WHERE id = ?`, params);
+    const row = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [req.params.id]);
+    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    res.json({ ok: true, campaign: row });
+  } catch (e) {
+    console.error('[campaigns] PUT error:', e.message);
+    res.status(500).json({ error: 'Failed to update campaign' });
+  }
+});
+
+// DELETE /api/campaigns/:id — delete a campaign (admin)
+app.delete('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    await run('DELETE FROM campaign_messages WHERE id = ?', [req.params.id]);
+    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[campaigns] DELETE error:', e.message);
+    res.status(500).json({ error: 'Failed to delete campaign' });
+  }
+});
+
+// POST /api/campaigns/:id/pause — pause a campaign (admin)
+app.post('/api/campaigns/:id/pause', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    await run('UPDATE campaign_messages SET is_active = FALSE WHERE id = ?', [req.params.id]);
+    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to pause campaign' });
+  }
+});
+
+// POST /api/campaigns/:id/resume — resume a campaign (admin)
+app.post('/api/campaigns/:id/resume', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    await run('UPDATE campaign_messages SET is_active = TRUE WHERE id = ?', [req.params.id]);
+    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to resume campaign' });
+  }
+});
+
+// POST /api/campaigns/broadcast — immediate broadcast to all active users (admin)
+app.post('/api/campaigns/broadcast', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { message } = req.body || {};
+    if (!message || !String(message).trim()) {
+      return res.status(400).json({ error: 'message is required' });
+    }
+    const sent = await broadcastCampaignMessage(String(message).trim());
+    res.json({ ok: true, sent });
+  } catch (e) {
+    console.error('[campaigns] Broadcast error:', e.message);
+    res.status(500).json({ error: 'Broadcast failed' });
+  }
+});
+
+// GET /api/campaigns/log — view recent send log (admin)
+app.get('/api/campaigns/log', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT * FROM campaign_send_log ORDER BY sent_at DESC LIMIT 50');
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load send log' });
+  }
+});
+
 // Serve index.html with no-cache so users get latest UI after deploys
 app.get(['/', '/index.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
@@ -2939,10 +3198,13 @@ app.use((err, req, res, next) => {
 // Listen first so Render health check passes; initDB runs in background
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🏋️ BodyBank Server listening on port ${PORT}`);
-  initDB().then(() => {
+  initDB().then(async () => {
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';
     console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);
+    // Start the campaign scheduler after DB is fully ready
+    await startCampaignScheduler({ queryAll, run, sendPushToUser, uuidv4 })
+      .catch(e => console.error('❌ Campaign scheduler failed to start:', e.message));
   }).catch(err => {
     console.error('Failed to init DB:', err);
     process.exit(1);
