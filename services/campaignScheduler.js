@@ -83,8 +83,11 @@ async function getActiveUsers() {
 }
 
 /**
- * Broadcast a message to all active users via push notification.
- * Returns the number of users successfully queued.
+ * Broadcast a message to all active users.
+ * - Always writes to user_inbox so the message appears in the bell/inbox
+ *   for every user, even if they have NOT enabled push notifications.
+ * - Additionally attempts a push notification for users who have subscribed.
+ * Returns the number of users that received an inbox entry.
  */
 async function broadcastMessage(message) {
   let users;
@@ -100,33 +103,49 @@ async function broadcastMessage(message) {
     return 0;
   }
 
-  const payload = JSON.stringify({
+  const trimmed = String(message).trim();
+  const pushPayload = JSON.stringify({
     title: 'BodyBank',
-    body: String(message).trim(),
+    body: trimmed,
     icon: '/icons/icon-192.png',
   });
 
-  let sent = 0;
+  let inboxCount = 0;
+  let pushCount = 0;
+
   for (const user of users) {
+    // 1. Write to in-app inbox (always — no push subscription required)
     try {
-      await _sendPushToUser(user.id, payload);
-      sent++;
+      await _run(
+        'INSERT INTO user_inbox (id, user_id, title, body, type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+        [_uuidv4(), user.id, 'BodyBank', trimmed, 'campaign']
+      );
+      inboxCount++;
     } catch (e) {
-      console.warn(`[Campaign] Push failed for user ${user.id}: ${e.message}`);
+      console.warn(`[Campaign] Inbox insert failed for user ${user.id}: ${e.message}`);
     }
+
+    // 2. Also try push notification (silent fail if user has not subscribed)
+    try {
+      await _sendPushToUser(user.id, pushPayload);
+      pushCount++;
+    } catch (_) { /* expected for users without push subscriptions */ }
   }
 
-  // Persist send log
+  // Persist aggregate send log
   try {
     await _run(
       'INSERT INTO campaign_send_log (id, message, sent_to, sent_at) VALUES (?, ?, ?, NOW())',
-      [_uuidv4(), String(message).slice(0, 500), sent]
+      [_uuidv4(), trimmed.slice(0, 500), inboxCount]
     );
   } catch (_) { /* non-critical */ }
 
   const nowIST = new Date().toLocaleString('en-IN', { timeZone: TIMEZONE });
-  console.log(`[Campaign] ✅ Broadcast "${message}" → ${sent}/${users.length} users at ${nowIST} IST`);
-  return sent;
+  console.log(
+    `[Campaign] ✅ Broadcast → inbox: ${inboxCount}/${users.length} users` +
+    `, push: ${pushCount}/${users.length} users at ${nowIST} IST`
+  );
+  return inboxCount;
 }
 
 // ─── Job management ──────────────────────────────────────────────────────────

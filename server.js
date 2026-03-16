@@ -489,6 +489,18 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_campaign_send_log_sent_at ON campaign_send_log(sent_at DESC)`); } catch (e) { /* ignore */ }
 
+  // Per-user inbox — stores every broadcast message so users see it even without push enabled
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_inbox (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT 'BodyBank',
+    body TEXT NOT NULL,
+    type TEXT DEFAULT 'campaign',
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
+
   // Seed default weekly campaigns if table is empty
   try {
     const campaignRow = await queryOne('SELECT COUNT(*) as c FROM campaign_messages');
@@ -1913,12 +1925,53 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'programs'
         });
       });
+
+      // Campaign inbox messages — delivered to all users regardless of push subscription
+      try {
+        const inboxMsgs = await queryAll(
+          `SELECT id, title, body, type, created_at FROM user_inbox
+           WHERE user_id = ? AND is_read = FALSE
+           ORDER BY created_at DESC LIMIT 20`,
+          [req.user.id]
+        );
+        inboxMsgs.forEach(m => {
+          notifications.push({
+            id: 'inbox-' + m.id,
+            type: 'campaign',
+            title: m.title || 'BodyBank',
+            desc: (m.body || '').substring(0, 120),
+            time: m.created_at,
+            link: null
+          });
+        });
+      } catch (_) { /* non-critical */ }
     }
 
     notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
     res.json(notifications.slice(0, 30));
   } catch (e) {
     res.status(500).json([]);
+  }
+});
+
+// Mark a single inbox message as read (called when user clears the notification)
+app.delete('/api/inbox/:id', verifyToken, async (req, res) => {
+  try {
+    const rawId = String(req.params.id || '').replace(/^inbox-/, '');
+    await run('UPDATE user_inbox SET is_read = TRUE WHERE id = ? AND user_id = ?', [rawId, req.user.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Mark ALL unread inbox messages as read for the current user
+app.delete('/api/inbox', verifyToken, async (req, res) => {
+  try {
+    await run('UPDATE user_inbox SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE', [req.user.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

@@ -922,6 +922,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-item.message .n-title{color:#50c878}
 .admin-notify-item.chat .n-title{color:#7dd3fc}
 .admin-notify-item.workout .n-title{color:var(--gold)}
+.admin-notify-item.campaign .n-title{color:var(--gold)}
 .admin-notify-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
 .admin-notify-clear{padding:8px 18px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .admin-notify-clear:hover:not(:disabled){background:rgba(200,164,78,0.1);color:var(--gold);border-color:var(--gold)}
@@ -4778,6 +4779,10 @@ function clearSelectedNotifications() {
   var cleared = getClearedNotifyIds();
   ids.forEach(function(id) { if (id && cleared.indexOf(id) === -1) cleared.push(id); });
   setClearedNotifyIds(cleared);
+  // Mark inbox items as read on the server
+  ids.filter(function(id) { return id && id.startsWith('inbox-'); }).forEach(function(id) {
+    apiCall('DELETE', '/api/inbox/' + encodeURIComponent(id)).catch(function(){});
+  });
   loadNotifications();
 }
 function clearAllViewedNotifications() {
@@ -4787,6 +4792,9 @@ function clearAllViewedNotifications() {
   var cleared = getClearedNotifyIds();
   ids.forEach(function(id) { if (id && cleared.indexOf(id) === -1) cleared.push(id); });
   setClearedNotifyIds(cleared);
+  // If any inbox items are being cleared, mark all as read on the server in one shot
+  var hasInbox = ids.some(function(id) { return id && id.startsWith('inbox-'); });
+  if (hasInbox) apiCall('DELETE', '/api/inbox').catch(function(){});
   loadNotifications();
 }
 
