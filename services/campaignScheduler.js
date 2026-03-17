@@ -84,9 +84,9 @@ async function getActiveUsers() {
 
 /**
  * Broadcast a message to all active users.
- * - Always writes to user_inbox so the message appears in the bell/inbox
- *   for every user, even if they have NOT enabled push notifications.
- * - Additionally attempts a push notification for users who have subscribed.
+ * - Writes to user_inbox so the message appears in the bell/inbox.
+ * - Inserts the same message into each user's chat with the Lifestyle Manager.
+ * - Attempts a push notification for users who have subscribed.
  * Returns the number of users that received an inbox entry.
  */
 async function broadcastMessage(message) {
@@ -104,14 +104,27 @@ async function broadcastMessage(message) {
   }
 
   const trimmed = String(message).trim();
+  const bodyForChat = trimmed.slice(0, 5000);
   const pushPayload = JSON.stringify({
     title: 'BodyBank',
     body: trimmed,
     icon: '/icons/icon-192.png',
   });
 
+  // Resolve one admin to use as "Lifestyle Manager" sender for chat messages
+  let lifestyleManagerId = null;
+  try {
+    const adminRows = await _queryAll(
+      "SELECT id FROM users WHERE role IN ('admin','superadmin') LIMIT 1"
+    );
+    if (adminRows && adminRows[0]) lifestyleManagerId = adminRows[0].id;
+  } catch (e) {
+    console.warn('[Campaign] Could not resolve admin for chat sender:', e.message);
+  }
+
   let inboxCount = 0;
   let pushCount = 0;
+  let chatCount = 0;
 
   for (const user of users) {
     // 1. Write to in-app inbox (always — no push subscription required)
@@ -125,7 +138,34 @@ async function broadcastMessage(message) {
       console.warn(`[Campaign] Inbox insert failed for user ${user.id}: ${e.message}`);
     }
 
-    // 2. Also try push notification (silent fail if user has not subscribed)
+    // 2. Same message into Lifestyle Manager chat (get-or-create thread, then insert as admin message)
+    if (lifestyleManagerId) {
+      try {
+        const threads = await _queryAll(
+          'SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+          [user.id]
+        );
+        let threadId = threads && threads[0] ? threads[0].id : null;
+        if (!threadId) {
+          threadId = _uuidv4();
+          await _run(
+            'INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)',
+            [threadId, user.id, '']
+          );
+        }
+        const msgId = _uuidv4();
+        await _run(
+          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
+          [msgId, threadId, lifestyleManagerId, 'admin', bodyForChat]
+        );
+        await _run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
+        chatCount++;
+      } catch (e) {
+        console.warn(`[Campaign] Chat insert failed for user ${user.id}: ${e.message}`);
+      }
+    }
+
+    // 3. Push notification (silent fail if user has not subscribed)
     try {
       await _sendPushToUser(user.id, pushPayload);
       pushCount++;
@@ -142,8 +182,7 @@ async function broadcastMessage(message) {
 
   const nowIST = new Date().toLocaleString('en-IN', { timeZone: TIMEZONE });
   console.log(
-    `[Campaign] ✅ Broadcast → inbox: ${inboxCount}/${users.length} users` +
-    `, push: ${pushCount}/${users.length} users at ${nowIST} IST`
+    `[Campaign] ✅ Broadcast → inbox: ${inboxCount}/${users.length}, chat: ${chatCount}/${users.length}, push: ${pushCount}/${users.length} at ${nowIST} IST`
   );
   return inboxCount;
 }
