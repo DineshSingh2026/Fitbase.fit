@@ -565,6 +565,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 @media(min-width:640px){
   .admin-filter-bar-stacked .admin-filter-row-dates{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:520px}
 }
+/* Mobile/tablet: filters hoisted under section title (see syncAdminFormFilterStrip) */
+.admin-inline-form-filters:empty{display:none!important}
+.admin-inline-form-filters:not(:empty){
+  display:block;width:100%;box-sizing:border-box;padding:10px 16px 14px;margin:0 0 8px;
+  background:rgba(12,12,14,0.92);border:1px solid rgba(200,164,78,0.2);border-radius:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.25);
+}
+.admin-inline-form-filters .admin-filter-bar{margin:0;padding:8px 0 4px;border-bottom:none}
+@media(min-width:1101px){
+  .admin-inline-form-filters{display:none!important}
+}
 .admin-list-table{width:100%;border-collapse:collapse}
 .admin-list-table thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,240,232,0.7);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--bdr)}
 .admin-list-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
@@ -2842,6 +2853,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <a href="#" class="admin-back-to-section" id="adminBackToSection" onclick="var s=this.getAttribute('data-section');if(s){switchToSection(s);}return false" aria-label="Back to section">← Back to <span id="adminBackSectionLabel"></span></a>
       <span class="admin-current-section" id="adminCurrentSection">Dashboard</span>
     </div>
+    <div id="adminInlineFormFilters" class="admin-inline-form-filters" aria-label="List filters"></div>
 
     <div class="admin-mobile-nav-bar">
       <button class="admin-hamburger-btn" id="adminHamburger" onclick="toggleAdminNavDrawer()" aria-label="Open menu">
@@ -3148,7 +3160,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
       </div>
-      <div class="admin-filter-bar admin-filter-bar-stacked">
+      <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="requests">
         <div class="admin-filter-row-dates">
           <div class="admin-filter-row-date"><label for="auditFilterFrom">From<input type="date" id="auditFilterFrom" class="form-input"></label></div>
           <div class="admin-filter-row-date"><label for="auditFilterTo">To<input type="date" id="auditFilterTo" class="form-input"></label></div>
@@ -3236,7 +3248,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Sunday Check-in -->
     <div class="admin-tab-content" id="tab-sundaycheckin">
-      <div class="admin-filter-bar admin-filter-bar-stacked">
+      <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="sundaycheckin">
         <div class="admin-filter-row-dates">
           <div class="admin-filter-row-date"><label for="scFilterFrom">From<input type="date" id="scFilterFrom" class="form-input"></label></div>
           <div class="admin-filter-row-date"><label for="scFilterTo">To<input type="date" id="scFilterTo" class="form-input"></label></div>
@@ -3259,7 +3271,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Daily Check-In -->
     <div class="admin-tab-content" id="tab-dailycheckin">
-      <div class="admin-filter-bar admin-filter-bar-stacked">
+      <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="dailycheckin">
         <div class="admin-filter-row-dates">
           <div class="admin-filter-row-date"><label for="dcFilterFrom">From<input type="date" id="dcFilterFrom" class="form-input"></label></div>
           <div class="admin-filter-row-date"><label for="dcFilterTo">To<input type="date" id="dcFilterTo" class="form-input"></label></div>
@@ -3284,7 +3296,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <button type="button" class="part2-copy-btn" onclick="copyPart2Link()">Copy Link</button>
         </div>
       </div>
-      <div class="admin-filter-bar admin-filter-bar-stacked" style="margin-top:20px">
+      <div class="admin-filter-bar admin-filter-bar-stacked" style="margin-top:20px" data-admin-form-filters="part2">
         <div class="admin-filter-row-dates">
           <div class="admin-filter-row-date"><label for="p2FilterFrom">From<input type="date" id="p2FilterFrom" class="form-input"></label></div>
           <div class="admin-filter-row-date"><label for="p2FilterTo">To<input type="date" id="p2FilterTo" class="form-input"></label></div>
@@ -5726,8 +5738,52 @@ async function sendAdminAiMessage() {
 })();
 var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
 var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
+var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin'];
+function syncAdminFormFilterStrip(activeTab) {
+  var host = document.getElementById('adminInlineFormFilters');
+  if (!host) return;
+  var hoist = false;
+  try {
+    hoist = window.matchMedia && window.matchMedia('(max-width:1100px)').matches;
+  } catch (e) {
+    hoist = (window.innerWidth || 1200) <= 1100;
+  }
+  function placeBarBeforeTable(tabId) {
+    var tabEl = document.getElementById('tab-' + tabId);
+    var bar = document.querySelector('[data-admin-form-filters="' + tabId + '"]');
+    if (!tabEl || !bar) return;
+    var tw = tabEl.querySelector('.admin-table-wrap');
+    if (tw) tabEl.insertBefore(bar, tw);
+    else tabEl.insertBefore(bar, tabEl.firstChild);
+  }
+  if (!hoist) {
+    ADMIN_FORM_FILTER_TABS.forEach(placeBarBeforeTable);
+    return;
+  }
+  ADMIN_FORM_FILTER_TABS.forEach(function(t) {
+    if (activeTab !== t) placeBarBeforeTable(t);
+  });
+  if (activeTab && ADMIN_FORM_FILTER_TABS.indexOf(activeTab) >= 0) {
+    var b = document.querySelector('[data-admin-form-filters="' + activeTab + '"]');
+    if (b) host.appendChild(b);
+  }
+}
+(function setupAdminFilterStripResize() {
+  var t;
+  window.addEventListener('resize', function() {
+    clearTimeout(t);
+    t = setTimeout(function() {
+      var cur = document.querySelector('.admin-tab-content.active');
+      if (!cur || !cur.id) return;
+      var tid = cur.id.replace(/^tab-/, '');
+      if (ADMIN_FORM_FILTER_TABS.indexOf(tid) >= 0) syncAdminFormFilterStrip(tid);
+      else syncAdminFormFilterStrip(null);
+    }, 180);
+  });
+})();
 function switchToSection(section) {
   if (typeof closeAdminNavDrawer === 'function') closeAdminNavDrawer();
+  if (typeof syncAdminFormFilterStrip === 'function') syncAdminFormFilterStrip(null);
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav-link').forEach(a => a.classList.remove('active'));
   document.querySelectorAll('.admin-sidebar-link').forEach(a => a.classList.remove('active'));
@@ -5788,6 +5844,9 @@ function switchTab(tab) {
   if (sectionLink) sectionLink.classList.add('active');
   const content = document.getElementById('tab-' + tab);
   if (content) content.classList.add('active');
+  if (typeof syncAdminFormFilterStrip === 'function') {
+    syncAdminFormFilterStrip(ADMIN_FORM_FILTER_TABS.indexOf(tab) >= 0 ? tab : null);
+  }
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
