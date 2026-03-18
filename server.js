@@ -1657,6 +1657,99 @@ app.get('/api/admin/daily-checkins/:id', verifyToken, requireAdminOrSuperadmin, 
   }
 });
 
+app.get('/api/admin/audit-requests', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const search = (req.query.search || '').trim();
+    let sql = 'SELECT * FROM audit_requests WHERE 1=1';
+    const params = [];
+    if (from) {
+      sql += ' AND created_at::date >= ?';
+      params.push(from);
+    }
+    if (to) {
+      sql += ' AND created_at::date <= ?';
+      params.push(to);
+    }
+    if (search) {
+      const q = '%' + search.replace(/%/g, '\\%') + '%';
+      sql +=
+        ' AND (first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR (COALESCE(first_name,\'\') || \' \' || COALESCE(last_name,\'\')) ILIKE ?)';
+      params.push(q, q, q, q);
+    }
+    sql += ' ORDER BY created_at DESC LIMIT 250';
+    const rows = await queryAll(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('Admin audit-requests list error:', e.message);
+    res.status(500).json({ error: 'Failed to load audit requests' });
+  }
+});
+
+app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const search = (req.query.search || '').trim();
+    let sql = `SELECT s.id, s.full_name, s.reply_email, s.created_at, s.user_id,
+         u.first_name, u.last_name, u.email
+       FROM sunday_checkins s
+       LEFT JOIN users u ON u.id = s.user_id
+       WHERE 1=1`;
+    const params = [];
+    if (from) {
+      sql += ' AND s.created_at::date >= ?';
+      params.push(from);
+    }
+    if (to) {
+      sql += ' AND s.created_at::date <= ?';
+      params.push(to);
+    }
+    if (search) {
+      const q = '%' + search.replace(/%/g, '\\%') + '%';
+      sql +=
+        ' AND (s.full_name ILIKE ? OR s.reply_email ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)';
+      params.push(q, q, q, q, q);
+    }
+    sql += ' ORDER BY s.created_at DESC LIMIT 250';
+    const rows = await queryAll(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('Admin sunday-checkins list error:', e.message);
+    res.status(500).json({ error: 'Failed to load Sunday check-ins' });
+  }
+});
+
+app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const search = (req.query.search || '').trim();
+    let sql = 'SELECT * FROM part2_audit WHERE 1=1';
+    const params = [];
+    if (from) {
+      sql += ' AND created_at::date >= ?';
+      params.push(from);
+    }
+    if (to) {
+      sql += ' AND created_at::date <= ?';
+      params.push(to);
+    }
+    if (search) {
+      const q = '%' + search.replace(/%/g, '\\%') + '%';
+      sql += ' AND (name ILIKE ? OR email ILIKE ? OR mobile ILIKE ?)';
+      params.push(q, q, q);
+    }
+    sql += ' ORDER BY created_at DESC LIMIT 250';
+    const rows = await queryAll(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('Admin part2 list error:', e.message);
+    res.status(500).json({ error: 'Failed to load Part-2 submissions' });
+  }
+});
+
 // ============ TODAY DASHBOARD ============
 app.get('/api/today', verifyToken, async (req, res) => {
   try {

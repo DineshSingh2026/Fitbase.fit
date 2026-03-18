@@ -551,12 +551,20 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
-.admin-filter-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 0 16px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
-.admin-filter-bar label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
-.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:8px 12px;border:1px solid var(--bdr);border-radius:8px;background:rgba(255,255,255,0.03);color:var(--cream);font-size:16px;min-width:130px}
-.admin-filter-bar input[type="text"]{min-width:160px}
-.admin-filter-bar .admin-apply-btn{padding:8px 18px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:600;font-size:16px;cursor:pointer}
-.admin-filter-bar .admin-apply-btn:hover{opacity:.9}
+.admin-filter-bar{padding:16px 0 20px;border-bottom:1px solid var(--bdr);margin-bottom:20px}
+.admin-filter-bar-stacked{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+.admin-filter-bar .admin-filter-row-date label{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;font-weight:600;color:var(--muted);width:100%}
+.admin-filter-bar .admin-filter-row-date input[type="date"]{width:100%;max-width:100%;box-sizing:border-box}
+.admin-filter-bar .admin-filter-row-search{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-top:4px}
+.admin-filter-bar .admin-filter-row-search label{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;font-weight:600;color:var(--muted);flex:1;min-width:min(100%,200px)}
+.admin-filter-bar .admin-filter-row-search input[type="text"]{width:100%;box-sizing:border-box}
+.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:10px 14px;border:1.5px solid rgba(200,164,78,0.55);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--cream);font-size:16px;min-height:44px}
+.admin-filter-bar input[type="text"]::placeholder{color:var(--muted);opacity:.85}
+.admin-filter-bar .admin-apply-btn{padding:10px 22px;min-height:44px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:.5px;cursor:pointer;flex-shrink:0}
+.admin-filter-bar .admin-apply-btn:hover{opacity:.92}
+@media(min-width:640px){
+  .admin-filter-bar-stacked .admin-filter-row-dates{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:520px}
+}
 .admin-list-table{width:100%;border-collapse:collapse}
 .admin-list-table thead th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(245,240,232,0.7);background:rgba(255,255,255,0.04);border-bottom:1px solid var(--bdr)}
 .admin-list-table tbody tr{border-bottom:1px solid rgba(255,255,255,0.04)}
@@ -3140,6 +3148,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
       </div>
+      <div class="admin-filter-bar admin-filter-bar-stacked">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="auditFilterFrom">From<input type="date" id="auditFilterFrom" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="auditFilterTo">To<input type="date" id="auditFilterTo" class="form-input"></label></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <label for="auditFilterSearch">Search<input type="text" id="auditFilterSearch" placeholder="Name or email" autocomplete="off"></label>
+          <button type="button" class="admin-apply-btn" onclick="loadRequests()">Apply</button>
+        </div>
+      </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
         <thead>
           <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th style="text-align:right;width:100px">Actions</th></tr>
@@ -3218,6 +3236,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Sunday Check-in -->
     <div class="admin-tab-content" id="tab-sundaycheckin">
+      <div class="admin-filter-bar admin-filter-bar-stacked">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="scFilterFrom">From<input type="date" id="scFilterFrom" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="scFilterTo">To<input type="date" id="scFilterTo" class="form-input"></label></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <label for="scFilterSearch">Search<input type="text" id="scFilterSearch" placeholder="Name or email" autocomplete="off"></label>
+          <button type="button" class="admin-apply-btn" onclick="loadSundayCheckins()">Apply</button>
+        </div>
+      </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
         <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
@@ -3231,11 +3259,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Daily Check-In -->
     <div class="admin-tab-content" id="tab-dailycheckin">
-      <div class="admin-filter-bar">
-        <label>From <input type="date" id="dcFilterFrom"></label>
-        <label>To <input type="date" id="dcFilterTo"></label>
-        <label>Search <input type="text" id="dcFilterSearch" placeholder="Name or email"></label>
-        <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
+      <div class="admin-filter-bar admin-filter-bar-stacked">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="dcFilterFrom">From<input type="date" id="dcFilterFrom" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="dcFilterTo">To<input type="date" id="dcFilterTo" class="form-input"></label></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <label for="dcFilterSearch">Search<input type="text" id="dcFilterSearch" placeholder="Name or email" autocomplete="off"></label>
+          <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
+        </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
         <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
@@ -3252,7 +3284,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <button type="button" class="part2-copy-btn" onclick="copyPart2Link()">Copy Link</button>
         </div>
       </div>
-      <div class="admin-table-wrap" style="margin-top:28px">
+      <div class="admin-filter-bar admin-filter-bar-stacked" style="margin-top:20px">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="p2FilterFrom">From<input type="date" id="p2FilterFrom" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="p2FilterTo">To<input type="date" id="p2FilterTo" class="form-input"></label></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <label for="p2FilterSearch">Search<input type="text" id="p2FilterSearch" placeholder="Name or email" autocomplete="off"></label>
+          <button type="button" class="admin-apply-btn" onclick="loadPart2Submissions()">Apply</button>
+        </div>
+      </div>
+      <div class="admin-table-wrap" style="margin-top:16px">
         <table class="admin-table admin-list-table">
           <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
           <tbody id="part2Body"></tbody>
@@ -5049,9 +5091,17 @@ async function loadLiveActivity() {
 }
 
 async function loadRequests() {
-  const data = await apiCall('GET', '/api/audit');
   const tbody = document.getElementById('requestsBody');
   if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var af = document.getElementById('auditFilterFrom');
+  var at = document.getElementById('auditFilterTo');
+  var as = document.getElementById('auditFilterSearch');
+  var qs = [];
+  if (af && af.value) qs.push('from=' + encodeURIComponent(af.value));
+  if (at && at.value) qs.push('to=' + encodeURIComponent(at.value));
+  if (as && as.value.trim()) qs.push('search=' + encodeURIComponent(as.value.trim()));
+  const data = await apiCall('GET', '/api/admin/audit-requests' + (qs.length ? '?' + qs.join('&') : ''));
   if (data.error || !Array.isArray(data)) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
     return;
@@ -5187,16 +5237,29 @@ async function rejectUser(id) {
 async function loadSundayCheckins() {
   const tbody = document.getElementById('sundayCheckinBody');
   if (!tbody) return;
-  const data = await apiCall('GET', '/api/sunday-checkin');
-  const list = data && !data.error && Array.isArray(data) ? data : [];
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var sf = document.getElementById('scFilterFrom');
+  var st = document.getElementById('scFilterTo');
+  var ss = document.getElementById('scFilterSearch');
+  var qs = [];
+  if (sf && sf.value) qs.push('from=' + encodeURIComponent(sf.value));
+  if (st && st.value) qs.push('to=' + encodeURIComponent(st.value));
+  if (ss && ss.value.trim()) qs.push('search=' + encodeURIComponent(ss.value.trim()));
+  const data = await apiCall('GET', '/api/admin/sunday-checkins' + (qs.length ? '?' + qs.join('&') : ''));
+  if (data && data.error) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    return;
+  }
+  const list = Array.isArray(data) ? data : [];
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Sunday check-ins yet.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Sunday check-ins match your filters.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(function(r) {
     var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td data-label="Name">' + escapeHtml(r.full_name || '-') + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+    var dispName = (r.full_name || '').trim() || [r.first_name, r.last_name].filter(Boolean).join(' ') || '—';
+    return '<tr><td data-label="Name">' + escapeHtml(dispName) + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -5338,17 +5401,30 @@ async function loadPart2Submissions() {
   const el = document.getElementById('part2LinkInput');
   if (el) el.value = window.location.origin + '/part2-form.html';
   try {
-    const data = await apiCall('GET', '/api/part2');
     const tbody = document.getElementById('part2Body');
     if (!tbody) return;
-    tbody.innerHTML = (data && !data.error && Array.isArray(data) ? data : []).map(r => {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+    var pf = document.getElementById('p2FilterFrom');
+    var pt = document.getElementById('p2FilterTo');
+    var ps = document.getElementById('p2FilterSearch');
+    var qs = [];
+    if (pf && pf.value) qs.push('from=' + encodeURIComponent(pf.value));
+    if (pt && pt.value) qs.push('to=' + encodeURIComponent(pt.value));
+    if (ps && ps.value.trim()) qs.push('search=' + encodeURIComponent(ps.value.trim()));
+    const data = await apiCall('GET', '/api/admin/part2-submissions' + (qs.length ? '?' + qs.join('&') : ''));
+    if (data && data.error) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+      return;
+    }
+    const p2list = Array.isArray(data) ? data : [];
+    tbody.innerHTML = p2list.map(r => {
       const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
       const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       return `<tr data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
-    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions yet.</td></tr>';
+    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions match your filters.</td></tr>';
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
-function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escapeHtml(s) { if (s == null || s === '') return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function copyPart2Link() {
   const el = document.getElementById('part2LinkInput');
   if (!el || !el.value) return;
