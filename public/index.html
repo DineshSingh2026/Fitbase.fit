@@ -896,9 +896,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-ai-btn:hover{background:rgba(200,164,78,0.1)}
 .admin-ai-plus{font-size:14px;color:var(--gold)}
 .admin-dash-page{padding:0;max-width:100%}
-.admin-welcome-card{background:rgba(26,26,26,0.95);border-radius:12px;border-left:3px solid var(--gold);padding:16px 18px;margin-bottom:16px}
-.admin-welcome-title{font-size:22px;font-weight:700;color:var(--gold);margin:0 0 6px}
-.admin-welcome-date{font-size:13px;color:var(--creamd);margin:0}
+.admin-welcome-card{
+  background:rgba(26,26,26,0.95);border-radius:12px;border-left:3px solid var(--gold);
+  padding:16px 18px;margin-bottom:16px;box-sizing:border-box;width:100%;
+  display:flex;flex-direction:column;align-items:stretch;text-align:left
+}
+.admin-welcome-title{
+  font-size:clamp(17px,4.2vw,24px);font-weight:700;color:var(--gold);margin:0 0 8px;
+  line-height:1.32;letter-spacing:.02em;max-width:100%;word-wrap:break-word;hyphens:none
+}
+.admin-welcome-role{font-weight:800;letter-spacing:.03em;white-space:normal}
+.admin-welcome-date{font-size:13px;color:var(--creamd);margin:0;line-height:1.45;max-width:100%}
 .admin-summary-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
 .admin-summary-card{background:rgba(26,26,26,0.95);border-radius:12px;padding:14px;min-height:72px;display:flex;flex-direction:column;justify-content:center}
 .admin-summary-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:8px}
@@ -1974,12 +1982,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   }
   .admin-topbar h1{
     font-family:var(--bb-font-heading);
-    font-size:22px;
+    font-size:clamp(18px,2vw,24px);
     font-weight:700;
     color:var(--bb-text);
-    letter-spacing:0.05em;
-    margin:0;
+    letter-spacing:0.04em;
+    margin:0 20px 0 0;
+    line-height:1.3;
+    flex:1;
+    min-width:0;
+    word-wrap:break-word;
   }
+  .admin-topbar h1 .admin-welcome-role{color:var(--bb-gold);font-weight:800}
   .admin-topbar .topbar-right{display:flex;align-items:center;gap:16px}
   .admin-topbar input[type="search"]{
     background:var(--bb-surface);
@@ -2941,7 +2954,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <!-- DESKTOP ADMIN DASHBOARD (hidden on mobile via inline style; enabled by desktop CSS) -->
       <div class="bb-desktop-dashboard" style="display:none">
         <div class="admin-topbar">
-          <h1>Welcome back, Admin 👋</h1>
+          <h1>Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h1>
           <div class="topbar-right">
             <input type="search" placeholder="Search..." aria-label="Search">
             <span class="bb-top-icon" aria-hidden="true">🔔</span>
@@ -3045,7 +3058,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div class="admin-dash-page">
         <div class="admin-welcome-card">
-          <h2 class="admin-welcome-title">Welcome back <span aria-hidden="true">👋</span></h2>
+          <h2 class="admin-welcome-title">Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h2>
           <p class="admin-welcome-date" id="adminWelcomeDate">Monday · 9 March 2026</p>
         </div>
         <div class="admin-summary-cards">
