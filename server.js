@@ -1784,6 +1784,21 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
   }
 });
 
+app.get('/api/admin/workouts/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne(
+      `SELECT w.*, u.first_name, u.last_name, u.email, u.phone
+       FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE w.id = ?`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) {
+    console.error('Admin workout detail error:', e.message);
+    res.status(500).json({ error: 'Failed to load workout' });
+  }
+});
+
 // ============ TODAY DASHBOARD ============
 app.get('/api/today', verifyToken, async (req, res) => {
   try {

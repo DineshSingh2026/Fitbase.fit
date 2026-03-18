@@ -607,6 +607,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-list-table .btn-view-cell{text-align:right;white-space:nowrap}
 .admin-list-table .action-btn.btn-view{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(200,164,78,0.2);color:var(--gold);border:1px solid rgba(200,164,78,0.4)}
 .admin-list-table .action-btn.btn-view:hover{background:rgba(200,164,78,0.35)}
+#tab-workouts .admin-list-table tbody td.admin-workout-cell-user,
+#tab-workouts .admin-list-table tbody td.admin-workout-cell-workout{max-width:min(220px,40vw);word-break:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:10px;padding-bottom:10px}
+#tab-workouts .admin-list-table tbody td.admin-workout-cell-date{white-space:nowrap;word-break:normal;padding-top:10px;padding-bottom:10px;color:var(--creamd)}
+#tab-workouts .admin-list-table .btn-view-cell{padding-top:10px;padding-bottom:10px}
 .admin-table-wrap{width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;touch-action:pan-x pan-y}
 .admin-table-wrap::-webkit-scrollbar{width:8px;height:10px}
 .admin-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
@@ -3252,7 +3256,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
-        <thead><tr><th>User</th><th>Workout</th><th>Duration</th><th>Feedback</th><th>Date</th></tr></thead>
+        <thead><tr><th>User</th><th>Workout</th><th>Date</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -3949,6 +3953,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('dailyCheckinViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Daily Check-In</h2>
     <div class="view-detail-body" id="dailyCheckinViewBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay view-detail-modal" id="adminWorkoutViewModal" onclick="if(event.target===this)closeModal('adminWorkoutViewModal')">
+  <div class="modal" style="max-width:600px">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminWorkoutViewModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title">Workout log</h2>
+    <div class="view-detail-body" id="adminWorkoutViewBody"></div>
   </div>
 </div>
 
@@ -5476,7 +5488,7 @@ async function loadTribe() {
 async function loadAdminWorkouts() {
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var wf = document.getElementById('woFilterFrom');
   var wt = document.getElementById('woFilterTo');
   var ws = document.getElementById('woFilterSearch');
@@ -5486,17 +5498,39 @@ async function loadAdminWorkouts() {
   if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
   const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
   if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
     return;
   }
   const list = Array.isArray(data) ? data : [];
-  tbody.innerHTML = list.map(w => {
-    const dur = w.duration_seconds || 0;
-    const m = Math.floor(dur / 60);
-    const s = dur % 60;
-    const date = new Date(w.created_at).toLocaleDateString();
-    return '<tr><td data-label="User">' + escapeHtml((w.first_name||'') + ' ' + (w.last_name||'')) + '</td><td data-label="Workout">' + escapeHtml(w.workout_name||'-') + '</td><td data-label="Duration">' + m + 'm ' + s + 's</td><td data-label="Feedback">' + escapeHtml(w.feedback||'-') + '</td><td data-label="Date">' + escapeHtml(date) + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+  tbody.innerHTML = list.map(function(w) {
+    var id = String(w.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var user = ((w.first_name || '') + ' ' + (w.last_name || '')).trim() || '—';
+    var wo = (w.workout_name || '—').trim();
+    var d = w.created_at ? new Date(w.created_at) : null;
+    var dateStr = d ? d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
+    return '<tr><td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td><td class="admin-workout-cell-workout" data-label="Workout" title="' + escapeHtml(wo) + '">' + escapeHtml(wo) + '</td><td class="admin-workout-cell-date" data-label="Date">' + escapeHtml(dateStr) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+}
+
+async function viewAdminWorkout(id) {
+  if (!id) return;
+  const r = await apiCall('GET', '/api/admin/workouts/' + encodeURIComponent(id));
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  const body = document.getElementById('adminWorkoutViewBody');
+  if (!body) return;
+  var dur = r.duration_seconds || 0;
+  var mm = Math.floor(dur / 60);
+  var ss = dur % 60;
+  var fullName = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
+  var when = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }) : '—';
+  body.innerHTML = _row('User', fullName) +
+    _row('Email', r.email || '—') +
+    _row('Phone', r.phone || '—') +
+    _row('Workout', r.workout_name || '—') +
+    _row('Duration', mm + 'm ' + ss + 's') +
+    _row('Logged at', when) +
+    _rowBlock('Feedback / notes', (r.feedback && String(r.feedback).trim()) ? r.feedback : '—');
+  openModal('adminWorkoutViewModal');
 }
 
 async function loadPart2Submissions() {
