@@ -1275,7 +1275,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-list-table tbody tr{display:table-row!important;margin:0;padding:0;background:transparent!important;border:none!important;border-radius:0}
   .admin-list-table tbody td{display:table-cell!important;padding:10px 8px!important}
   .admin-list-table tbody td::before{display:none!important}
-  #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap{overflow-x:auto;min-width:0}
+  #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap,#tab-workouts .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
   .insights-table-wrap .admin-table tbody td{display:block;padding:6px 0;border:none}
@@ -3235,7 +3235,23 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB 3: Workouts -->
     <div class="admin-tab-content" id="tab-workouts">
-      <div class="admin-table-wrap"><table class="admin-table">
+      <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="workouts">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="woFilterFrom">From</label><input type="date" id="woFilterFrom" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="woFilterTo">To</label><input type="date" id="woFilterTo" class="admin-filter-date" aria-label="To date"></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <div class="admin-filter-search-wrap">
+            <label for="woFilterSearch">Search</label>
+            <input type="text" id="woFilterSearch" placeholder="Name, email, or workout" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadAdminWorkouts()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('workouts')">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
         <thead><tr><th>User</th><th>Workout</th><th>Duration</th><th>Feedback</th><th>Date</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
@@ -5153,7 +5169,8 @@ function clearAdminFormFilters(which) {
     requests: { ids: ['auditFilterFrom', 'auditFilterTo', 'auditFilterSearch'], load: loadRequests },
     sundaycheckin: { ids: ['scFilterFrom', 'scFilterTo', 'scFilterSearch'], load: loadSundayCheckins },
     dailycheckin: { ids: ['dcFilterFrom', 'dcFilterTo', 'dcFilterSearch'], load: loadDailyCheckins },
-    part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], load: loadPart2Submissions }
+    part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], load: loadPart2Submissions },
+    workouts: { ids: ['woFilterFrom', 'woFilterTo', 'woFilterSearch'], load: loadAdminWorkouts }
   };
   var m = map[which];
   if (!m) return;
@@ -5457,17 +5474,29 @@ async function loadTribe() {
 }
 
 async function loadAdminWorkouts() {
-  const data = await apiCall('GET', '/api/workouts');
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  const list = data && !data.error && Array.isArray(data) ? data : [];
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var wf = document.getElementById('woFilterFrom');
+  var wt = document.getElementById('woFilterTo');
+  var ws = document.getElementById('woFilterSearch');
+  var qs = [];
+  if (wf && wf.value) qs.push('from=' + encodeURIComponent(wf.value));
+  if (wt && wt.value) qs.push('to=' + encodeURIComponent(wt.value));
+  if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
+  const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
+  if (data && data.error) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    return;
+  }
+  const list = Array.isArray(data) ? data : [];
   tbody.innerHTML = list.map(w => {
     const dur = w.duration_seconds || 0;
     const m = Math.floor(dur / 60);
     const s = dur % 60;
     const date = new Date(w.created_at).toLocaleDateString();
-    return '<tr><td data-label="User">' + (w.first_name||'') + ' ' + (w.last_name||'') + '</td><td data-label="Workout">' + (w.workout_name||'-') + '</td><td data-label="Duration">' + m + 'm ' + s + 's</td><td data-label="Feedback">' + (w.feedback||'-') + '</td><td data-label="Date">' + date + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No workouts logged yet</td></tr>';
+    return '<tr><td data-label="User">' + escapeHtml((w.first_name||'') + ' ' + (w.last_name||'')) + '</td><td data-label="Workout">' + escapeHtml(w.workout_name||'-') + '</td><td data-label="Duration">' + m + 'm ' + s + 's</td><td data-label="Feedback">' + escapeHtml(w.feedback||'-') + '</td><td data-label="Date">' + escapeHtml(date) + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
 async function loadPart2Submissions() {
@@ -5799,7 +5828,7 @@ async function sendAdminAiMessage() {
 })();
 var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
 var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
-var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin'];
+var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
   if (!host) return;

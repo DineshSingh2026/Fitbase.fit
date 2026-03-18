@@ -1750,6 +1750,40 @@ app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, a
   }
 });
 
+app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = (req.query.from || '').trim();
+    const to = (req.query.to || '').trim();
+    const search = (req.query.search || '').trim();
+    let sql = `SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at,
+         u.first_name, u.last_name, u.email
+       FROM workout_logs w
+       JOIN users u ON w.user_id = u.id
+       WHERE 1=1`;
+    const params = [];
+    if (from) {
+      sql += ' AND w.created_at::date >= ?';
+      params.push(from);
+    }
+    if (to) {
+      sql += ' AND w.created_at::date <= ?';
+      params.push(to);
+    }
+    if (search) {
+      const q = '%' + search.replace(/%/g, '\\%') + '%';
+      sql +=
+        ' AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ? OR w.workout_name ILIKE ? OR COALESCE(w.feedback,\'\') ILIKE ?)';
+      params.push(q, q, q, q, q);
+    }
+    sql += ' ORDER BY w.created_at DESC LIMIT 250';
+    const rows = await queryAll(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('Admin workouts list error:', e.message);
+    res.status(500).json({ error: 'Failed to load workouts' });
+  }
+});
+
 // ============ TODAY DASHBOARD ============
 app.get('/api/today', verifyToken, async (req, res) => {
   try {
