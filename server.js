@@ -1790,7 +1790,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
 
     if (isAdmin) {
-      const pending = await queryAll("SELECT id, first_name, last_name, email, created_at FROM audit_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 10");
+      const pending = await queryAll("SELECT id, first_name, last_name, email, created_at FROM audit_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20");
       pending.forEach(r => {
         notifications.push({
           id: 'audit-' + r.id,
@@ -1801,7 +1801,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'requests'
         });
       });
-      const messages = await queryAll("SELECT id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 10");
+      const messages = await queryAll("SELECT id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 20");
       messages.forEach(m => {
         const msg = (m.message || '').substring(0, 50);
         notifications.push({
@@ -1819,21 +1819,21 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
          JOIN message_threads t ON t.id = m.thread_id
          LEFT JOIN users u ON u.id = t.user_id
          WHERE m.sender_role = 'user'
-         ORDER BY m.created_at DESC LIMIT 15`
+         ORDER BY m.created_at DESC LIMIT 50`
       );
       chatMessages.forEach(m => {
         const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || m.email || 'User';
-        const preview = (m.body || '').substring(0, 60) + ((m.body || '').length > 60 ? '...' : '');
+        const preview = (m.body || '').substring(0, 80) + ((m.body || '').length > 80 ? '...' : '');
         notifications.push({
           id: 'chat-' + m.id,
           type: 'chat',
-          title: 'New message from ' + name,
+          title: 'Message from ' + name,
           desc: preview,
           time: m.created_at,
           link: 'messages-meetings'
         });
       });
-      const tribe = await queryAll("SELECT id, first_name, last_name, created_at FROM tribe_members WHERE status='active' ORDER BY created_at DESC LIMIT 5");
+      const tribe = await queryAll("SELECT id, first_name, last_name, created_at FROM tribe_members WHERE status='active' ORDER BY created_at DESC LIMIT 10");
       tribe.forEach(t => {
         notifications.push({
           id: 'tribe-' + t.id,
@@ -1844,7 +1844,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'tribe'
         });
       });
-      const workouts = await queryAll("SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 5");
+      const workouts = await queryAll("SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 20");
       workouts.forEach(w => {
         const m = Math.floor((w.duration_seconds || 0) / 60);
         notifications.push({
@@ -1856,7 +1856,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'workouts'
         });
       });
-      const pendingSignups = await queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 10");
+      const pendingSignups = await queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 20");
       pendingSignups.forEach(u => {
         notifications.push({
           id: 'signup-' + u.id,
@@ -1867,7 +1867,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'signups'
         });
       });
-      const part2Subs = await queryAll("SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 5");
+      const part2Subs = await queryAll("SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 15");
       part2Subs.forEach(p => {
         notifications.push({
           id: 'part2-' + p.id,
@@ -1878,7 +1878,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'part2'
         });
       });
-      const meetReqs = await queryAll("SELECT id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings WHERE status='scheduled' ORDER BY created_at DESC LIMIT 5");
+      const meetReqs = await queryAll("SELECT id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings WHERE status='scheduled' ORDER BY created_at DESC LIMIT 15");
       meetReqs.forEach(m => {
         notifications.push({
           id: 'meeting-' + m.id,
@@ -1889,6 +1889,116 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'meetings'
         });
       });
+      // User-submitted Sunday check-ins (were missing from admin bell)
+      try {
+        const sundayRows = await queryAll(
+          `SELECT s.id, s.full_name, s.reply_email, s.created_at, u.first_name, u.last_name
+           FROM sunday_checkins s
+           LEFT JOIN users u ON u.id = s.user_id
+           ORDER BY s.created_at DESC LIMIT 25`
+        );
+        sundayRows.forEach(s => {
+          const who = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.full_name || s.reply_email || 'User';
+          notifications.push({
+            id: 'sunday-' + s.id,
+            type: 'checkin',
+            title: 'Sunday Check-in Submitted',
+            desc: who,
+            time: s.created_at,
+            link: 'sundaycheckin'
+          });
+        });
+      } catch (_) { /* table may be empty */ }
+      // Daily micro check-ins from users
+      try {
+        const dailyRows = await queryAll(
+          `SELECT d.id, d.checkin_date, d.created_at, d.steps, d.water_ml, d.protein_g, d.sleep_hours,
+                  u.first_name, u.last_name, u.email
+           FROM daily_checkins d
+           LEFT JOIN users u ON u.id = d.user_id
+           ORDER BY d.created_at DESC LIMIT 30`
+        );
+        dailyRows.forEach(d => {
+          const who = [d.first_name, d.last_name].filter(Boolean).join(' ') || d.email || 'User';
+          const bits = [];
+          if (d.steps != null) bits.push(`${d.steps} steps`);
+          if (d.water_ml != null) bits.push(`${d.water_ml}ml water`);
+          if (d.protein_g != null) bits.push(`${d.protein_g}g protein`);
+          if (d.sleep_hours != null) bits.push(`${d.sleep_hours}h sleep`);
+          notifications.push({
+            id: 'daily-' + d.id,
+            type: 'checkin',
+            title: 'Daily Check-in — ' + who,
+            desc: (bits.length ? bits.join(' · ') : 'Logged') + ' · ' + String(d.checkin_date || ''),
+            time: d.created_at,
+            link: 'dailycheckin'
+          });
+        });
+      } catch (_) { /* ignore */ }
+      // Weight logs
+      try {
+        const wlogs = await queryAll(
+          `SELECT w.id, w.weight_kg, w.created_at, u.first_name, u.last_name
+           FROM weight_logs w
+           LEFT JOIN users u ON w.user_id = u.id
+           ORDER BY w.created_at DESC LIMIT 20`
+        );
+        wlogs.forEach(w => {
+          const who = [w.first_name, w.last_name].filter(Boolean).join(' ') || 'User';
+          notifications.push({
+            id: 'weight-' + w.id,
+            type: 'workout',
+            title: 'Weight Logged',
+            desc: `${who} — ${w.weight_kg} kg`,
+            time: w.created_at,
+            link: 'clientprogress'
+          });
+        });
+      } catch (_) { /* ignore */ }
+      // Client progress logs (analytics)
+      try {
+        const prog = await queryAll(
+          `SELECT p.id, p.weight, p.body_fat, p.created_at, u.first_name, u.last_name
+           FROM progress_logs p
+           LEFT JOIN users u ON p.user_id = u.id
+           ORDER BY p.created_at DESC LIMIT 25`
+        );
+        prog.forEach(p => {
+          const who = [p.first_name, p.last_name].filter(Boolean).join(' ') || 'User';
+          const parts = [];
+          if (p.weight != null) parts.push(`${p.weight} kg`);
+          if (p.body_fat != null) parts.push(`${p.body_fat}% bf`);
+          notifications.push({
+            id: 'progress-' + String(p.id),
+            type: 'workout',
+            title: 'Progress Update — ' + who,
+            desc: parts.length ? parts.join(', ') : 'New entry',
+            time: p.created_at,
+            link: 'clientprogress'
+          });
+        });
+      } catch (_) { /* ignore */ }
+      // Hydration quick logs
+      try {
+        const hyd = await queryAll(
+          `SELECT h.id, h.amount_ml, h.glasses, h.created_at, u.first_name, u.last_name
+           FROM hydration_logs h
+           LEFT JOIN users u ON h.user_id = u.id
+           ORDER BY h.created_at DESC LIMIT 15`
+        );
+        hyd.forEach(h => {
+          const who = [h.first_name, h.last_name].filter(Boolean).join(' ') || 'User';
+          const amt = h.amount_ml ? `${h.amount_ml} ml` : (h.glasses ? `${h.glasses} glasses` : 'Hydration');
+          notifications.push({
+            id: 'hyd-' + h.id,
+            type: 'checkin',
+            title: 'Hydration Logged',
+            desc: `${who} — ${amt}`,
+            time: h.created_at,
+            link: 'dailycheckin'
+          });
+        });
+      } catch (_) { /* ignore */ }
     } else {
       const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [req.user.id]);
       if (thread) {
@@ -1948,7 +2058,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
     }
 
     notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
-    res.json(notifications.slice(0, 30));
+    const maxItems = isAdmin ? 150 : 40;
+    res.json(notifications.slice(0, maxItems));
   } catch (e) {
     res.status(500).json([]);
   }
