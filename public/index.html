@@ -551,28 +551,50 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
-.admin-filter-bar{padding:16px 0 20px;border-bottom:1px solid var(--bdr);margin-bottom:20px}
-.admin-filter-bar-stacked{display:flex;flex-direction:column;align-items:stretch;gap:14px}
-.admin-filter-bar .admin-filter-row-date label{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;font-weight:600;color:var(--muted);width:100%}
-.admin-filter-bar .admin-filter-row-date input[type="date"]{width:100%;max-width:100%;box-sizing:border-box}
-.admin-filter-bar .admin-filter-row-search{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin-top:4px}
-.admin-filter-bar .admin-filter-row-search label{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;font-weight:600;color:var(--muted);flex:1;min-width:min(100%,200px)}
-.admin-filter-bar .admin-filter-row-search input[type="text"]{width:100%;box-sizing:border-box}
-.admin-filter-bar input[type="date"],.admin-filter-bar input[type="text"]{padding:10px 14px;border:1.5px solid rgba(200,164,78,0.55);border-radius:8px;background:rgba(255,255,255,0.04);color:var(--cream);font-size:16px;min-height:44px}
-.admin-filter-bar input[type="text"]::placeholder{color:var(--muted);opacity:.85}
-.admin-filter-bar .admin-apply-btn{padding:10px 22px;min-height:44px;background:var(--gold);color:#0d0d0d;border:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:.5px;cursor:pointer;flex-shrink:0}
-.admin-filter-bar .admin-apply-btn:hover{opacity:.92}
-@media(min-width:640px){
-  .admin-filter-bar-stacked .admin-filter-row-dates{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:520px}
+.admin-filter-bar{padding:8px 0 10px;border-bottom:1px solid var(--bdr);margin-bottom:12px}
+.admin-filter-bar-stacked{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.admin-filter-row-dates{display:flex;flex-flow:row wrap;align-items:flex-end;gap:8px 12px}
+.admin-filter-row-date{flex:0 0 auto}
+.admin-filter-bar .admin-filter-row-date label{display:flex;flex-direction:column;align-items:flex-start;gap:2px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0}
+.admin-filter-bar input[type="date"]{
+  padding:5px 8px!important;font-size:14px!important;line-height:1.2!important;
+  height:34px!important;min-height:34px!important;max-height:34px!important;box-sizing:border-box!important;
+  width:min(100%,148px)!important;min-width:118px;max-width:152px;
+  border:1px solid rgba(200,164,78,0.5)!important;border-radius:6px!important;
+  background:rgba(255,255,255,0.06)!important;color:var(--cream)!important;
+  -webkit-appearance:none;appearance:none
 }
+.admin-filter-row-search{display:flex;flex-flow:row wrap;align-items:flex-end;gap:8px;width:100%}
+.admin-filter-search-wrap{flex:1;min-width:min(100%,140px);display:flex;flex-direction:column;gap:2px}
+.admin-filter-search-wrap>label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.admin-filter-bar .admin-filter-search-wrap input[type="text"]{
+  padding:6px 10px!important;font-size:14px!important;line-height:1.25!important;
+  height:34px!important;min-height:34px!important;box-sizing:border-box!important;width:100%!important;
+  border:1px solid rgba(200,164,78,0.5)!important;border-radius:6px!important;
+  background:rgba(255,255,255,0.06)!important;color:var(--cream)!important
+}
+.admin-filter-bar input[type="text"]::placeholder{color:var(--muted);opacity:.8;font-size:13px}
+.admin-filter-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;flex-shrink:0}
+.admin-filter-bar .admin-apply-btn,.admin-filter-bar .admin-filter-clear-btn{
+  height:34px!important;min-height:34px!important;padding:0 14px!important;margin:0!important;
+  font-size:12px!important;font-weight:700!important;letter-spacing:.04em!important;border-radius:6px!important;
+  cursor:pointer;white-space:nowrap;box-sizing:border-box;line-height:1!important
+}
+.admin-filter-bar .admin-apply-btn{background:var(--gold)!important;color:#0d0d0d!important;border:none!important}
+.admin-filter-bar .admin-apply-btn:hover{opacity:.92}
+.admin-filter-bar .admin-filter-clear-btn{
+  background:transparent!important;color:var(--gold)!important;
+  border:1.5px solid rgba(200,164,78,0.55)!important
+}
+.admin-filter-bar .admin-filter-clear-btn:hover{background:rgba(200,164,78,0.08)!important}
 /* Mobile/tablet: filters hoisted under section title (see syncAdminFormFilterStrip) */
 .admin-inline-form-filters:empty{display:none!important}
 .admin-inline-form-filters:not(:empty){
-  display:block;width:100%;box-sizing:border-box;padding:10px 16px 14px;margin:0 0 8px;
-  background:rgba(12,12,14,0.92);border:1px solid rgba(200,164,78,0.2);border-radius:10px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.25);
+  display:block;width:100%;box-sizing:border-box;padding:8px 12px 10px;margin:0 0 6px;
+  background:rgba(12,12,14,0.95);border:1px solid rgba(200,164,78,0.22);border-radius:8px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.2);
 }
-.admin-inline-form-filters .admin-filter-bar{margin:0;padding:8px 0 4px;border-bottom:none}
+.admin-inline-form-filters .admin-filter-bar{margin:0;padding:4px 0 2px;border-bottom:none}
 @media(min-width:1101px){
   .admin-inline-form-filters{display:none!important}
 }
@@ -3162,12 +3184,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="requests">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="auditFilterFrom">From<input type="date" id="auditFilterFrom" class="form-input"></label></div>
-          <div class="admin-filter-row-date"><label for="auditFilterTo">To<input type="date" id="auditFilterTo" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="auditFilterFrom">From</label><input type="date" id="auditFilterFrom" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="auditFilterTo">To</label><input type="date" id="auditFilterTo" class="admin-filter-date" aria-label="To date"></div>
         </div>
         <div class="admin-filter-row-search">
-          <label for="auditFilterSearch">Search<input type="text" id="auditFilterSearch" placeholder="Name or email" autocomplete="off"></label>
-          <button type="button" class="admin-apply-btn" onclick="loadRequests()">Apply</button>
+          <div class="admin-filter-search-wrap">
+            <label for="auditFilterSearch">Search</label>
+            <input type="text" id="auditFilterSearch" placeholder="Name or email" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadRequests()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('requests')">Clear</button>
+          </div>
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
@@ -3250,12 +3278,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-sundaycheckin">
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="sundaycheckin">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="scFilterFrom">From<input type="date" id="scFilterFrom" class="form-input"></label></div>
-          <div class="admin-filter-row-date"><label for="scFilterTo">To<input type="date" id="scFilterTo" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="scFilterFrom">From</label><input type="date" id="scFilterFrom" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="scFilterTo">To</label><input type="date" id="scFilterTo" class="admin-filter-date" aria-label="To date"></div>
         </div>
         <div class="admin-filter-row-search">
-          <label for="scFilterSearch">Search<input type="text" id="scFilterSearch" placeholder="Name or email" autocomplete="off"></label>
-          <button type="button" class="admin-apply-btn" onclick="loadSundayCheckins()">Apply</button>
+          <div class="admin-filter-search-wrap">
+            <label for="scFilterSearch">Search</label>
+            <input type="text" id="scFilterSearch" placeholder="Name or email" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadSundayCheckins()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('sundaycheckin')">Clear</button>
+          </div>
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
@@ -3273,12 +3307,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-dailycheckin">
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="dailycheckin">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="dcFilterFrom">From<input type="date" id="dcFilterFrom" class="form-input"></label></div>
-          <div class="admin-filter-row-date"><label for="dcFilterTo">To<input type="date" id="dcFilterTo" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="dcFilterFrom">From</label><input type="date" id="dcFilterFrom" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="dcFilterTo">To</label><input type="date" id="dcFilterTo" class="admin-filter-date" aria-label="To date"></div>
         </div>
         <div class="admin-filter-row-search">
-          <label for="dcFilterSearch">Search<input type="text" id="dcFilterSearch" placeholder="Name or email" autocomplete="off"></label>
-          <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
+          <div class="admin-filter-search-wrap">
+            <label for="dcFilterSearch">Search</label>
+            <input type="text" id="dcFilterSearch" placeholder="Name or email" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('dailycheckin')">Clear</button>
+          </div>
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
@@ -3298,12 +3338,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div class="admin-filter-bar admin-filter-bar-stacked" style="margin-top:20px" data-admin-form-filters="part2">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="p2FilterFrom">From<input type="date" id="p2FilterFrom" class="form-input"></label></div>
-          <div class="admin-filter-row-date"><label for="p2FilterTo">To<input type="date" id="p2FilterTo" class="form-input"></label></div>
+          <div class="admin-filter-row-date"><label for="p2FilterFrom">From</label><input type="date" id="p2FilterFrom" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="p2FilterTo">To</label><input type="date" id="p2FilterTo" class="admin-filter-date" aria-label="To date"></div>
         </div>
         <div class="admin-filter-row-search">
-          <label for="p2FilterSearch">Search<input type="text" id="p2FilterSearch" placeholder="Name or email" autocomplete="off"></label>
-          <button type="button" class="admin-apply-btn" onclick="loadPart2Submissions()">Apply</button>
+          <div class="admin-filter-search-wrap">
+            <label for="p2FilterSearch">Search</label>
+            <input type="text" id="p2FilterSearch" placeholder="Name or email" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadPart2Submissions()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('part2')">Clear</button>
+          </div>
         </div>
       </div>
       <div class="admin-table-wrap" style="margin-top:16px">
@@ -5102,6 +5148,21 @@ async function loadLiveActivity() {
   }
 }
 
+function clearAdminFormFilters(which) {
+  var map = {
+    requests: { ids: ['auditFilterFrom', 'auditFilterTo', 'auditFilterSearch'], load: loadRequests },
+    sundaycheckin: { ids: ['scFilterFrom', 'scFilterTo', 'scFilterSearch'], load: loadSundayCheckins },
+    dailycheckin: { ids: ['dcFilterFrom', 'dcFilterTo', 'dcFilterSearch'], load: loadDailyCheckins },
+    part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], load: loadPart2Submissions }
+  };
+  var m = map[which];
+  if (!m) return;
+  m.ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (typeof m.load === 'function') m.load();
+}
 async function loadRequests() {
   const tbody = document.getElementById('requestsBody');
   if (!tbody) return;
