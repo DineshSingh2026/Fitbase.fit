@@ -1008,6 +1008,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-welcome h1{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:var(--cream);margin-bottom:4px}
 .admin-welcome p{color:var(--muted);font-size:14px}
 .admin-stats{display:flex;align-items:center;gap:32px;margin-bottom:36px;flex-wrap:wrap}
+#tab-requests .admin-stats-tight{margin-top:0;margin-bottom:12px}
 .admin-stat-item{display:flex;align-items:baseline;gap:12px}
 .admin-stat-item .num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:1px;line-height:1}
 .admin-stat-item .lbl{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500}
@@ -3190,11 +3191,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <!-- TAB: Audit forms -->
     <div class="admin-tab-content" id="tab-requests">
-      <div class="admin-welcome">
-        <h1>Welcome back, Admin</h1>
-        <p>Here's what's happening with BodyBank today.</p>
-      </div>
-      <div class="admin-stats">
+      <div class="admin-stats admin-stats-tight">
         <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Audit forms</span></div>
         <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
