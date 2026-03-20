@@ -1138,6 +1138,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-ai-assist-msg.user{align-self:flex-end;background:#25D366;color:#fff;border-bottom-right-radius:4px}
 .admin-ai-assist-msg.assistant{align-self:flex-start;background:rgba(255,255,255,0.08);color:var(--cream);border:1px solid var(--bdr);border-bottom-left-radius:4px}
 .admin-ai-assist-msg.assistant.error{background:rgba(255,80,80,0.12);border-color:rgba(255,80,80,0.3);color:#ff8a8a}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md{white-space:normal}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-h2{font-size:15px;margin:0 0 6px;font-weight:700;color:var(--cream)}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-h3{font-size:14px;margin:10px 0 6px;font-weight:700;color:var(--cream)}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-h4{font-size:13px;margin:10px 0 6px;font-weight:700;color:var(--cream);display:flex;align-items:center;gap:6px}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-p{margin:0 0 6px}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-ul{margin:4px 0 8px;padding-left:18px}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-ul li{margin:2px 0}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md strong{color:#fff;font-weight:600}
 .admin-ai-assist-input-wrap{display:flex;align-items:flex-end;gap:8px;padding:12px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
 .admin-ai-assist-input{flex:1;min-height:44px;max-height:120px;padding:12px 14px;border:1px solid var(--bdr);border-radius:12px;background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;resize:none;transition:border-color .2s}
 .admin-ai-assist-input:focus{outline:none;border-color:var(--gold)}
@@ -3570,8 +3578,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
-        <p>Ask me anything about your BodyBank data: audit forms, tribe members, workouts, messages, Sunday check-ins, and more.</p>
-        <p class="admin-ai-assist-hint">Example: &ldquo;How many pending audit forms?&rdquo; or &ldquo;Summarize recent tribe activity.&rdquo;</p>
+        <p>Elite coaching-style analysis on your live BodyBank data: profiles, workouts, check-ins, progress, and risks — plus quick answers on audits, tribe, and messages.</p>
+        <p class="admin-ai-assist-hint">Try &ldquo;Full report&rdquo; for the full structured breakdown, &ldquo;Quick summary&rdquo;, &ldquo;What next?&rdquo;, or &ldquo;Risk?&rdquo; — or ask &ldquo;How many pending audit forms?&rdquo;</p>
       </div>
       <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
       <div class="admin-ai-assist-input-wrap">
@@ -5825,6 +5833,59 @@ function closeAdminAiAssistPanel() {
   }
   if (topBtn) topBtn.classList.remove('admin-ai-assist-top-btn-active');
 }
+/** Safe subset of markdown for assistant replies (escaped HTML + headings, lists, **bold**). */
+function renderAssistantMarkdown(text) {
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function inline(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+  var lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  var parts = [];
+  var inList = false;
+  function closeList() {
+    if (inList) {
+      parts.push('</ul>');
+      inList = false;
+    }
+  }
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var t = line.trim();
+    if (/^###\s+/.test(line)) {
+      closeList();
+      parts.push('<h4 class="admin-ai-md-h4">' + inline(line.replace(/^###\s+/, '')) + '</h4>');
+      continue;
+    }
+    if (/^##\s+/.test(line)) {
+      closeList();
+      parts.push('<h3 class="admin-ai-md-h3">' + inline(line.replace(/^##\s+/, '')) + '</h3>');
+      continue;
+    }
+    if (/^#\s+/.test(line)) {
+      closeList();
+      parts.push('<h2 class="admin-ai-md-h2">' + inline(line.replace(/^#\s+/, '')) + '</h2>');
+      continue;
+    }
+    if (/^\s*[-*]\s+/.test(line)) {
+      if (!inList) {
+        parts.push('<ul class="admin-ai-md-ul">');
+        inList = true;
+      }
+      parts.push('<li>' + inline(line.replace(/^\s*[-*]\s+/, '')) + '</li>');
+      continue;
+    }
+    closeList();
+    if (t === '') {
+      parts.push('<br>');
+      continue;
+    }
+    parts.push('<p class="admin-ai-md-p">' + inline(line) + '</p>');
+  }
+  closeList();
+  return parts.join('');
+}
 function appendAdminAiMessage(role, text, isError) {
   var container = document.getElementById('adminAiAssistMessages');
   var welcome = document.getElementById('adminAiAssistWelcome');
@@ -5832,7 +5893,12 @@ function appendAdminAiMessage(role, text, isError) {
   if (welcome) welcome.style.display = 'none';
   var div = document.createElement('div');
   div.className = 'admin-ai-assist-msg ' + role + (isError ? ' error' : '');
-  div.textContent = text;
+  if (role === 'assistant' && !isError) {
+    div.className += ' admin-ai-assist-msg-md';
+    div.innerHTML = renderAssistantMarkdown(text);
+  } else {
+    div.textContent = text;
+  }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
 }

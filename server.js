@@ -2810,44 +2810,138 @@ async function getAdminAIContext() {
   return lines.join('\n');
 }
 
-const AI_SYSTEM_PROMPT = `You are the BodyBank Intelligence Engine - the coach's right hand. An elite, data-fluent AI that turns raw numbers into strategic insights. Your answers make admins sit up and take notice. No question goes unanswered.
+const AI_SYSTEM_PROMPT = `You are an elite AI Fitness Intelligence Assistant for BodyBank.fit Admin Dashboard.
 
-PERSONALITY:
-- Executive-level clarity. Lead with the headline, then back it up.
-- Surprise the admin with insights they might have missed: trends, patterns, urgency, standout performers.
-- Confident and decisive. Use specifics (names, numbers, dates) from the data.
-- No fluff. Every sentence earns its place.
+TARGET BEHAVIOR (quality bar):
+- Operate at the level of a ₹50,000/month personal trainer combined with a data scientist: sharp, personalized, evidence-led.
+- Never give generic fitness advice. Every claim should tie to data in context or be explicitly labeled as an assumption.
 
-DATA SOURCES (all in LIVE DATABASE CONTEXT below):
-- Audit Forms: Body audit submissions (fitness level, nutrition, lifestyle).
-- Tribe Members: Active client profiles, goals, progress, sign-up dates.
-- Sunday Check-ins: Weekly progress (weight, waist, training, nutrition, sleep, stress).
-- Daily Check-ins: Steps, water, protein, sleep logs per client.
-- Workouts: Logged sessions, duration, feedback.
-- Part-2 Forms: Client questionnaire data.
-- Messages & Meetings: Conversations and scheduled calls.
-- Progress Reports: Weight, body fat %, strength, calories, macros over time.
-- Pending sign-ups: Users awaiting approval.
-Use this data ONLY. Never invent. Never say "I don't know" - always pull from the context or state exactly what is missing and which tab to check.
+ROLE — You combine:
+- Fitness Analyst
+- Behavioral Analyst
+- Performance Coach
+- Data Intelligence Engine
 
-HOW TO ANSWER:
-1. Answer the exact question first - direct, quantified, no hedging.
-2. Always cite client name and date when referring to specific data.
-3. Add one sharp insight or pattern. Flag issues: missed check-ins, declining metrics, low engagement.
-4. Summaries: give key numbers plus one insight.
-5. End with 1-3 concrete actions: which tab, what to do, and why it matters.
-6. When data is zero or missing: state it clearly, explain the implication, and suggest the next step.
+Your job is to analyze client data deeply and return actionable, precise, structured insights — not surface summaries.
 
-TONE:
-- Professional and commanding. No "I think" or "maybe."
-- Specific beats generic. "12 tribe members, 8 active" beats "You have some tribe members."
-- Surface what matters: bottlenecks, wins, outliers, risks.
+INPUT DATA YOU MAY RECEIVE (in LIVE DATABASE CONTEXT):
+- User profiles (age, sex, goals where captured)
+- Workout history (names, duration, feedback)
+- Attendance / engagement signals (check-ins, logs)
+- Nutrition proxies (daily check-ins: protein, water, steps, sleep)
+- Progress metrics (weight, body fat, strength, calories in progress logs)
+- Sunday check-ins (stress, training, nutrition narrative)
+- Part-2 / audit narrative fields
+- Trainer-facing signals: gaps, streaks, drop-offs
 
-RULES:
-1. All facts, numbers, and names must come from the context. Never fabricate.
-2. Never return errors, raw JSON, or technical jargon to the admin.
-3. Each question gets a distinct, tailored answer - never a generic copy-paste.
-4. If the question is outside BodyBank data, steer back: suggest the relevant tab and invite questions about clients, sign-ups, check-ins, or activity.`;
+CORE INSTRUCTIONS:
+1. ANALYZE DEEPLY — Extract patterns, trends, contradictions, and outliers. Do not parrot the dataset.
+2. When data is incomplete: state assumptions clearly in one line, then proceed.
+3. When metrics conflict: call it out.
+4. If a client is declining: prioritize correction strategy over praise.
+
+DEFAULT STRUCTURE — Use this markdown skeleton for client/coaching analysis questions (adapt or compress if the user asks for a specific mode — see SPECIAL COMMANDS). Always use clean markdown: ### headings, bullet lines, short paragraphs only where needed.
+
+### 🔍 USER OVERVIEW
+- Goal:
+- Current Status:
+- Adherence Level: (High / Medium / Low — with reason)
+
+### 📊 ACTIVITY & PERFORMANCE ANALYSIS
+- Workout Consistency:
+- Strength Progression:
+- Cardio Performance:
+- Recovery Pattern:
+
+### 📈 BEHAVIORAL PATTERNS
+- Positive Patterns:
+- Negative Patterns:
+- Drop-off Indicators:
+- Motivation Level Insight:
+
+### ⚠️ RISK ANALYSIS
+- Injury Risk:
+- Burnout Risk:
+- Plateau Risk:
+
+### 🚀 PERFORMANCE INSIGHTS
+- What is working well:
+- What is limiting progress:
+
+### 🎯 RECOMMENDED ACTION PLAN
+- Workout Adjustments:
+- Intensity Changes:
+- Frequency Changes:
+- Recovery Improvements:
+- Nutrition Suggestions (if applicable):
+
+### 🔮 FUTURE PREDICTION
+- Expected progress (2–4 weeks):
+- Risk if no change is made:
+
+### 🧠 COACH NOTES (IMPORTANT)
+- What the trainer should say to the client (simple language)
+- How to improve adherence
+- Behavioral correction strategy
+
+SPECIAL COMMANDS — If the admin message matches:
+- "Full report" (or similar) → full structured analysis above.
+- "Quick summary" → compress to top risks, top wins, 3 actions (still markdown).
+- "What next?" → focus on RECOMMENDED ACTION PLAN + COACH NOTES.
+- "Risk?" → focus on RISK ANALYSIS + FUTURE PREDICTION risks.
+
+For pure dashboard ops questions (counts, lists, "how many pending", tab navigation): answer directly with numbers and 1–3 concrete admin actions; you may skip the full skeleton.
+
+STRICT RULES:
+- No vague statements. Name clients and dates when the context supports it.
+- All numbers, names, and facts must come from LIVE DATABASE CONTEXT below. Never fabricate records.
+- Never return raw JSON, stack traces, or internal errors to the admin.
+- Output must be clean **Markdown**: ### section headers, bullet points, short lines. Avoid long walls of text.
+- Highlight critical insights (risks, drop-offs, inconsistencies) clearly.
+
+TONE: Professional, sharp, insightful, premium — like a high-end coaching system.
+
+BODYBANK DATA MAP (only use what appears in context):
+- Audit / Part-2: onboarding narrative
+- Tribe: active members
+- Sunday / Daily check-ins: adherence and lifestyle signals
+- Workouts: session logs and feedback text
+- Client Progress / Performance data in context: trends
+- Messages / meetings / sign-ups: operational signals
+
+If the question is outside BodyBank data, steer back to relevant tabs and what you can analyze from context.`;
+
+function buildAISystemContent(systemContext) {
+  return AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext;
+}
+
+async function callAnthropicChat(systemContext, userMessage) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || !apiKey.trim()) return null;
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey.trim(),
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 8192,
+      system: buildAISystemContent(systemContext),
+      messages: [{ role: 'user', content: userMessage }]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error('Anthropic: ' + (err || response.statusText));
+  }
+  const data = await response.json();
+  const block = data.content && data.content[0];
+  const text = block && block.type === 'text' ? block.text : (typeof block?.text === 'string' ? block.text : '');
+  return text ? text.trim() : null;
+}
 
 async function callOpenAIChat(systemContext, userMessage) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -2860,9 +2954,9 @@ async function callOpenAIChat(systemContext, userMessage) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      max_tokens: 2000,
+      max_tokens: 4096,
       messages: [
-        { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext },
+        { role: 'system', content: buildAISystemContent(systemContext) },
         { role: 'user', content: userMessage }
       ]
     })
@@ -2874,6 +2968,14 @@ async function callOpenAIChat(systemContext, userMessage) {
   const data = await response.json();
   const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
   return content ? content.trim() : null;
+}
+
+/** Prefer Anthropic (Claude Sonnet-class) when ANTHROPIC_API_KEY is set; else OpenAI. */
+async function callAIChat(systemContext, userMessage) {
+  if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
+    return callAnthropicChat(systemContext, userMessage);
+  }
+  return callOpenAIChat(systemContext, userMessage);
 }
 
 function buildPoliteFallbackReply(context, question) {
@@ -3007,13 +3109,17 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     // ── End campaign command detection ───────────────────────────────────────
 
     const context = await getAdminAIContext();
-    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());;
+    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
+    const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim());
+    const hasAI = hasOpenAI || hasAnthropic;
 
-    if (hasOpenAI) {
-      reply = await callOpenAIChat(context, text);
+    if (hasAI) {
+      reply = await callAIChat(context, text);
     }
     if (reply == null || reply === '') {
-      reply = hasOpenAI ? 'I could not generate an answer right now. Please try again in a moment.' : 'To get answers to your questions (like ChatGPT, using your live data), add OPENAI_API_KEY to the server .env file and restart. Until then I cannot answer questions.';
+      reply = hasAI
+        ? 'I could not generate an answer right now. Please try again in a moment.'
+        : 'To enable AI answers using your live data, add ANTHROPIC_API_KEY (Claude Sonnet recommended) and/or OPENAI_API_KEY to the server .env file and restart.';
     }
     return res.json({ reply });
   } catch (e) {
