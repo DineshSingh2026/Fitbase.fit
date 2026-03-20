@@ -992,8 +992,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .part2-copy-btn:hover{background:rgba(200,164,78,0.2)}
 .admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0;white-space:nowrap}
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
-/* AI Assist button in admin top bar (web/desktop only) */
-.admin-ai-assist-top-btn{display:none}
+/* AI Assist top bar: #adminAiAssistTopBtn in .bb-desktop-dashboard .admin-topbar; styles in @media (min-width:768px) */
 .admin-top-hamburger{display:none}
 .admin-body{max-width:1400px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(90px,calc(80px + env(safe-area-inset-bottom)));min-width:0;overflow:visible;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
 .admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
@@ -2036,6 +2035,37 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     transform:translateY(-1px);
   }
 
+  /* AI Assist — desktop dashboard header (bottom-nav AI is hidden on desktop) */
+  .admin-topbar .bb-top-ai-btn{
+    display:inline-flex !important;
+    align-items:center;
+    gap:8px;
+    background:linear-gradient(135deg, rgba(0,180,216,0.18), rgba(0,120,160,0.08));
+    border:1px solid rgba(0,180,216,0.45);
+    color:var(--bb-text);
+    padding:8px 14px;
+    border-radius:10px;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:none;
+    cursor:pointer;
+    font-family:inherit;
+    line-height:1;
+    transition:all 0.2s ease;
+  }
+  .admin-topbar .bb-top-ai-btn img{flex-shrink:0;border-radius:6px}
+  .admin-topbar .bb-top-ai-btn:hover{
+    border-color:var(--bb-gold);
+    color:var(--bb-gold);
+    box-shadow:0 4px 16px rgba(201,168,76,0.15);
+  }
+  .admin-topbar .bb-top-ai-btn.admin-ai-assist-top-btn-active{
+    border-color:var(--bb-gold);
+    background:rgba(201,168,76,0.14);
+    color:var(--bb-gold);
+  }
+
   /* Stat cards */
   .bb-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
   .bb-stat-card{
@@ -2893,6 +2923,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
+        <a class="admin-sidebar-link" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128161;</span>AI Assist</a>
         <a class="admin-sidebar-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128260;</span>Add to Home Screen</a>
       </nav>
     </aside>
@@ -2937,6 +2968,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-nav-link" href="#" data-section="messages" onclick="switchToSection('messages');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128172;</span>Messages
         </a>
+        <a class="admin-nav-link" href="#" onclick="toggleAdminAiAssistPanel();closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#128161;</span>AI Assist
+        </a>
         <a class="admin-nav-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();closeAdminNavDrawer();return false" aria-label="Add to Home Screen">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128260;</span>Add to Home Screen
         </a>
@@ -2966,6 +3000,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <h1>Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h1>
           <div class="topbar-right">
             <input type="search" placeholder="Search..." aria-label="Search">
+            <button type="button" id="adminAiAssistTopBtn" class="bb-top-ai-btn admin-ai-assist-top-btn" onclick="toggleAdminAiAssistPanel();return false" aria-label="Open AI Assist" title="AI Assist">
+              <img src="AI%20assist.jpg" alt="" width="22" height="22">
+              <span>AI Assist</span>
+            </button>
             <span class="bb-top-icon" aria-hidden="true">🔔</span>
             <span class="bb-top-user">Admin ▾</span>
             <button type="button" class="bb-top-logout" onclick="logoutAdmin()">Logout</button>
@@ -3063,6 +3101,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
+          <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
       </div>
       <div class="admin-dash-page">
