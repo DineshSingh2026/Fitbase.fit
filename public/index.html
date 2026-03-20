@@ -6112,7 +6112,13 @@ function destroyAdminProgressCharts() {
 function drawAdminProgressCharts(logs) {
   if (typeof Chart === 'undefined') return;
   destroyAdminProgressCharts();
-  var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+  var sorted = (logs || []).slice().sort(function(a,b) {
+    var da = new Date(a && a.created_at).getTime();
+    var db = new Date(b && b.created_at).getTime();
+    da = isNaN(da) ? 0 : da;
+    db = isNaN(db) ? 0 : db;
+    return da - db;
+  });
   var labels = sorted.map(function(l) {
     var d = new Date(l.created_at);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -6279,8 +6285,27 @@ async function loadAdminUserProgressDetail(userId, userName) {
     ];
     kpisEl.innerHTML = kpis.map(function(k) { return '<div class="admin-cp-kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');
     kpisEl.style.display = 'grid';
-    if (data.insights && data.insights.length) detailEl.innerHTML += '<p class="progress-insights" style="margin-top:12px"><strong>Insights:</strong> ' + data.insights.join(' • ') + '</p>';
-    drawAdminProgressCharts(data.logs || []);
+    var insightLines = [];
+    if (data.insights != null) {
+      if (Array.isArray(data.insights)) insightLines = data.insights.map(function(x) { return String(x); });
+      else insightLines = [String(data.insights)];
+    }
+    if (insightLines.length) detailEl.innerHTML += '<p class="progress-insights" style="margin-top:12px"><strong>Insights:</strong> ' + insightLines.join(' • ') + '</p>';
+    try {
+      var prevChartErr = document.getElementById('adminCpChartsError');
+      if (prevChartErr) prevChartErr.remove();
+      drawAdminProgressCharts(data.logs || []);
+    } catch (chartErr) {
+      console.error('Admin progress charts error:', chartErr);
+      var prevChartErr = document.getElementById('adminCpChartsError');
+      if (prevChartErr) prevChartErr.remove();
+      var warn = document.createElement('p');
+      warn.id = 'adminCpChartsError';
+      warn.className = 'admin-cp-error-msg';
+      warn.style.marginBottom = '12px';
+      warn.textContent = 'Charts could not be drawn for this client. KPIs above are still valid.';
+      chartsEl.insertBefore(warn, chartsEl.firstChild);
+    }
     chartsEl.style.display = 'grid';
     if (kpisEl.scrollIntoView) kpisEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (err) {

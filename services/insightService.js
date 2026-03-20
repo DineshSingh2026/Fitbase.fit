@@ -1,5 +1,14 @@
 const db = require('../config/db');
 
+function averageStrengthTriplet(l) {
+  if (!l) return null;
+  const vals = [l.strength_bench, l.strength_squat, l.strength_deadlift]
+    .map((v) => (v != null && v !== '' && !Number.isNaN(Number(v)) ? parseFloat(v) : null))
+    .filter((v) => v != null);
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
 /**
  * Logic-based AI insights.
  */
@@ -32,9 +41,9 @@ async function getInsights(userId) {
   if (withStrength.length >= 2) {
     const first = withStrength[0];
     const last = withStrength[withStrength.length - 1];
-    const firstAvg = [first.strength_bench, first.strength_squat, first.strength_deadlift].filter(Boolean).reduce((a, b) => a + parseFloat(b), 0) / 3;
-    const lastAvg = [last.strength_bench, last.strength_squat, last.strength_deadlift].filter(Boolean).reduce((a, b) => a + parseFloat(b), 0) / 3;
-    if (firstAvg > 0 && lastAvg > 0) {
+    const firstAvg = averageStrengthTriplet(first);
+    const lastAvg = averageStrengthTriplet(last);
+    if (firstAvg != null && lastAvg != null && firstAvg > 0 && lastAvg > 0) {
       const growth = ((lastAvg - firstAvg) / firstAvg) * 100;
       if (growth > 10) {
         insights.push('Strength Milestone Achieved');

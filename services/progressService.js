@@ -68,6 +68,16 @@ function parseSleepFromText(txt) {
   return m ? parseFloat(m[1]) : null;
 }
 
+/** Average of logged lifts (bench/squat/DL); includes 0 as valid — do not use filter(Boolean). */
+function averageStrengthTriplet(l) {
+  if (!l) return null;
+  const vals = [l.strength_bench, l.strength_squat, l.strength_deadlift]
+    .map((v) => (v != null && v !== '' && !Number.isNaN(Number(v)) ? parseFloat(v) : null))
+    .filter((v) => v != null);
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
 function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
   const byDate = {};
 
@@ -152,9 +162,11 @@ async function getAdminUserProgress(userId) {
   if (withStrength.length >= 2) {
     const first = withStrength[0];
     const last = withStrength[withStrength.length - 1];
-    const firstAvg = [first.strength_bench, first.strength_squat, first.strength_deadlift].filter(Boolean).reduce((a, b) => a + parseFloat(b), 0) / 3;
-    const lastAvg = [last.strength_bench, last.strength_squat, last.strength_deadlift].filter(Boolean).reduce((a, b) => a + parseFloat(b), 0) / 3;
-    if (firstAvg > 0) strengthGrowth = (((lastAvg - firstAvg) / firstAvg) * 100).toFixed(1);
+    const firstAvg = averageStrengthTriplet(first);
+    const lastAvg = averageStrengthTriplet(last);
+    if (firstAvg != null && lastAvg != null && firstAvg > 0) {
+      strengthGrowth = (((lastAvg - firstAvg) / firstAvg) * 100).toFixed(1);
+    }
   }
 
   const total = logs.length;
