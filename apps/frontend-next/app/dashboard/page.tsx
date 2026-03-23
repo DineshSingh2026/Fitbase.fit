@@ -27,6 +27,10 @@ export default function DashboardPage() {
   const [threads, setThreads] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [forms, setForms] = useState<any[]>([]);
+  const [dailyCheckins, setDailyCheckins] = useState<any[]>([]);
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [isUserActionBusy, setIsUserActionBusy] = useState<string>("");
   const [selectedThreadId, setSelectedThreadId] = useState<string>("");
   const [threadMessages, setThreadMessages] = useState<any[]>([]);
   const [replyText, setReplyText] = useState("");
@@ -63,15 +67,21 @@ export default function DashboardPage() {
       fetch(`${APP_SITE_BASE}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${APP_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${APP_SITE_BASE}/api/admin/users`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${APP_SITE_BASE}/api/admin/audit-requests`, { headers }).then((r) => r.json()).catch(() => [])
+      fetch(`${APP_SITE_BASE}/api/admin/audit-requests`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${APP_SITE_BASE}/api/admin/daily-checkins`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${APP_SITE_BASE}/api/admin/workouts`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${APP_SITE_BASE}/api/admin/pending-signups`, { headers }).then((r) => r.json()).catch(() => [])
     ])
-      .then(([s, a, t, u, f]) => {
+      .then(([s, a, t, u, f, d, w, p]) => {
         if (s?.error) setError(s.error);
         setStats(s || null);
         setActivity(Array.isArray(a) ? a : []);
         setThreads(Array.isArray(t) ? t : []);
         setClients(Array.isArray(u) ? u : []);
         setForms(Array.isArray(f) ? f : []);
+        setDailyCheckins(Array.isArray(d) ? d : []);
+        setWorkouts(Array.isArray(w) ? w : []);
+        setPendingUsers(Array.isArray(p) ? p : []);
       })
       .catch(() => setError("Failed to load dashboard data."));
   }, [session]);
@@ -126,6 +136,28 @@ export default function DashboardPage() {
       setThreadMessages(Array.isArray(data) ? data : []);
     } finally {
       setIsReplying(false);
+    }
+  }
+
+  async function updatePendingUser(userId: string, action: "approve" | "reject") {
+    if (!session?.token || !userId) return;
+    setIsUserActionBusy(userId + action);
+    try {
+      const endpoint =
+        action === "approve"
+          ? `${APP_SITE_BASE}/api/admin/approve-user/${encodeURIComponent(userId)}`
+          : `${APP_SITE_BASE}/api/admin/reject-user/${encodeURIComponent(userId)}`;
+      const r = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Failed");
+      setPendingUsers((prev) => prev.filter((u: any) => String(u.id) !== String(userId)));
+    } catch (e: any) {
+      setError(e?.message || "Failed to update user.");
+    } finally {
+      setIsUserActionBusy("");
     }
   }
 
@@ -243,6 +275,80 @@ export default function DashboardPage() {
                 </ul>
               ) : (
                 <p style={{ margin: 0, color: s.muted }}>No recent activity.</p>
+              )}
+            </div>
+
+            <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>PENDING SIGN-UPS</h2>
+            <div style={cardBase}>
+              {pendingUsers.length ? (
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                  {pendingUsers.slice(0, 8).map((u: any) => {
+                    const id = String(u.id || "");
+                    const approveBusy = isUserActionBusy === id + "approve";
+                    const rejectBusy = isUserActionBusy === id + "reject";
+                    return (
+                      <li key={id} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                        <div style={{ fontWeight: 700 }}>
+                          {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "User"}
+                        </div>
+                        <div style={{ color: s.muted, fontSize: 12 }}>{u.email || "No email"}</div>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <button
+                            onClick={() => updatePendingUser(id, "approve")}
+                            disabled={approveBusy || rejectBusy}
+                            style={{ border: "none", background: "#2f9a64", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
+                          >
+                            {approveBusy ? "..." : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => updatePendingUser(id, "reject")}
+                            disabled={approveBusy || rejectBusy}
+                            style={{ border: "none", background: "#b85e5e", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
+                          >
+                            {rejectBusy ? "..." : "Reject"}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, color: s.muted }}>No pending sign-ups.</p>
+              )}
+            </div>
+
+            <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>CHECK-INS</h2>
+            <div style={cardBase}>
+              {dailyCheckins.length ? (
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                  {dailyCheckins.slice(0, 6).map((c: any) => (
+                    <li key={String(c.id || `${c.user_id}-${c.checkin_date}`)} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                      <strong>{[c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || "Client"}</strong>
+                      <span style={{ color: s.muted, fontSize: 12 }}> - {c.checkin_date || "No date"}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, color: s.muted }}>No recent check-ins.</p>
+              )}
+            </div>
+
+            <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>WORKOUTS</h2>
+            <div style={cardBase}>
+              {workouts.length ? (
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                  {workouts.slice(0, 6).map((w: any) => (
+                    <li key={String(w.id || `${w.user_id}-${w.created_at}`)} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                      <strong>{[w.first_name, w.last_name].filter(Boolean).join(" ") || "Client"}</strong>
+                      <span style={{ color: s.muted, fontSize: 12 }}>
+                        {" "}
+                        - {w.workout_name || "Workout"} ({Math.floor((Number(w.duration_seconds) || 0) / 60)} min)
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, color: s.muted }}>No recent workouts.</p>
               )}
             </div>
           </>
