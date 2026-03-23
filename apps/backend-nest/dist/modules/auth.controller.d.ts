@@ -5,6 +5,8 @@ export declare class AuthController {
     private readonly pool;
     private readonly authService;
     constructor(pool: Pool | null, authService: AuthService);
+    private getUserByEmail;
+    private getUserById;
     login(body: {
         email?: string;
         password?: string;

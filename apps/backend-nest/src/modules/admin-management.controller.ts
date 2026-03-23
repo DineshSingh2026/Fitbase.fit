@@ -282,7 +282,7 @@ export class AdminManagementController {
       sql += " ORDER BY created_at DESC LIMIT 300";
       return res.json(await this.safeRows(sql, params));
     } catch {
-      return res.status(500).json([]);
+      return res.json([]);
     }
   }
 
@@ -312,7 +312,7 @@ export class AdminManagementController {
       }
       return res.json(rows);
     } catch {
-      return res.status(500).json([]);
+      return res.json([]);
     }
   }
 
@@ -580,7 +580,7 @@ export class AdminManagementController {
       );
       return res.json(activities.slice(0, limit));
     } catch {
-      return res.status(500).json([]);
+      return res.json([]);
     }
   }
 

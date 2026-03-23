@@ -14,6 +14,8 @@ import { NotificationsController } from "./notifications.controller";
 import { ProgramsController } from "./programs.controller";
 import { BootstrapService } from "./bootstrap.service";
 import { StatsController } from "./stats.controller";
+import { TrainerCompatController } from "./trainer-compat.controller";
+import { PushController } from "./push.controller";
 
 @Module({
   imports: [
@@ -32,7 +34,9 @@ import { StatsController } from "./stats.controller";
     NotificationsController,
     ProgramsController,
     AdminController,
-    StatsController
+    StatsController,
+    TrainerCompatController,
+    PushController
   ],
   providers: [AuthService, RolesGuard, BootstrapService]
 })

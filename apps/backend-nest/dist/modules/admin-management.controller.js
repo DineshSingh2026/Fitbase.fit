@@ -29,6 +29,19 @@ let AdminManagementController = class AdminManagementController {
     constructor(pool) {
         this.pool = pool;
     }
+    async safeRows(sql, params = []) {
+        if (!this.pool)
+            return [];
+        try {
+            const r = await this.pool.query(sql, params);
+            return r.rows || [];
+        }
+        catch (e) {
+            if (e?.code === "42P01" || e?.code === "42703")
+                return [];
+            throw e;
+        }
+    }
     async pendingSignups(req, res) {
         if (!this.pool)
             return res.status(500).json({ error: "Failed to fetch pending sign-ups" });
@@ -181,20 +194,26 @@ let AdminManagementController = class AdminManagementController {
             ]);
             const tribeId = (0, crypto_1.randomUUID)();
             const today = new Date().toISOString().split("T")[0];
-            await this.pool.query("INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12)", [
-                tribeId,
-                body?.first_name || "",
-                body?.last_name || "",
-                emailNorm,
-                body?.phone || "",
-                country,
-                today,
-                null,
-                null,
-                null,
-                "",
-                "Added by trainer dashboard"
-            ]);
+            try {
+                await this.pool.query("INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12)", [
+                    tribeId,
+                    body?.first_name || "",
+                    body?.last_name || "",
+                    emailNorm,
+                    body?.phone || "",
+                    country,
+                    today,
+                    null,
+                    null,
+                    null,
+                    "",
+                    "Added by trainer dashboard"
+                ]);
+            }
+            catch (e) {
+                if (!(e?.code === "42P01" || e?.code === "42703"))
+                    throw e;
+            }
             return res.json({
                 id,
                 email: emailNorm,
@@ -205,8 +224,184 @@ let AdminManagementController = class AdminManagementController {
                 trainer_id: trainerId || null
             });
         }
+        catch (e) {
+            return res.status(500).json({ error: e?.message || "Failed to create client" });
+        }
+    }
+    async auditRequests(req, res) {
+        if (!this.pool)
+            return res.status(500).json([]);
+        try {
+            const from = req.query?.from ? String(req.query.from) : null;
+            const to = req.query?.to ? String(req.query.to) : null;
+            const where = [];
+            const params = [];
+            if (from) {
+                params.push(from);
+                where.push(`date(created_at) >= date($${params.length})`);
+            }
+            if (to) {
+                params.push(to);
+                where.push(`date(created_at) <= date($${params.length})`);
+            }
+            let sql = "SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests";
+            if (where.length)
+                sql += " WHERE " + where.join(" AND ");
+            sql += " ORDER BY created_at DESC LIMIT 300";
+            return res.json(await this.safeRows(sql, params));
+        }
         catch {
-            return res.status(500).json({ error: "Failed to create client" });
+            return res.json([]);
+        }
+    }
+    async sundayCheckins(req, res) {
+        if (!this.pool)
+            return res.status(500).json([]);
+        try {
+            const from = req.query?.from ? String(req.query.from) : null;
+            const to = req.query?.to ? String(req.query.to) : null;
+            const where = [];
+            const params = [];
+            if (from) {
+                params.push(from);
+                where.push(`date(created_at) >= date($${params.length})`);
+            }
+            if (to) {
+                params.push(to);
+                where.push(`date(created_at) <= date($${params.length})`);
+            }
+            let sql = "SELECT id, user_id, full_name, reply_email, total_weight_loss, achievements, created_at FROM sunday_checkins";
+            if (where.length)
+                sql += " WHERE " + where.join(" AND ");
+            sql += " ORDER BY created_at DESC LIMIT 300";
+            let rows = await this.safeRows(sql, params);
+            if (isAdmin(req.user)) {
+                rows = rows.filter((r) => !r.user_id || String(r.user_id) === String(req.user.id));
+            }
+            return res.json(rows);
+        }
+        catch {
+            return res.json([]);
+        }
+    }
+    async dailyCheckins(req, res) {
+        if (!this.pool)
+            return res.status(500).json([]);
+        try {
+            const from = req.query?.from ? String(req.query.from) : null;
+            const to = req.query?.to ? String(req.query.to) : null;
+            const where = [];
+            const params = [];
+            if (from) {
+                params.push(from);
+                where.push(`date(dc.checkin_date) >= date($${params.length})`);
+            }
+            if (to) {
+                params.push(to);
+                where.push(`date(dc.checkin_date) <= date($${params.length})`);
+            }
+            let sql = "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id";
+            if (where.length)
+                sql += " WHERE " + where.join(" AND ");
+            sql += " ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 400";
+            let rows = await this.safeRows(sql, params);
+            if (isAdmin(req.user)) {
+                rows = rows.filter((r) => String(r.trainer_id || "") === String(req.user.id));
+            }
+            return res.json(rows);
+        }
+        catch {
+            return res.status(500).json([]);
+        }
+    }
+    async dailyCheckinById(id, req, res) {
+        if (!this.pool)
+            return res.status(500).json({ error: "Not found" });
+        try {
+            const rows = await this.safeRows("SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE dc.id = $1 LIMIT 1", [id]);
+            const row = rows[0];
+            if (!row)
+                return res.status(404).json({ error: "Not found" });
+            if (isAdmin(req.user) && String(row.trainer_id || "") !== String(req.user.id)) {
+                return res.status(403).json({ error: "Access denied" });
+            }
+            return res.json(row);
+        }
+        catch {
+            return res.status(500).json({ error: "Not found" });
+        }
+    }
+    async workouts(req, res) {
+        if (!this.pool)
+            return res.status(500).json([]);
+        try {
+            const from = req.query?.from ? String(req.query.from) : null;
+            const to = req.query?.to ? String(req.query.to) : null;
+            const where = [];
+            const params = [];
+            if (from) {
+                params.push(from);
+                where.push(`date(w.created_at) >= date($${params.length})`);
+            }
+            if (to) {
+                params.push(to);
+                where.push(`date(w.created_at) <= date($${params.length})`);
+            }
+            let sql = "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id";
+            if (where.length)
+                sql += " WHERE " + where.join(" AND ");
+            sql += " ORDER BY w.created_at DESC LIMIT 400";
+            let rows = await this.safeRows(sql, params);
+            if (isAdmin(req.user)) {
+                rows = rows.filter((r) => String(r.trainer_id || "") === String(req.user.id));
+            }
+            return res.json(rows);
+        }
+        catch {
+            return res.status(500).json([]);
+        }
+    }
+    async workoutById(id, req, res) {
+        if (!this.pool)
+            return res.status(500).json({ error: "Not found" });
+        try {
+            const rows = await this.safeRows("SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id WHERE w.id = $1 LIMIT 1", [id]);
+            const row = rows[0];
+            if (!row)
+                return res.status(404).json({ error: "Not found" });
+            if (isAdmin(req.user) && String(row.trainer_id || "") !== String(req.user.id)) {
+                return res.status(403).json({ error: "Access denied" });
+            }
+            return res.json(row);
+        }
+        catch {
+            return res.status(500).json({ error: "Not found" });
+        }
+    }
+    async part2Submissions(req, res) {
+        if (!this.pool)
+            return res.status(500).json([]);
+        try {
+            const from = req.query?.from ? String(req.query.from) : null;
+            const to = req.query?.to ? String(req.query.to) : null;
+            const where = [];
+            const params = [];
+            if (from) {
+                params.push(from);
+                where.push(`date(created_at) >= date($${params.length})`);
+            }
+            if (to) {
+                params.push(to);
+                where.push(`date(created_at) <= date($${params.length})`);
+            }
+            let sql = "SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit";
+            if (where.length)
+                sql += " WHERE " + where.join(" AND ");
+            sql += " ORDER BY created_at DESC LIMIT 300";
+            return res.json(await this.safeRows(sql, params));
+        }
+        catch {
+            return res.status(500).json([]);
         }
     }
     async users(req, res) {
@@ -320,7 +515,7 @@ let AdminManagementController = class AdminManagementController {
             return res.json(activities.slice(0, limit));
         }
         catch {
-            return res.status(500).json([]);
+            return res.json([]);
         }
     }
     async performanceInsights(req, res) {
@@ -529,6 +724,64 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object, Object]),
     __metadata("design:returntype", Promise)
 ], AdminManagementController.prototype, "createClient", null);
+__decorate([
+    (0, common_1.Get)("audit-requests"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "auditRequests", null);
+__decorate([
+    (0, common_1.Get)("sunday-checkins"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "sundayCheckins", null);
+__decorate([
+    (0, common_1.Get)("daily-checkins"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "dailyCheckins", null);
+__decorate([
+    (0, common_1.Get)("daily-checkins/:id"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "dailyCheckinById", null);
+__decorate([
+    (0, common_1.Get)("workouts"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "workouts", null);
+__decorate([
+    (0, common_1.Get)("workouts/:id"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Req)()),
+    __param(2, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "workoutById", null);
+__decorate([
+    (0, common_1.Get)("part2-submissions"),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminManagementController.prototype, "part2Submissions", null);
 __decorate([
     (0, common_1.Get)("users"),
     __param(0, (0, common_1.Req)()),

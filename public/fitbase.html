@@ -21,6 +21,9 @@
     .menu{display:flex;gap:28px;align-items:center}
     .menu a{color:var(--muted);text-decoration:none;font-size:12px;letter-spacing:.18em;text-transform:uppercase}
     .mobile-login{display:none}
+    @media(min-width:981px){
+      .mobile-login{display:none !important}
+    }
     .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid var(--line);padding:13px 22px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:12px;color:var(--text);background:transparent}
     .btn.gold{background:linear-gradient(135deg,#9b7648,#7e5f37);color:#fff;border:none}
     .hero{padding:78px 0 52px;border-bottom:1px solid var(--line)}

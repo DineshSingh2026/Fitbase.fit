@@ -3,6 +3,19 @@ import { Pool } from "pg";
 export declare class SuperadminController {
     private readonly pool;
     constructor(pool: Pool | null);
+    private get secret();
+    private signShareToken;
+    private verifyShareToken;
+    private safeRows;
+    private safeCount;
+    private getSuperadminDashboardData;
+    dashboard(req: any, res: Response): Promise<Response<any, Record<string, any>>>;
+    shareLink(body: {
+        from?: string | null;
+        to?: string | null;
+        user_id?: string | null;
+    }, req: any, res: Response): Promise<Response<any, Record<string, any>>>;
+    shared(req: any, res: Response): Promise<Response<any, Record<string, any>>>;
     trainers(res: Response): Promise<Response<any, Record<string, any>>>;
     trainerClientOverview(res: Response): Promise<Response<any, Record<string, any>>>;
     trainerRequests(res: Response): Promise<Response<any, Record<string, any>>>;

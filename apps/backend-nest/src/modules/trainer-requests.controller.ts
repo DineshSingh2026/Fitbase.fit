@@ -7,6 +7,36 @@ import type { Response } from "express";
 export class TrainerRequestsController {
   constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
 
+  private async ensureTrainerRequestsTable() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS trainer_requests (
+        id uuid PRIMARY KEY,
+        full_name text NOT NULL,
+        email text NOT NULL,
+        phone text,
+        gym_name text,
+        city text,
+        message text,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS trainer_requests_email_idx ON trainer_requests (LOWER(email))`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS trainer_requests_status_idx ON trainer_requests (status)`
+    );
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS phone text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS gym_name text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS city text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS message text`);
+    await this.pool.query(
+      `ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`
+    );
+  }
+
   @Post("trainer-requests")
   async createTrainerRequest(
     @Body()
@@ -23,6 +53,7 @@ export class TrainerRequestsController {
     if (!this.pool) return res.status(500).json({ error: "Failed to submit trainer request" });
 
     try {
+      await this.ensureTrainerRequestsTable();
       const name = String(body?.full_name || "").trim();
       const emailNorm = String(body?.email || "").trim().toLowerCase();
       if (!name || !emailNorm) {

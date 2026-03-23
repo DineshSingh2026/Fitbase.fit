@@ -22,6 +22,44 @@ let AuthController = class AuthController {
         this.pool = pool;
         this.authService = authService;
     }
+    async getUserByEmail(email) {
+        if (!this.pool)
+            return null;
+        try {
+            const userRes = await this.pool.query(`SELECT id, email, password, first_name, last_name, profile_picture, role, country, timezone, trainer_id, approval_status, suspended
+         FROM users
+         WHERE LOWER(email) = $1
+         LIMIT 1`, [email]);
+            return userRes.rows[0] || null;
+        }
+        catch (err) {
+            if (err?.code !== "42703")
+                throw err;
+            const fallback = await this.pool.query(`SELECT * FROM users
+         WHERE LOWER(email) = $1
+         LIMIT 1`, [email]);
+            return fallback.rows[0] || null;
+        }
+    }
+    async getUserById(id) {
+        if (!this.pool)
+            return null;
+        try {
+            const userRes = await this.pool.query(`SELECT id, email, first_name, last_name, profile_picture, role, country, timezone, trainer_id
+         FROM users
+         WHERE id = $1
+         LIMIT 1`, [id]);
+            return userRes.rows[0] || null;
+        }
+        catch (err) {
+            if (err?.code !== "42703")
+                throw err;
+            const fallback = await this.pool.query(`SELECT * FROM users
+         WHERE id = $1
+         LIMIT 1`, [id]);
+            return fallback.rows[0] || null;
+        }
+    }
     async login(body, res) {
         if (!this.pool) {
             return res.status(500).json({ error: "Server error. Please try again." });
@@ -32,11 +70,7 @@ let AuthController = class AuthController {
             return res.status(400).json({ error: "Email and password required" });
         }
         try {
-            const userRes = await this.pool.query(`SELECT id, email, password, first_name, last_name, profile_picture, role, country, timezone, trainer_id, approval_status, suspended
-         FROM users
-         WHERE LOWER(email) = $1
-         LIMIT 1`, [email]);
-            const user = userRes.rows[0];
+            const user = await this.getUserByEmail(email);
             if (!user) {
                 return res.status(401).json({ error: "Invalid email or password" });
             }
@@ -93,11 +127,7 @@ let AuthController = class AuthController {
         const id = String(req.user?.id || "");
         if (!id)
             throw new common_1.UnauthorizedException("Invalid token");
-        const userRes = await this.pool.query(`SELECT id, email, first_name, last_name, profile_picture, role, country, timezone, trainer_id
-       FROM users
-       WHERE id = $1
-       LIMIT 1`, [id]);
-        const user = userRes.rows[0];
+        const user = await this.getUserById(id);
         if (!user)
             throw new common_1.UnauthorizedException("User not found");
         return user;

@@ -11,7 +11,6 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const health_controller_1 = require("./health.controller");
 const database_module_1 = require("./database.module");
-const legacy_proxy_controller_1 = require("./legacy-proxy.controller");
 const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./auth.service");
 const roles_guard_1 = require("./roles.guard");
@@ -22,6 +21,10 @@ const superadmin_controller_1 = require("./superadmin.controller");
 const admin_management_controller_1 = require("./admin-management.controller");
 const notifications_controller_1 = require("./notifications.controller");
 const programs_controller_1 = require("./programs.controller");
+const bootstrap_service_1 = require("./bootstrap.service");
+const stats_controller_1 = require("./stats.controller");
+const trainer_compat_controller_1 = require("./trainer-compat.controller");
+const push_controller_1 = require("./push.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -43,9 +46,11 @@ exports.AppModule = AppModule = __decorate([
             notifications_controller_1.NotificationsController,
             programs_controller_1.ProgramsController,
             admin_controller_1.AdminController,
-            legacy_proxy_controller_1.LegacyProxyController
+            stats_controller_1.StatsController,
+            trainer_compat_controller_1.TrainerCompatController,
+            push_controller_1.PushController
         ],
-        providers: [auth_service_1.AuthService, roles_guard_1.RolesGuard]
+        providers: [auth_service_1.AuthService, roles_guard_1.RolesGuard, bootstrap_service_1.BootstrapService]
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

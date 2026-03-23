@@ -3,6 +3,7 @@ import type { Response } from "express";
 export declare class TrainerRequestsController {
     private readonly pool;
     constructor(pool: Pool | null);
+    private ensureTrainerRequestsTable;
     createTrainerRequest(body: {
         full_name?: string;
         email?: string;

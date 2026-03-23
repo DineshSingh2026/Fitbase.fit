@@ -287,7 +287,7 @@ let NotificationsController = class NotificationsController {
             return res.json(notifications.slice(0, maxItems));
         }
         catch {
-            return res.status(500).json([]);
+            return res.json([]);
         }
     }
 };

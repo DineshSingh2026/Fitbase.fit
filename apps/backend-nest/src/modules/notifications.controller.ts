@@ -322,7 +322,7 @@ export class NotificationsController {
       const maxItems = isAdmin ? 150 : 40;
       return res.json(notifications.slice(0, maxItems));
     } catch {
-      return res.status(500).json([]);
+      return res.json([]);
     }
   }
 }
