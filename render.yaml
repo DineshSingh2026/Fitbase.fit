@@ -15,8 +15,6 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: LEGACY_SERVER_URL
-        sync: false
 
   - type: web
     name: fitbase-frontend-next
@@ -27,6 +25,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NEXT_PUBLIC_APP_SITE_URL
+        sync: false
       - key: NEXT_PUBLIC_LEGACY_SITE_URL
         sync: false
       - key: BACKEND_URL

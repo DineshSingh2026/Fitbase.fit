@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { HealthController } from "./health.controller";
 import { DatabaseModule } from "./database.module";
-import { LegacyProxyController } from "./legacy-proxy.controller";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { RolesGuard } from "./roles.guard";
@@ -30,8 +29,7 @@ import { ProgramsController } from "./programs.controller";
     AdminManagementController,
     NotificationsController,
     ProgramsController,
-    AdminController,
-    LegacyProxyController
+    AdminController
   ],
   providers: [AuthService, RolesGuard]
 })
