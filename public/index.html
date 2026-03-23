@@ -5102,25 +5102,7 @@ async function adminLogin() {
     if (data.role === 'admin' && !data.token) {
       console.warn('Admin login response missing token – Client Progress will require re-login.');
     }
-    if (data.role === 'admin') {
-      document.getElementById('adminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadDashboard();
-    } else if (data.role === 'superadmin') {
-      document.getElementById('superadminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadSuperadminDashboard();
-    } else {
-      // Store user data and show popup
-      window._pendingUser = data;
-      showPopup('Welcome, ' + data.first_name + '!', 'Your transformation journey continues.', 'CONSISTENCY has its fruits, so does PATIENCE.', "Let's Go", function() {
-        openUserDashboard(window._pendingUser);
-      });
-    }
+    redirectToNextDashboard();
   } catch (e) {
     if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
     const msg = e && e.message ? e.message : 'Could not connect to server.';
@@ -9147,21 +9129,7 @@ function handleGoogleResponse(response) {
     closeModal('signupModal');
     closeModal('googleCompleteModal');
     _pendingGoogleToken = null;
-    if (data.role === 'admin') {
-      document.getElementById('adminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadDashboard();
-    } else if (data.role === 'superadmin') {
-      document.getElementById('superadminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadSuperadminDashboard();
-    } else {
-      openUserDashboard(data);
-    }
+    redirectToNextDashboard();
   }).catch(function(e) {
     showPopup('Error', 'Google authentication failed. Please try again.', '', 'OK');
   });
@@ -9175,34 +9143,15 @@ function restoreSession() {
     var data = JSON.parse(s);
     if (!data || !data.id || !data.role) return;
     window.currentUser = data;
-    if (data.role === 'admin') {
-      document.getElementById('adminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadDashboard();
-    } else if (data.role === 'superadmin') {
-      document.getElementById('superadminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadSuperadminDashboard();
-    } else {
-      var justResetPassword = false;
-      try {
-        justResetPassword = localStorage.getItem(RESET_SUCCESS_KEY) === '1';
-        if (justResetPassword) localStorage.removeItem(RESET_SUCCESS_KEY);
-      } catch (e) {}
-      if (justResetPassword) {
-        window._pendingUser = data;
-        showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() {
-          openUserDashboard(window._pendingUser);
-        });
-        return;
-      }
-      openUserDashboard(data);
-    }
+    redirectToNextDashboard();
   } catch (e) {}
+}
+
+function redirectToNextDashboard() {
+  var appBase = '';
+  try { appBase = String(window.APP_SITE_BASE || '').replace(/\/+$/, ''); } catch (e) { appBase = ''; }
+  var target = appBase ? (appBase + '/dashboard') : '/dashboard';
+  window.location.replace(target);
 }
 
 // ========== SUPERADMIN DASHBOARD ==========

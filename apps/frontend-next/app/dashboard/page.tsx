@@ -22,6 +22,7 @@ function getSession(): Session | null {
 
 export default function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
+  const role = String(session?.user?.role || "");
   const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [threads, setThreads] = useState<any[]>([]);
@@ -40,6 +41,16 @@ export default function DashboardPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"home" | "clients" | "forms" | "messages" | "ai">("home");
   const [error, setError] = useState("");
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [selectedForm, setSelectedForm] = useState<any | null>(null);
+  const [selectedCheckin, setSelectedCheckin] = useState<any | null>(null);
+  const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
+  const [clientProgress, setClientProgress] = useState<any | null>(null);
+  const [clientProgressLink, setClientProgressLink] = useState("");
+  const [newClient, setNewClient] = useState({ first_name: "", last_name: "", email: "", phone: "", password: "" });
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
+  const [isMeetingUpdating, setIsMeetingUpdating] = useState(false);
 
   const displayName = useMemo(() => {
     const u = session?.user;
@@ -62,6 +73,59 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!session?.token) return;
     const headers = { Authorization: `Bearer ${session.token}` };
+    if (role === "superadmin") {
+      Promise.all([
+        fetch(`${APP_SITE_BASE}/api/superadmin/dashboard`, { headers }).then((r) => r.json()).catch(() => null),
+        fetch(`${APP_SITE_BASE}/api/superadmin/trainer-requests`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${APP_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => [])
+      ])
+        .then(([s, reqs, t]) => {
+          if (s?.error) setError(s.error);
+          const statObj = s?.stats || {};
+          setStats({
+            active_members: Number(statObj.approved_users || 0),
+            daily_checkins: Number(statObj.daily_checkins || 0),
+            pending_signups: Number(statObj.pending_signups || 0),
+            messages: Number(statObj.messages || 0)
+          });
+          setForms(Array.isArray(reqs) ? reqs : []);
+          setThreads(Array.isArray(t) ? t : []);
+          setActivity(Array.isArray(s?.meetings) ? s.meetings.slice(0, 8) : []);
+          setClients(Array.isArray(s?.users) ? s.users : []);
+          setDailyCheckins(Array.isArray(s?.daily_checkins) ? s.daily_checkins : []);
+          setWorkouts(Array.isArray(s?.workouts) ? s.workouts : []);
+          setPendingUsers(Array.isArray(s?.users) ? s.users.filter((u: any) => String(u.approval_status || "").toLowerCase() === "pending") : []);
+        })
+        .catch(() => setError("Failed to load dashboard data."));
+      return;
+    }
+
+    if (role === "user") {
+      const userId = String(session?.user?.id || "");
+      Promise.all([
+        fetch(`${APP_SITE_BASE}/api/workouts/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${APP_SITE_BASE}/api/meetings/user/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${APP_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => [])
+      ])
+        .then(([w, m, t]) => {
+          setStats({
+            active_members: 1,
+            daily_checkins: 0,
+            pending_signups: 0,
+            messages: Array.isArray(t) ? t.length : 0
+          });
+          setWorkouts(Array.isArray(w) ? w : []);
+          setActivity(Array.isArray(m) ? m : []);
+          setThreads(Array.isArray(t) ? t : []);
+          setClients([]);
+          setForms([]);
+          setDailyCheckins([]);
+          setPendingUsers([]);
+        })
+        .catch(() => setError("Failed to load dashboard data."));
+      return;
+    }
+
     Promise.all([
       fetch(`${APP_SITE_BASE}/api/stats`, { headers }).then((r) => r.json()).catch(() => null),
       fetch(`${APP_SITE_BASE}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
@@ -84,7 +148,7 @@ export default function DashboardPage() {
         setPendingUsers(Array.isArray(p) ? p : []);
       })
       .catch(() => setError("Failed to load dashboard data."));
-  }, [session]);
+  }, [session, role]);
 
   useEffect(() => {
     if (!session?.token || !selectedThreadId) return;
@@ -158,6 +222,96 @@ export default function DashboardPage() {
       setError(e?.message || "Failed to update user.");
     } finally {
       setIsUserActionBusy("");
+    }
+  }
+
+  async function openClientDetail(user: any) {
+    setSelectedClient(user || null);
+    setClientProgress(null);
+    setClientProgressLink("");
+    if (!session?.token || !user?.id || role === "user" || role === "superadmin") return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    try {
+      const [progress, linkData] = await Promise.all([
+        fetch(`${APP_SITE_BASE}/api/admin/user-progress/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null),
+        fetch(`${APP_SITE_BASE}/api/admin/progress-report-link/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null)
+      ]);
+      setClientProgress(progress || null);
+      setClientProgressLink(String(linkData?.link || ""));
+    } catch {
+      setClientProgress(null);
+      setClientProgressLink("");
+    }
+  }
+
+  async function openCheckinDetail(checkin: any) {
+    setSelectedCheckin(checkin || null);
+    if (!session?.token || !checkin?.id || role === "user" || role === "superadmin") return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const data = await fetch(`${APP_SITE_BASE}/api/admin/daily-checkins/${encodeURIComponent(String(checkin.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    if (data && !data.error) setSelectedCheckin(data);
+  }
+
+  async function openWorkoutDetail(workout: any) {
+    setSelectedWorkout(workout || null);
+    if (!session?.token || !workout?.id || role === "user" || role === "superadmin") return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const data = await fetch(`${APP_SITE_BASE}/api/admin/workouts/${encodeURIComponent(String(workout.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    if (data && !data.error) setSelectedWorkout(data);
+  }
+
+  async function createClient() {
+    if (!session?.token || role !== "admin") return;
+    const email = newClient.email.trim().toLowerCase();
+    const password = newClient.password.trim();
+    if (!email || !password) {
+      setError("Client email and password are required.");
+      return;
+    }
+    setIsCreatingClient(true);
+    setError("");
+    try {
+      const r = await fetch(`${APP_SITE_BASE}/api/admin/create-client`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({
+          email,
+          password,
+          first_name: newClient.first_name.trim(),
+          last_name: newClient.last_name.trim(),
+          phone: newClient.phone.trim()
+        })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Failed to create client.");
+      setClients((prev) => [data, ...prev]);
+      setNewClient({ first_name: "", last_name: "", email: "", phone: "", password: "" });
+    } catch (e: any) {
+      setError(e?.message || "Failed to create client.");
+    } finally {
+      setIsCreatingClient(false);
+    }
+  }
+
+  async function updateMeetingStatus(status: "cancelled" | "completed" | "scheduled") {
+    if (!session?.token || !selectedMeeting?.id) return;
+    setIsMeetingUpdating(true);
+    try {
+      const r = await fetch(`${APP_SITE_BASE}/api/meetings/${encodeURIComponent(String(selectedMeeting.id))}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ status })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Failed to update meeting.");
+      setSelectedMeeting((prev: any) => (prev ? { ...prev, status } : prev));
+      setActivity((prev) =>
+        prev.map((m: any) => (String(m.id || "") === String(selectedMeeting.id) ? { ...m, status } : m))
+      );
+    } catch (e: any) {
+      setError(e?.message || "Failed to update meeting.");
+    } finally {
+      setIsMeetingUpdating(false);
     }
   }
 
@@ -278,51 +432,61 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>PENDING SIGN-UPS</h2>
-            <div style={cardBase}>
-              {pendingUsers.length ? (
-                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
-                  {pendingUsers.slice(0, 8).map((u: any) => {
-                    const id = String(u.id || "");
-                    const approveBusy = isUserActionBusy === id + "approve";
-                    const rejectBusy = isUserActionBusy === id + "reject";
-                    return (
-                      <li key={id} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
-                        <div style={{ fontWeight: 700 }}>
-                          {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "User"}
-                        </div>
-                        <div style={{ color: s.muted, fontSize: 12 }}>{u.email || "No email"}</div>
-                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                          <button
-                            onClick={() => updatePendingUser(id, "approve")}
-                            disabled={approveBusy || rejectBusy}
-                            style={{ border: "none", background: "#2f9a64", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
-                          >
-                            {approveBusy ? "..." : "Approve"}
-                          </button>
-                          <button
-                            onClick={() => updatePendingUser(id, "reject")}
-                            disabled={approveBusy || rejectBusy}
-                            style={{ border: "none", background: "#b85e5e", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
-                          >
-                            {rejectBusy ? "..." : "Reject"}
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <p style={{ margin: 0, color: s.muted }}>No pending sign-ups.</p>
-              )}
-            </div>
+            {role !== "user" ? (
+              <>
+                <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>PENDING SIGN-UPS</h2>
+                <div style={cardBase}>
+                  {pendingUsers.length ? (
+                    <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                      {pendingUsers.slice(0, 8).map((u: any) => {
+                        const id = String(u.id || "");
+                        const approveBusy = isUserActionBusy === id + "approve";
+                        const rejectBusy = isUserActionBusy === id + "reject";
+                        return (
+                          <li key={id} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                            <div style={{ fontWeight: 700 }}>
+                              {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "User"}
+                            </div>
+                            <div style={{ color: s.muted, fontSize: 12 }}>{u.email || "No email"}</div>
+                            {role === "admin" || role === "superadmin" ? (
+                              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                                <button
+                                  onClick={() => updatePendingUser(id, "approve")}
+                                  disabled={approveBusy || rejectBusy}
+                                  style={{ border: "none", background: "#2f9a64", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
+                                >
+                                  {approveBusy ? "..." : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => updatePendingUser(id, "reject")}
+                                  disabled={approveBusy || rejectBusy}
+                                  style={{ border: "none", background: "#b85e5e", color: "#fff", borderRadius: 8, padding: "8px 10px", fontWeight: 700 }}
+                                >
+                                  {rejectBusy ? "..." : "Reject"}
+                                </button>
+                              </div>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, color: s.muted }}>No pending sign-ups.</p>
+                  )}
+                </div>
+              </>
+            ) : null}
 
             <h2 style={{ margin: "18px 0 8px", color: s.muted, fontSize: 12, letterSpacing: 2 }}>CHECK-INS</h2>
             <div style={cardBase}>
               {dailyCheckins.length ? (
                 <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
                   {dailyCheckins.slice(0, 6).map((c: any) => (
-                    <li key={String(c.id || `${c.user_id}-${c.checkin_date}`)} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                    <li
+                      key={String(c.id || `${c.user_id}-${c.checkin_date}`)}
+                      onClick={() => openCheckinDetail(c)}
+                      style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8, cursor: "pointer" }}
+                    >
                       <strong>{[c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || "Client"}</strong>
                       <span style={{ color: s.muted, fontSize: 12 }}> - {c.checkin_date || "No date"}</span>
                     </li>
@@ -338,7 +502,11 @@ export default function DashboardPage() {
               {workouts.length ? (
                 <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 8 }}>
                   {workouts.slice(0, 6).map((w: any) => (
-                    <li key={String(w.id || `${w.user_id}-${w.created_at}`)} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                    <li
+                      key={String(w.id || `${w.user_id}-${w.created_at}`)}
+                      onClick={() => openWorkoutDetail(w)}
+                      style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8, cursor: "pointer" }}
+                    >
                       <strong>{[w.first_name, w.last_name].filter(Boolean).join(" ") || "Client"}</strong>
                       <span style={{ color: s.muted, fontSize: 12 }}>
                         {" "}
@@ -356,43 +524,149 @@ export default function DashboardPage() {
 
         {activeTab === "clients" ? (
           <div style={{ ...cardBase, marginTop: 12 }}>
-            <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
-              Total clients: <strong style={{ color: s.gold }}>{clients.length}</strong>
-            </div>
-            {clients.length ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
-                {clients.slice(0, 25).map((u: any) => (
-                  <li key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}</div>
-                      <div style={{ color: s.muted, fontSize: 12 }}>{u.email}</div>
-                    </div>
-                    <span style={{ color: s.gold, fontWeight: 700 }}>VIEW</span>
-                  </li>
-                ))}
-              </ul>
+            {role === "user" ? (
+              <>
+                <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+                  Recent workouts: <strong style={{ color: s.gold }}>{workouts.length}</strong>
+                </div>
+                {workouts.length ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                    {workouts.slice(0, 20).map((w: any) => (
+                      <li key={String(w.id || `${w.workout_name}-${w.created_at}`)} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
+                        <div style={{ fontWeight: 700 }}>{w.workout_name || "Workout"}</div>
+                        <div style={{ color: s.muted, fontSize: 12 }}>
+                          {Math.floor((Number(w.duration_seconds) || 0) / 60)} min - {w.created_at ? new Date(w.created_at).toLocaleString() : ""}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: s.muted }}>No workouts yet.</p>
+                )}
+              </>
             ) : (
-              <p style={{ margin: 0, color: s.muted }}>No clients found.</p>
+              <>
+                {role === "admin" ? (
+                  <div style={{ ...cardBase, marginBottom: 12, padding: 12 }}>
+                    <div style={{ color: s.muted, fontSize: 12, marginBottom: 8 }}>ADD NEW CLIENT</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <input
+                        value={newClient.first_name}
+                        onChange={(e) => setNewClient((p) => ({ ...p, first_name: e.target.value }))}
+                        placeholder="First name"
+                        style={{ border: `1px solid ${s.line}`, borderRadius: 8, padding: "9px 10px", font: "inherit", background: "#fff" }}
+                      />
+                      <input
+                        value={newClient.last_name}
+                        onChange={(e) => setNewClient((p) => ({ ...p, last_name: e.target.value }))}
+                        placeholder="Last name"
+                        style={{ border: `1px solid ${s.line}`, borderRadius: 8, padding: "9px 10px", font: "inherit", background: "#fff" }}
+                      />
+                      <input
+                        value={newClient.email}
+                        onChange={(e) => setNewClient((p) => ({ ...p, email: e.target.value }))}
+                        placeholder="Email"
+                        style={{ border: `1px solid ${s.line}`, borderRadius: 8, padding: "9px 10px", font: "inherit", background: "#fff" }}
+                      />
+                      <input
+                        value={newClient.phone}
+                        onChange={(e) => setNewClient((p) => ({ ...p, phone: e.target.value }))}
+                        placeholder="Phone"
+                        style={{ border: `1px solid ${s.line}`, borderRadius: 8, padding: "9px 10px", font: "inherit", background: "#fff" }}
+                      />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
+                      <input
+                        value={newClient.password}
+                        onChange={(e) => setNewClient((p) => ({ ...p, password: e.target.value }))}
+                        placeholder="Temporary password"
+                        style={{ border: `1px solid ${s.line}`, borderRadius: 8, padding: "9px 10px", font: "inherit", background: "#fff" }}
+                      />
+                      <button
+                        onClick={createClient}
+                        disabled={isCreatingClient}
+                        style={{ border: "none", background: `linear-gradient(135deg,#9b7648,#7e5f37)`, color: "#fff", borderRadius: 8, padding: "9px 12px", fontWeight: 700 }}
+                      >
+                        {isCreatingClient ? "..." : "Add Client"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+                  Total clients: <strong style={{ color: s.gold }}>{clients.length}</strong>
+                </div>
+                {clients.length ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                    {clients.slice(0, 25).map((u: any) => (
+                      <li
+                        key={u.id}
+                        onClick={() => openClientDetail(u)}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, borderBottom: `1px solid ${s.line}`, paddingBottom: 8, cursor: "pointer" }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 700 }}>{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}</div>
+                          <div style={{ color: s.muted, fontSize: 12 }}>{u.email}</div>
+                        </div>
+                        <span style={{ color: s.gold, fontWeight: 700 }}>VIEW</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: s.muted }}>No clients found.</p>
+                )}
+              </>
             )}
           </div>
         ) : null}
 
         {activeTab === "forms" ? (
           <div style={{ ...cardBase, marginTop: 12 }}>
-            <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
-              Pending audits/forms: <strong style={{ color: s.gold }}>{forms.length}</strong>
-            </div>
-            {forms.length ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
-                {forms.slice(0, 20).map((f: any) => (
-                  <li key={f.id || `${f.email}-${f.created_at}`} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
-                    <div style={{ fontWeight: 700 }}>{[f.first_name, f.last_name].filter(Boolean).join(" ") || f.email || "Request"}</div>
-                    <div style={{ color: s.muted, fontSize: 12 }}>{f.city || "City not provided"} - {f.status || "pending"}</div>
-                  </li>
-                ))}
-              </ul>
+            {role === "user" ? (
+              <>
+                <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+                  Upcoming meetings: <strong style={{ color: s.gold }}>{activity.length}</strong>
+                </div>
+                {activity.length ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                    {activity.slice(0, 20).map((m: any) => (
+                      <li
+                        key={String(m.id || `${m.meeting_date}-${m.time_slot}`)}
+                        onClick={() => setSelectedMeeting(m)}
+                        style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8, cursor: "pointer" }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{m.user_name || "Meeting"}</div>
+                        <div style={{ color: s.muted, fontSize: 12 }}>
+                          {m.meeting_date || "No date"} {m.time_slot || ""} - {m.status || "scheduled"}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: s.muted }}>No meetings found.</p>
+                )}
+              </>
             ) : (
-              <p style={{ margin: 0, color: s.muted }}>No forms/audits found.</p>
+              <>
+                <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+                  Pending audits/forms: <strong style={{ color: s.gold }}>{forms.length}</strong>
+                </div>
+                {forms.length ? (
+                  <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                    {forms.slice(0, 20).map((f: any) => (
+                      <li
+                        key={f.id || `${f.email}-${f.created_at}`}
+                        onClick={() => setSelectedForm(f)}
+                        style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8, cursor: "pointer" }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{[f.first_name, f.last_name].filter(Boolean).join(" ") || f.email || "Request"}</div>
+                        <div style={{ color: s.muted, fontSize: 12 }}>{f.city || "City not provided"} - {f.status || "pending"}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: s.muted }}>No forms/audits found.</p>
+                )}
+              </>
             )}
           </div>
         ) : null}
@@ -500,6 +774,100 @@ export default function DashboardPage() {
             <div style={{ marginTop: 12, color: s.muted, whiteSpace: "pre-wrap" }}>{aiReply || "AI reply will appear here."}</div>
           </div>
         ) : null}
+
+        {(selectedClient || selectedForm || selectedCheckin || selectedWorkout || selectedMeeting) ? (
+          <div style={{ ...cardBase, marginTop: 14, borderColor: "rgba(140,106,63,.45)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
+              <strong style={{ color: s.gold }}>DETAIL VIEW</strong>
+              <button
+                onClick={() => {
+                  setSelectedClient(null);
+                  setSelectedForm(null);
+                  setSelectedCheckin(null);
+                  setSelectedWorkout(null);
+                  setSelectedMeeting(null);
+                  setClientProgress(null);
+                  setClientProgressLink("");
+                }}
+                style={{ border: `1px solid ${s.line}`, background: "#fff", borderRadius: 8, padding: "6px 10px", fontWeight: 700 }}
+              >
+                CLOSE
+              </button>
+            </div>
+            {selectedClient ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div><strong>Client:</strong> {[selectedClient.first_name, selectedClient.last_name].filter(Boolean).join(" ") || selectedClient.email || "User"}</div>
+                <div><strong>Email:</strong> {selectedClient.email || "-"}</div>
+                <div><strong>Phone:</strong> {selectedClient.phone || "-"}</div>
+                <div><strong>Status:</strong> {selectedClient.approval_status || "-"}</div>
+                {clientProgress ? <div><strong>Progress:</strong> {JSON.stringify(clientProgress)}</div> : null}
+                {clientProgressLink ? (
+                  <a href={clientProgressLink} target="_blank" rel="noreferrer" style={{ color: s.gold, fontWeight: 700 }}>
+                    Open progress report
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            {selectedForm ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div><strong>Request:</strong> {[selectedForm.first_name, selectedForm.last_name].filter(Boolean).join(" ") || selectedForm.email || "Request"}</div>
+                <div><strong>Email:</strong> {selectedForm.email || "-"}</div>
+                <div><strong>City:</strong> {selectedForm.city || "-"}</div>
+                <div><strong>Status:</strong> {selectedForm.status || "pending"}</div>
+                <div><strong>Created:</strong> {selectedForm.created_at ? new Date(selectedForm.created_at).toLocaleString() : "-"}</div>
+              </div>
+            ) : null}
+            {selectedCheckin ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div><strong>Check-in date:</strong> {selectedCheckin.checkin_date || "-"}</div>
+                <div><strong>User:</strong> {[selectedCheckin.first_name, selectedCheckin.last_name].filter(Boolean).join(" ") || selectedCheckin.email || "-"}</div>
+                <div><strong>Weight:</strong> {selectedCheckin.weight || "-"}</div>
+                <div><strong>Notes:</strong> {selectedCheckin.notes || "-"}</div>
+              </div>
+            ) : null}
+            {selectedWorkout ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div><strong>Workout:</strong> {selectedWorkout.workout_name || "-"}</div>
+                <div><strong>Duration:</strong> {Math.floor((Number(selectedWorkout.duration_seconds) || 0) / 60)} min</div>
+                <div><strong>Created:</strong> {selectedWorkout.created_at ? new Date(selectedWorkout.created_at).toLocaleString() : "-"}</div>
+                <div><strong>Notes:</strong> {selectedWorkout.notes || "-"}</div>
+              </div>
+            ) : null}
+            {selectedMeeting ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div><strong>Meeting date:</strong> {selectedMeeting.meeting_date || "-"}</div>
+                <div><strong>Slot:</strong> {selectedMeeting.time_slot || "-"}</div>
+                <div><strong>Status:</strong> {selectedMeeting.status || "-"}</div>
+                <div><strong>Message:</strong> {selectedMeeting.message || "-"}</div>
+                {role === "user" || role === "admin" ? (
+                  <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                    <button
+                      onClick={() => updateMeetingStatus("scheduled")}
+                      disabled={isMeetingUpdating}
+                      style={{ border: "none", background: "#2f9a64", color: "#fff", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                    >
+                      {isMeetingUpdating ? "..." : "Mark Scheduled"}
+                    </button>
+                    <button
+                      onClick={() => updateMeetingStatus("completed")}
+                      disabled={isMeetingUpdating}
+                      style={{ border: "none", background: "#5a7fa6", color: "#fff", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                    >
+                      {isMeetingUpdating ? "..." : "Mark Completed"}
+                    </button>
+                    <button
+                      onClick={() => updateMeetingStatus("cancelled")}
+                      disabled={isMeetingUpdating}
+                      style={{ border: "none", background: "#b85e5e", color: "#fff", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                    >
+                      {isMeetingUpdating ? "..." : "Cancel"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <nav
@@ -516,8 +884,8 @@ export default function DashboardPage() {
       >
         <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(0,1fr))", minHeight: 66 }}>
           {tabButton("home", "Home", "★")}
-          {tabButton("clients", "Clients", "👥")}
-          {tabButton("forms", "Forms", "📋")}
+          {tabButton("clients", role === "user" ? "Workouts" : "Clients", "👥")}
+          {tabButton("forms", role === "user" ? "Meetings" : "Forms", "📋")}
           {tabButton("messages", "Messages", "💬")}
           {tabButton("ai", "AI", "💡")}
         </div>
