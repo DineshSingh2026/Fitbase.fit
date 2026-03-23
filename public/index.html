@@ -1421,6 +1421,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 }
 .superadmin-panel.open{display:flex}
 .superadmin-top{padding:16px 24px;padding-top:max(16px,env(safe-area-inset-top));padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));border-bottom:1px solid var(--bdr);background:var(--black);flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.superadmin-brand{display:flex;align-items:center;gap:12px;min-width:0}
+.superadmin-brand-logo{height:40px;width:auto;display:block;object-fit:contain;mix-blend-mode:lighten}
+.superadmin-brand-text{display:flex;flex-direction:column;min-width:0}
 .superadmin-heading{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--cream);margin:0;letter-spacing:-0.3px}
 .superadmin-sub{font-size:12px;color:var(--muted);margin:0;width:100%}
 .superadmin-top-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -1483,7 +1486,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .superadmin-table-wrap .superadmin-card .v::before{content:attr(data-label);font-weight:600;color:var(--muted);margin-right:8px}
 }
 @media(max-width:600px){
-  .superadmin-top{flex-direction:column;align-items:flex-start}
+  .superadmin-top{align-items:flex-start}
+  .superadmin-brand-logo{height:34px}
   .superadmin-heading{font-size:18px}
   .superadmin-filters{padding:12px 16px}
   .superadmin-body{padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom))}
@@ -4134,8 +4138,13 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
 <!-- SUPERADMIN DASHBOARD (single-page, all data + filters + CSV + share) -->
 <div class="superadmin-panel" id="superadminPanel">
   <div class="superadmin-top">
-    <h1 class="superadmin-heading">FitBase – Superadmin</h1>
-    <p class="superadmin-sub">Business overview · All data in one view</p>
+    <div class="superadmin-brand">
+      <img src="img/Fitbase_logo2.png" alt="FitBase" class="superadmin-brand-logo" decoding="async">
+      <div class="superadmin-brand-text">
+        <h1 class="superadmin-heading">FitBase – Superadmin</h1>
+        <p class="superadmin-sub">Business overview · All data in one view</p>
+      </div>
+    </div>
     <div class="superadmin-top-actions">
       <button type="button" class="superadmin-btn superadmin-share-btn" id="superadminShareBtn" onclick="superadminShareLink()">Share via link</button>
       <button type="button" class="superadmin-logout" onclick="logoutSuperadmin()">Logout</button>
@@ -5211,7 +5220,27 @@ async function submitAudit(form) {
 }
 
 // ========== ADMIN DASHBOARD ==========
+function getTrainerDisplayName(user) {
+  if (!user) return "Trainer";
+  var full = [user.first_name || "", user.last_name || ""].join(" ").trim();
+  if (full) return full;
+  var email = String(user.email || "").trim();
+  if (email && email.indexOf("@") > 0) return email.split("@")[0];
+  return "Trainer";
+}
+
+function applyTrainerIdentityToDashboard(user) {
+  var trainerName = getTrainerDisplayName(user);
+  var roleEls = document.querySelectorAll(".admin-welcome-role");
+  roleEls.forEach(function(el) {
+    el.textContent = '"' + trainerName + '"';
+  });
+  var topUser = document.querySelector("#adminPanel .bb-top-user");
+  if (topUser) topUser.textContent = trainerName;
+}
+
 async function loadDashboard() {
+  applyTrainerIdentityToDashboard(window.currentUser || null);
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();

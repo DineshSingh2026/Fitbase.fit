@@ -37,17 +37,18 @@
       padding:32px 28px;
       box-shadow:0 20px 48px rgba(48,35,20,0.14);
     }
-    h1{
-      font-family:'Cormorant Garamond',serif;
-      font-size:38px;
-      line-height:1;
-      margin-bottom:8px;
-      color:var(--text);
+    .brand-logo{
+      display:block;
+      width:min(220px,62%);
+      height:auto;
+      margin:0 auto 10px;
+      object-fit:contain;
     }
     p.sub{
       color:var(--muted);
       font-size:14px;
       margin-bottom:22px;
+      text-align:center;
     }
     label{
       display:block;
@@ -101,7 +102,7 @@
 </head>
 <body>
   <main class="card">
-    <h1>FitBase</h1>
+    <img class="brand-logo" src="/img/Fitbase_logo2.png" alt="FitBase" />
     <p class="sub">Secure login for superadmin, trainers, and clients.</p>
     <form id="loginForm">
       <div class="group">
