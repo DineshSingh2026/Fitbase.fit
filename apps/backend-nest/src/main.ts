@@ -6,7 +6,11 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
-  app.useStaticAssets(join(process.cwd(), "../../public"));
+  const publicDir = join(process.cwd(), "../../public");
+  app.useStaticAssets(publicDir, { index: false });
+  app.getHttpAdapter().get("/", (_req: any, res: any) => {
+    res.redirect("/fitbase.html");
+  });
   app.setGlobalPrefix("");
   const port = Number(process.env.PORT || 3200);
   await app.listen(port);

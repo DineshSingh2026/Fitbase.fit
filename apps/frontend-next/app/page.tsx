@@ -6,5 +6,6 @@ const APP_SITE_URL =
   "http://localhost:3200/";
 
 export default function Page() {
-  redirect(APP_SITE_URL);
+  const target = APP_SITE_URL.replace(/\/+$/, "");
+  redirect(`${target}/fitbase.html`);
 }
