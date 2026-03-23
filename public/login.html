@@ -124,12 +124,20 @@
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
     const submitBtn = document.getElementById('submitBtn');
+    const redirectNext = (() => {
+      try {
+        const q = new URLSearchParams(window.location.search || "");
+        const next = (q.get("next") || "").trim();
+        if (next) return next;
+      } catch (_) {}
+      return 'https://www.fitbase.fit/dashboard';
+    })();
     try {
       const existing = localStorage.getItem(SESSION_KEY);
       if (existing) {
         const parsed = JSON.parse(existing);
         if (parsed && parsed.token) {
-          window.location.replace('/dashboard');
+          window.location.replace(redirectNext);
         }
       }
     } catch (_) {}
@@ -153,7 +161,7 @@
           return;
         }
         localStorage.setItem(SESSION_KEY, JSON.stringify(data));
-        window.location.replace('/dashboard');
+        window.location.replace(redirectNext);
       } catch (_) {
         msg.textContent = 'Network error. Please try again.';
         submitBtn.disabled = false;

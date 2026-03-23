@@ -37,7 +37,10 @@ export default function FitBaseLandingPage() {
     process.env.NEXT_PUBLIC_LEGACY_SITE_URL ||
     ""
   ).replace(/\/+$/, "");
-  const loginHref = backendBase ? `${backendBase}/login.html` : "/login.html";
+  const frontendOrigin =
+    typeof window !== "undefined" ? window.location.origin : "https://www.fitbase.fit";
+  const loginNext = encodeURIComponent(`${frontendOrigin}/dashboard`);
+  const loginHref = backendBase ? `${backendBase}/login.html?next=${loginNext}` : `/login.html?next=${loginNext}`;
   const [scrolled, setScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);
@@ -108,7 +111,7 @@ export default function FitBaseLandingPage() {
           transition: "all .25s ease"
         }}
       >
-        <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 34, width: "auto", objectFit: "contain" }} />
+        <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 46, width: "auto", objectFit: "contain" }} />
         <div className="hide-mobile" style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 13 }}>
           <a href="#problem" style={{ color: "#9a8f7e", textDecoration: "none" }}>Problem</a>
           <a href="#how" style={{ color: "#9a8f7e", textDecoration: "none" }}>How it works</a>
@@ -270,24 +273,84 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 6. CLIENT PORTAL */}
-      <section id="client-portal" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
-        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "center" }}>
-          <div className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
-              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
-              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
-              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+      <section
+        id="client-portal"
+        className="pad"
+        style={{
+          padding: "88px 36px",
+          background: "radial-gradient(circle at 8% 12%, rgba(201,168,76,.12), transparent 44%), #faf6ef"
+        }}
+      >
+        <div
+          className="stack-2"
+          style={{
+            ...sectionBase,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 30,
+            alignItems: "center",
+            background: "linear-gradient(165deg, rgba(255,255,255,.86), rgba(255,255,255,.62))",
+            border: "1px solid rgba(201,168,76,.28)",
+            borderRadius: 24,
+            padding: "24px",
+            boxShadow: "0 26px 70px rgba(44,36,22,.10)"
+          }}
+        >
+          <div
+            className="reveal"
+            data-reveal
+            style={{
+              background: "#fff",
+              border: "1px solid #e8e2d6",
+              borderRadius: 18,
+              overflow: "hidden",
+              boxShadow: "0 18px 42px rgba(44,36,22,.14)"
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+              </div>
+              <div style={{ fontSize: 11, color: "#9a8f7e", letterSpacing: ".08em", textTransform: "uppercase" }}>Client Portal</div>
             </div>
             <img src="/img/checkin.png" alt="Client Portal" style={{ width: "100%", display: "block" }} />
-            <div style={{ fontSize: 12, color: "#9a8f7e", padding: 10 }}>Client Portal</div>
           </div>
-          <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Client Portal</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>What your clients actually see</h2>
-            {["Daily check-in form", "Sunday progress review", "Program & workout access", "Trainer messaging"].map((f) => (
-              <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ color: "#4caf7d", fontWeight: 700 }}>✓</span>
-                <span>{f}</span>
+          <div className="reveal" data-reveal style={{ position: "relative" }}>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(46px,5.6vw,84px)", margin: "0 0 8px", lineHeight: .95, letterSpacing: .4 }}>
+              What your clients
+              <br />
+              actually see
+            </h2>
+            <p style={{ color: "#9a8f7e", fontSize: 16, lineHeight: 1.7, maxWidth: 470, marginBottom: 20 }}>
+              Every client touchpoint feels premium and simple. Clean flows improve adherence, clarity, and trust in your coaching process.
+            </p>
+            {[
+              ["Daily check-in form", "Log core daily metrics in under 2 minutes"],
+              ["Sunday progress review", "Structured weekly review with habits and outcomes"],
+              ["Program & workout access", "See assigned workouts and progress history"],
+              ["Trainer messaging", "Direct chat support inside the same portal"]
+            ].map(([title, desc]) => (
+              <div
+                key={title}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "20px 1fr",
+                  gap: 10,
+                  marginBottom: 10,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(201,168,76,.22)",
+                  background: "linear-gradient(180deg,#fff,#fdfbf7)"
+                }}
+              >
+                <span style={{ color: "#4caf7d", fontWeight: 700, marginTop: 1 }}>✓</span>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{title}</div>
+                  <div style={{ color: "#9a8f7e", fontSize: 13 }}>{desc}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -295,30 +358,77 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 7. AI FOR TRAINERS */}
-      <section className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
-        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, padding: 18, borderRadius: 16, border: "1px solid #c9a84c", background: "linear-gradient(180deg,#fff,#faf6ef)" }}>
+      <section
+        className="pad"
+        style={{
+          padding: "90px 36px",
+          background: "linear-gradient(180deg,#f4efe4,#eee7d8)"
+        }}
+      >
+        <div
+          className="stack-2"
+          style={{
+            ...sectionBase,
+            display: "grid",
+            gridTemplateColumns: "1.15fr 1fr",
+            gap: 22,
+            padding: 22,
+            borderRadius: 22,
+            border: "1px solid #c9a84c",
+            background:
+              "radial-gradient(circle at top right, rgba(201,168,76,.10), transparent 45%), linear-gradient(180deg, #fff, #fbf8f1)",
+            boxShadow: "0 24px 64px rgba(44,36,22,.13)"
+          }}
+        >
           <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Trainer AI</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 14px" }}>Your AI coaching co-pilot</h2>
-            <p style={{ color: "#9a8f7e" }}>FitBase AI is built exclusively for trainers — not for clients.</p>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 2 }}>Trainer AI</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(50px,6vw,88px)", margin: "8px 0 10px", lineHeight: .9 }}>
+              Your AI coaching
+              <br />
+              co-pilot
+            </h2>
+            <p style={{ color: "#9a8f7e", fontSize: 18, lineHeight: 1.65, marginBottom: 16 }}>
+              FitBase AI is built exclusively for trainers — not for clients.
+            </p>
             {[
               "✍️ Draft client feedback in seconds",
               "📊 Analyze check-in data trends",
               "📋 Generate weekly progress summaries",
               "🎯 Build personalized program adjustments"
             ].map((f) => (
-              <div key={f} style={{ marginTop: 8 }}>{f}</div>
+              <div
+                key={f}
+                style={{
+                  marginTop: 8,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(201,168,76,.22)",
+                  background: "#fff"
+                }}
+              >
+                {f}
+              </div>
             ))}
           </div>
-          <div className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 12 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <div
+            className="reveal"
+            data-reveal
+            style={{
+              background: "linear-gradient(180deg,#fff,#fbfaf7)",
+              border: "1px solid #e8e2d6",
+              borderRadius: 14,
+              padding: 14,
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,.7)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
               <strong>FitBase AI</strong>
               <span style={{ color: "#4caf7d", fontSize: 12 }}>● Trainer only</span>
             </div>
-            <div style={{ background: "#f4efe4", padding: 10, borderRadius: 10, marginBottom: 8, fontSize: 14 }}>
+            <div style={{ background: "#f4efe4", padding: 10, borderRadius: 10, marginBottom: 8, fontSize: 14, border: "1px solid #e8e2d6" }}>
               Trainer: "Client is plateauing for 2 weeks. What should I adjust?"
             </div>
-            <div style={{ background: "#faf6ef", border: "1px solid #e8e2d6", padding: 10, borderRadius: 10, fontSize: 14 }}>
+            <div style={{ background: "#faf6ef", border: "1px solid #e8e2d6", padding: 10, borderRadius: 10, fontSize: 14, lineHeight: 1.45 }}>
               AI: "Reduce calories by 150, increase steps by 2k, keep protein stable, and switch two sessions to higher volume lower load."
             </div>
           </div>
