@@ -81,8 +81,12 @@ export default function FitBaseLandingPage() {
         @media (max-width:860px){
           .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
           .hide-mobile{display:none !important}
+          .mobile-login{display:inline-flex !important}
           .pad{padding-left:20px !important;padding-right:20px !important}
           .hero{padding-top:120px !important}
+        }
+        @media (min-width:861px){
+          .mobile-login{display:none !important}
         }
       `}</style>
 
@@ -104,7 +108,7 @@ export default function FitBaseLandingPage() {
           transition: "all .25s ease"
         }}
       >
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "#c9a84c", fontSize: 30 }}>FITBASE</div>
+        <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 34, width: "auto", objectFit: "contain" }} />
         <div className="hide-mobile" style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 13 }}>
           <a href="#problem" style={{ color: "#9a8f7e", textDecoration: "none" }}>Problem</a>
           <a href="#how" style={{ color: "#9a8f7e", textDecoration: "none" }}>How it works</a>
@@ -120,6 +124,22 @@ export default function FitBaseLandingPage() {
             Get Access
           </button>
         </div>
+        <a
+          className="mobile-login"
+          href={loginHref}
+          style={{
+            display: "none",
+            textDecoration: "none",
+            background: "#c9a84c",
+            color: "#fff",
+            padding: "9px 14px",
+            borderRadius: 8,
+            fontWeight: 600,
+            fontSize: 13
+          }}
+        >
+          Login
+        </a>
       </nav>
 
       {/* 2. HERO */}
