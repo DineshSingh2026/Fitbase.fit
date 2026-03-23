@@ -154,7 +154,7 @@ export default function FitBaseLandingPage() {
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
               </div>
-              <img src="/img/Dashboard%20png.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
+              <img src="/img/dashboard.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
             </div>
             <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "0 8px 24px rgba(44,36,22,.12)" }}>
               Client check-in logged ✓<br />94% weekly compliance
@@ -232,7 +232,7 @@ export default function FitBaseLandingPage() {
           </div>
           <div className="stack-2 reveal" data-reveal style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
-              ["/img/Dashboard%20png.png", "Dashboard view"],
+              ["/img/dashboard.png", "Dashboard view"],
               ["/img/forms.png", "Forms view"]
             ].map(([src, label]) => (
               <div key={label} style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 14, overflow: "hidden" }}>
