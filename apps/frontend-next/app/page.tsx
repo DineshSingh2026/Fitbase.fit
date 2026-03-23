@@ -32,6 +32,12 @@ const plans: Plan[] = [
 ];
 
 export default function FitBaseLandingPage() {
+  const backendBase = (
+    process.env.NEXT_PUBLIC_APP_SITE_URL ||
+    process.env.NEXT_PUBLIC_LEGACY_SITE_URL ||
+    ""
+  ).replace(/\/+$/, "");
+  const loginHref = backendBase ? `${backendBase}/login.html` : "/login.html";
   const [scrolled, setScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);
@@ -105,7 +111,7 @@ export default function FitBaseLandingPage() {
           <a href="#dashboard" style={{ color: "#9a8f7e", textDecoration: "none" }}>Dashboard</a>
           <a href="#client-portal" style={{ color: "#9a8f7e", textDecoration: "none" }}>Client Portal</a>
           <a href="#pricing" style={{ color: "#9a8f7e", textDecoration: "none" }}>Pricing</a>
-          <a href="/login.html" style={{ color: "#9a8f7e", textDecoration: "none" }}>Login</a>
+          <a href={loginHref} style={{ color: "#9a8f7e", textDecoration: "none" }}>Login</a>
           <button
             type="button"
             onClick={() => applyRef.current?.scrollIntoView({ behavior: "smooth" })}
@@ -436,7 +442,7 @@ export default function FitBaseLandingPage() {
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "#c9a84c", fontSize: 28 }}>FITBASE</div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {["Problem", "How it works", "Dashboard", "Client Portal", "Pricing", "Login"].map((label) => (
-              <a key={label} href={label === "Login" ? "/login.html" : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "#9a8f7e", textDecoration: "none", fontSize: 13 }}>{label}</a>
+              <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "#9a8f7e", textDecoration: "none", fontSize: 13 }}>{label}</a>
             ))}
           </div>
           <div style={{ color: "#9a8f7e", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>
