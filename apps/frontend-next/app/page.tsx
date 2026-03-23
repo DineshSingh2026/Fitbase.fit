@@ -32,15 +32,7 @@ const plans: Plan[] = [
 ];
 
 export default function FitBaseLandingPage() {
-  const backendBase = (
-    process.env.NEXT_PUBLIC_APP_SITE_URL ||
-    process.env.NEXT_PUBLIC_LEGACY_SITE_URL ||
-    ""
-  ).replace(/\/+$/, "");
-  const frontendOrigin =
-    typeof window !== "undefined" ? window.location.origin : "https://www.fitbase.fit";
-  const loginNext = encodeURIComponent(`${frontendOrigin}/dashboard`);
-  const loginHref = backendBase ? `${backendBase}/login.html?next=${loginNext}` : `/login.html?next=${loginNext}`;
+  const loginHref = "/login";
   const [scrolled, setScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);

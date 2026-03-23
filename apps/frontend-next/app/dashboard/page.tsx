@@ -64,7 +64,7 @@ export default function DashboardPage() {
   useEffect(() => {
     const s = getSession();
     if (!s?.token) {
-      window.location.replace(`${APP_SITE_BASE}/login.html`);
+      window.location.replace("/login");
       return;
     }
     setSession(s);
@@ -374,7 +374,7 @@ export default function DashboardPage() {
         <button
           onClick={() => {
             localStorage.removeItem("fitbase_session");
-            window.location.replace(`${APP_SITE_BASE}/login.html`);
+            window.location.replace("/login");
           }}
           style={{
             border: `1px solid ${s.line}`,
