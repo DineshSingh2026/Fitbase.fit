@@ -13,6 +13,7 @@ import { AdminManagementController } from "./admin-management.controller";
 import { NotificationsController } from "./notifications.controller";
 import { ProgramsController } from "./programs.controller";
 import { BootstrapService } from "./bootstrap.service";
+import { StatsController } from "./stats.controller";
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { BootstrapService } from "./bootstrap.service";
     AdminManagementController,
     NotificationsController,
     ProgramsController,
-    AdminController
+    AdminController,
+    StatsController
   ],
   providers: [AuthService, RolesGuard, BootstrapService]
 })
