@@ -3,7 +3,7 @@ services:
     name: fitbase-backend-nest
     env: node
     rootDir: apps/backend-nest
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
