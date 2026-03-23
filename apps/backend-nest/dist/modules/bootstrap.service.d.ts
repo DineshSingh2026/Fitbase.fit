@@ -5,6 +5,7 @@ export declare class BootstrapService implements OnModuleInit {
     constructor(pool: Pool | null);
     onModuleInit(): Promise<void>;
     private ensureUsersTable;
+    private ensureOperationalTables;
     private updateSuperadmin;
     private insertSuperadmin;
 }

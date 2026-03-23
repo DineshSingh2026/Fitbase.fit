@@ -10,6 +10,7 @@ export class BootstrapService implements OnModuleInit {
   async onModuleInit() {
     if (!this.pool) return;
     await this.ensureUsersTable();
+    await this.ensureOperationalTables();
     const emailRaw = process.env.SUPERADMIN_EMAIL;
     const passRaw = process.env.SUPERADMIN_PASS;
     if (!emailRaw || !passRaw) return;
@@ -63,6 +64,60 @@ export class BootstrapService implements OnModuleInit {
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone text`);
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id uuid`);
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
+  }
+
+  private async ensureOperationalTables() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS meetings (
+        id uuid PRIMARY KEY,
+        user_id uuid NOT NULL,
+        user_name text,
+        user_email text,
+        user_phone text,
+        meeting_date text,
+        time_slot text,
+        status text DEFAULT 'scheduled',
+        notes text,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS meetings_user_id_idx ON meetings (user_id)`);
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS meetings_status_idx ON meetings (status)`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS user_name text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS user_email text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS user_phone text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS meeting_date text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS time_slot text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS status text DEFAULT 'scheduled'`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS notes text`);
+    await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS message_threads (
+        id uuid PRIMARY KEY,
+        user_id uuid NOT NULL,
+        subject text DEFAULT '',
+        created_at timestamptz DEFAULT now(),
+        updated_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS thread_messages (
+        id uuid PRIMARY KEY,
+        thread_id uuid NOT NULL,
+        sender_id uuid,
+        sender_role text NOT NULL,
+        body text NOT NULL,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS message_threads_user_idx ON message_threads (user_id, updated_at DESC)`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS thread_messages_thread_idx ON thread_messages (thread_id, created_at ASC)`
+    );
   }
 
   private async updateSuperadmin(email: string, passwordHash: string) {

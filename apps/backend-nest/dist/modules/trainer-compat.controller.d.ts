@@ -3,6 +3,7 @@ import { Pool } from "pg";
 export declare class TrainerCompatController {
     private readonly pool;
     constructor(pool: Pool | null);
+    private ensureMeetingsTable;
     private get secret();
     private signProgressReportToken;
     private verifyProgressReportToken;

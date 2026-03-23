@@ -11,6 +11,24 @@ import { Roles } from "./roles.decorator";
 export class TrainerCompatController {
   constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
 
+  private async ensureMeetingsTable() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS meetings (
+        id uuid PRIMARY KEY,
+        user_id uuid NOT NULL,
+        user_name text,
+        user_email text,
+        user_phone text,
+        meeting_date text,
+        time_slot text,
+        status text DEFAULT 'scheduled',
+        notes text,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+  }
+
   private get secret(): string {
     return process.env.JWT_SECRET || "fitbase-progress-secret-change-in-production";
   }
@@ -119,6 +137,7 @@ export class TrainerCompatController {
   @Roles("admin", "superadmin")
   async meetings(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.json([]);
+    await this.ensureMeetingsTable();
     const trainerId = req.user?.role === "admin" ? String(req.user.id) : null;
     const rows = await this.safeRows(
       "SELECT m.*, u.trainer_id FROM meetings m LEFT JOIN users u ON u.id = m.user_id WHERE m.status='scheduled' ORDER BY m.meeting_date ASC, m.time_slot ASC"
@@ -133,6 +152,7 @@ export class TrainerCompatController {
   async createMeeting(@Body() body: any, @Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Failed to schedule call" });
     try {
+      await this.ensureMeetingsTable();
       if (!body?.user_id || !body?.meeting_date || !body?.time_slot) {
         return res.status(400).json({ error: "User, date and time slot required" });
       }
@@ -155,6 +175,7 @@ export class TrainerCompatController {
   @UseGuards(JwtAuthGuard)
   async meetingsForUser(@Param("userId") userId: string, @Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.json([]);
+    await this.ensureMeetingsTable();
     if (req.user?.role === "user" && String(req.user.id) !== String(userId)) {
       return res.status(403).json({ error: "Access denied" });
     }
@@ -173,6 +194,7 @@ export class TrainerCompatController {
   @UseGuards(JwtAuthGuard)
   async updateMeeting(@Param("id") id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Update failed" });
+    await this.ensureMeetingsTable();
     const rows = await this.safeRows("SELECT * FROM meetings WHERE id = $1 LIMIT 1", [id]);
     const row = rows[0];
     if (!row) return res.status(404).json({ error: "Not found" });

@@ -25,6 +25,7 @@ const bootstrap_service_1 = require("./bootstrap.service");
 const stats_controller_1 = require("./stats.controller");
 const trainer_compat_controller_1 = require("./trainer-compat.controller");
 const push_controller_1 = require("./push.controller");
+const message_threads_controller_1 = require("./message-threads.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -48,7 +49,8 @@ exports.AppModule = AppModule = __decorate([
             admin_controller_1.AdminController,
             stats_controller_1.StatsController,
             trainer_compat_controller_1.TrainerCompatController,
-            push_controller_1.PushController
+            push_controller_1.PushController,
+            message_threads_controller_1.MessageThreadsController
         ],
         providers: [auth_service_1.AuthService, roles_guard_1.RolesGuard, bootstrap_service_1.BootstrapService]
     })
