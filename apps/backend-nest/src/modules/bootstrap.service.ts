@@ -9,6 +9,7 @@ export class BootstrapService implements OnModuleInit {
 
   async onModuleInit() {
     if (!this.pool) return;
+    await this.ensureUsersTable();
     const emailRaw = process.env.SUPERADMIN_EMAIL;
     const passRaw = process.env.SUPERADMIN_PASS;
     if (!emailRaw || !passRaw) return;
@@ -31,6 +32,37 @@ export class BootstrapService implements OnModuleInit {
     } catch (err) {
       console.error("Superadmin bootstrap failed", err);
     }
+  }
+
+  private async ensureUsersTable() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS users (
+        id uuid PRIMARY KEY,
+        email text UNIQUE NOT NULL,
+        password text NOT NULL,
+        first_name text,
+        last_name text,
+        phone text,
+        role text NOT NULL DEFAULT 'user',
+        approval_status text,
+        suspended boolean DEFAULT false,
+        profile_picture text,
+        country text,
+        timezone text,
+        trainer_id uuid,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended boolean DEFAULT false`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS country text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id uuid`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
   }
 
   private async updateSuperadmin(email: string, passwordHash: string) {
