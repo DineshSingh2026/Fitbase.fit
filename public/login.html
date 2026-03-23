@@ -124,6 +124,15 @@
     const form = document.getElementById('loginForm');
     const msg = document.getElementById('msg');
     const submitBtn = document.getElementById('submitBtn');
+    try {
+      const existing = localStorage.getItem(SESSION_KEY);
+      if (existing) {
+        const parsed = JSON.parse(existing);
+        if (parsed && parsed.token) {
+          window.location.replace('/dashboard');
+        }
+      }
+    } catch (_) {}
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -144,7 +153,7 @@
           return;
         }
         localStorage.setItem(SESSION_KEY, JSON.stringify(data));
-        window.location.replace('/index.html');
+        window.location.replace('/dashboard');
       } catch (_) {
         msg.textContent = 'Network error. Please try again.';
         submitBtn.disabled = false;

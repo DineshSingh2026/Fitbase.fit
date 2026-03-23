@@ -1,5 +1,5 @@
 /* FitBase PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'fitbase-v31';
+const CACHE_NAME = 'fitbase-v32';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

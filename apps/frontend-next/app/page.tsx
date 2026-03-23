@@ -2,328 +2,85 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const APP_SITE_URL =
-  process.env.NEXT_PUBLIC_APP_SITE_URL ||
-  process.env.NEXT_PUBLIC_LEGACY_SITE_URL ||
-  "http://localhost:3200";
+type FaqItem = { q: string; a: string };
+type Plan = { name: string; price: string; featured?: boolean; badge?: string; features: string[] };
+type CompareValue = "✓" | "✗" | "Limited" | "Basic" | "Paid" | "$24" | "$35" | "$19" | "$49";
 
-const APP_SITE_BASE = APP_SITE_URL.replace(/\/+$/, "");
-const IMG_DASHBOARD = `${APP_SITE_BASE}/img/Dashboard%20png.png`;
-const IMG_FORMS = `${APP_SITE_BASE}/img/forms.png`;
-const IMG_CHECKIN = `${APP_SITE_BASE}/img/checkin.png`;
-
-const PAIN_POINTS = [
-  {
-    icon: "📊",
-    title: "Spreadsheet Hell",
-    desc: "Client data scattered across sheets, WhatsApp, and outdated folders. Zero structure, maximum chaos."
-  },
-  {
-    icon: "👻",
-    title: "Zero Accountability",
-    desc: "Clients ghost check-ins. You can't track what you can't see. Progress stalls and clients churn."
-  },
-  {
-    icon: "🔧",
-    title: "The Franken-Stack",
-    desc: "Payments in one app, scheduling in another, programs in a notes app. Nothing talks to anything."
-  }
+const faqs: FaqItem[] = [
+  { q: "How long does approval take?", a: "Most trainer applications are reviewed within 24 hours." },
+  { q: "What does my client see?", a: "A mobile portal with check-in, workouts, and messages." },
+  { q: "Can I import existing clients?", a: "Yes, you can import manually or through bulk upload." },
+  { q: "Is there a mobile app?", a: "FitBase is mobile-optimized web first; native app is on the roadmap." },
+  { q: "What does AI help trainers with?", a: "Feedback drafting, data analysis, and weekly progress summaries. Trainer only." },
+  { q: "Can I upgrade or downgrade?", a: "Yes. Upgrades are immediate and downgrades apply on your next billing cycle." }
 ];
 
-const STEPS = [
-  {
-    n: "01",
-    title: "Apply",
-    desc: "Submit your trainer application. We review and onboard only serious, results-driven coaches. Credentials sent within 24 hours."
-  },
-  {
-    n: "02",
-    title: "Onboard",
-    desc: "Import your existing clients, customize your check-in forms, and set up your coaching system in one clean workspace."
-  },
-  {
-    n: "03",
-    title: "Grow",
-    desc: "Focus entirely on training. FitBase handles all admin, tracking, client communication, and compliance - automatically."
-  }
-];
-
-const METRICS = [
-  { val: "3x", desc: "Faster client onboarding" },
-  { val: "94%", desc: "Weekly check-in rate" },
-  { val: "40%", desc: "More clients retained" },
-  { val: "10h", desc: "Saved every week" }
-];
-
-const DASH_FEATURES = [
-  {
-    icon: "📋",
-    title: "Client Sign-ups & Onboarding",
-    desc: "Manage new applications, send credentials, and activate clients in seconds from the dashboard."
-  },
-  {
-    icon: "✅",
-    title: "Daily & Weekly Check-Ins",
-    desc: "Clients log weight, calories, protein, sleep, and workouts. You see it all in real time."
-  },
-  {
-    icon: "💬",
-    title: "Integrated Messaging",
-    desc: "Message clients directly inside FitBase. No more scattered WhatsApp threads."
-  },
-  {
-    icon: "📊",
-    title: "Analytics & Progress Tracking",
-    desc: "Visualize client progress over time. Spot trends, flag issues, and prove results with data."
-  }
-];
-
-const PORTAL_FEATURES = [
-  { title: "Daily check-in form", desc: "Weight, body fat, calories, protein, sleep, workouts - all in one 2-minute tap." },
-  { title: "Sunday progress review", desc: "Weekly structured audit so trainer and client review the week together." },
-  { title: "Program & workout access", desc: "Clients see their assigned programs directly in the portal." },
-  { title: "Trainer messaging", desc: "Direct line to their trainer without leaving the platform." }
-];
-
-const TESTIMONIALS = [
-  {
-    initial: "R",
-    name: "Rahul Sharma",
-    meta: "Independent Trainer - Mumbai",
-    quote:
-      "FitBase changed how I run my business. I went from 15 clients to 45 with complete clarity. My revenue tripled in under 6 months."
-  },
-  {
-    initial: "P",
-    name: "Priya Nair",
-    meta: "Online Coach - Bangalore",
-    quote:
-      "I tried every app on the market. FitBase is the first one that actually feels like it was built by someone who actually trains people."
-  },
-  {
-    initial: "A",
-    name: "Arjun Mehta",
-    meta: "Gym Owner - Delhi",
-    quote:
-      "The check-in system alone saved me 8 hours every week. My clients love it because it takes them 2 minutes to complete."
-  }
-];
-
-const COMPARE_ROWS = [
-  { feature: "Daily check-in tracking", fitbase: true, trainerize: true, truecoach: "Limited", ptd: true },
-  { feature: "AI assistant for trainers", fitbase: true, trainerize: false, truecoach: false, ptd: false },
-  { feature: "Client audit forms", fitbase: true, trainerize: "Basic", truecoach: "Basic", ptd: true },
-  { feature: "White-label option", fitbase: true, trainerize: true, truecoach: false, ptd: true },
-  { feature: "Starts at (per month)", fitbase: "$24", trainerize: "$35", truecoach: "$19", ptd: "$49" },
-  { feature: "India-focused onboarding", fitbase: true, trainerize: false, truecoach: false, ptd: false },
-  { feature: "Dedicated superadmin support", fitbase: true, trainerize: false, truecoach: false, ptd: "Paid" }
-];
-
-const FAQS = [
-  {
-    q: "How long does approval take after I apply?",
-    a: "Most applications are reviewed within 24 hours. Once approved, you'll receive your trainer login credentials directly by email."
-  },
-  {
-    q: "What does my client see when they log in?",
-    a: "Clients get a clean mobile-first portal with tabs for Home, Workouts, Programs, Check-In, and Messages. The daily check-in takes under 2 minutes."
-  },
-  {
-    q: "Can I import my existing clients?",
-    a: "Yes. Once onboarded, you can add clients manually or bulk-import them. Your FitBase admin helps set up your initial client list during onboarding."
-  },
-  {
-    q: "Is there a mobile app for clients?",
-    a: "FitBase is fully mobile-optimized and works on any smartphone browser without a download. A native app is on our roadmap."
-  },
-  {
-    q: "What does the AI assistant help trainers with?",
-    a: "The AI is exclusively for trainers. It helps draft client feedback, analyze check-in data, suggest program adjustments, and generate weekly summaries."
-  },
-  {
-    q: "Can I upgrade or downgrade my plan?",
-    a: "Yes. Upgrades take effect immediately; downgrades apply at the start of your next billing cycle."
-  }
-];
-
-const PLANS = [
-  {
-    name: "Starter",
-    price: "$24",
-    featured: false,
-    cta: "Get Started",
-    features: ["Up to 15 clients", "Daily & weekly check-ins", "Progress tracking", "Basic messaging", "Audit forms"]
-  },
+const plans: Plan[] = [
+  { name: "Starter", price: "$24/mo", features: ["15 clients", "Check-ins", "Tracking", "Messaging", "Audit forms"] },
   {
     name: "Professional",
-    price: "$49",
+    price: "$49/mo",
     featured: true,
-    cta: "Get Started",
-    features: [
-      "Unlimited clients",
-      "Advanced analytics",
-      "Campaign engine",
-      "Priority support",
-      "AI assistant for trainers",
-      "Custom check-in forms"
-    ]
+    badge: "Most Popular",
+    features: ["Unlimited clients", "Analytics", "Campaigns", "Priority support", "AI for trainers", "Custom forms"]
   },
   {
     name: "Enterprise",
-    price: "$124",
-    featured: false,
-    cta: "Contact Us",
-    features: ["Multi-trainer support", "White-label option", "SLA guarantee", "Custom integrations", "Dedicated account manager"]
+    price: "$124/mo",
+    features: ["Multi-trainer", "White-label", "SLA", "Custom integrations", "Account manager"]
   }
 ];
 
-function CheckCell({ val }: { val: boolean | string }) {
-  if (val === true) return <span style={{ color: "#4caf7d", fontSize: 18 }}>✓</span>;
-  if (val === false) return <span style={{ color: "#ccc", fontSize: 18 }}>✗</span>;
-  return <span style={{ color: "#c9a84c", fontSize: 12, fontWeight: 700 }}>{val}</span>;
-}
-
-function useInView(threshold = 0.12) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) setVisible(true);
-    }, { threshold });
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, visible };
-}
-
-function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
-  const { ref, visible } = useInView();
-  return (
-    <div
-      ref={ref}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(22px)",
-        transition: `opacity 0.55s ease ${delay}ms, transform 0.55s ease ${delay}ms`
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function MacDots() {
-  return (
-    <div
-      style={{
-        display: "flex",
-        gap: 6,
-        padding: "10px 14px",
-        borderBottom: "1px solid #e8e2d6",
-        background: "#ede7d9"
-      }}
-    >
-      {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
-        <div key={c} style={{ width: 9, height: 9, borderRadius: "50%", background: c }} />
-      ))}
-    </div>
-  );
-}
-
 export default function FitBaseLandingPage() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    gym: "",
-    city: "",
-    clients: "",
-    message: ""
-  });
+  const [scrolled, setScrolled] = useState(false);
+  const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const applyRef = useRef<HTMLElement | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitError("");
-    setIsSubmitting(true);
-    const payload = {
-      full_name: form.name,
-      email: form.email,
-      phone: form.phone,
-      gym_name: form.gym,
-      city: form.city,
-      message: form.message
-    };
-    try {
-      const res = await fetch(`${APP_SITE_BASE}/api/trainer-requests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data?.error) {
-        throw new Error(data?.error || "Failed to submit application");
-      }
-      setSubmitted(true);
-    } catch (err: any) {
-      setSubmitError(err?.message || "Failed to submit application");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-  const navLinks = [
-    { href: "#problem", label: "Problem" },
-    { href: "#how", label: "How it works" },
-    { href: "#dashboard", label: "Dashboard" },
-    { href: "#client-portal", label: "Client Portal" },
-    { href: "#pricing", label: "Pricing" }
-  ];
+  useEffect(() => {
+    const items = document.querySelectorAll<HTMLElement>("[data-reveal]");
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add("is-visible");
+        });
+      },
+      { threshold: 0.16 }
+    );
+    items.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
-  const s = {
-    bg: "#faf6ef",
-    bg2: "#f4efe4",
-    bg3: "#ede7d9",
-    surface: "#ffffff",
-    border: "#e8e2d6",
-    gold: "#c9a84c",
-    goldL: "#d9bc72",
-    goldDim: "rgba(201,168,76,0.12)",
-    text: "#2c2416",
-    muted: "#9a8f7e",
-    green: "#4caf7d",
-    shadow: "0 2px 16px rgba(44,36,22,0.08)",
-    shadowL: "0 12px 48px rgba(44,36,22,0.12)"
-  } as const;
+  const sectionBase: React.CSSProperties = { maxWidth: 1180, margin: "0 auto" };
 
   return (
-    <>
+    <main style={{ background: "#faf6ef", color: "#2c2416" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        html{scroll-behavior:smooth}
-        body{background:#faf6ef;color:#2c2416;font-family:'DM Sans',sans-serif;overflow-x:hidden}
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-        .fb-input{background:#f4efe4;border:1.5px solid #e8e2d6;border-radius:8px;padding:11px 14px;font-size:14px;color:#2c2416;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;width:100%}
-        .fb-input:focus{border-color:#c9a84c}
-        @media(max-width:860px){
-          .grid-2{grid-template-columns:1fr!important}
-          .grid-3{grid-template-columns:1fr!important}
-          .grid-4{grid-template-columns:1fr 1fr!important}
-          .hide-mobile{display:none!important}
-          .section-pad{padding:64px 20px!important}
-          .hero-pad{padding:110px 20px 64px!important}
-          .form-grid{grid-template-columns:1fr!important}
-          .form-full{grid-column:span 1!important}
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+        *{box-sizing:border-box}
+        html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth}
+        .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
+        .reveal.is-visible{opacity:1;transform:translateY(0)}
+        .float-card{animation:floatY 4s ease-in-out infinite}
+        .pulse-dot{animation:pulseDot 2s ease-in-out infinite}
+        @keyframes floatY{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
+        @keyframes pulseDot{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+        @media (max-width:860px){
+          .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
+          .hide-mobile{display:none !important}
+          .pad{padding-left:20px !important;padding-right:20px !important}
+          .hero{padding-top:120px !important}
         }
       `}</style>
 
+      {/* 1. FIXED NAV */}
       <nav
         style={{
           position: "fixed",
@@ -331,488 +88,233 @@ export default function FitBaseLandingPage() {
           left: 0,
           right: 0,
           zIndex: 200,
+          padding: "14px 36px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px 48px",
-          background: "rgba(250,246,239,0.93)",
-          backdropFilter: "blur(18px)",
-          borderBottom: `1px solid ${s.border}`,
-          boxShadow: "0 1px 12px rgba(44,36,22,0.06)"
+          borderBottom: `1px solid ${scrolled ? "#e8e2d6" : "transparent"}`,
+          background: scrolled ? "rgba(250,246,239,.86)" : "rgba(250,246,239,.55)",
+          backdropFilter: "blur(12px)",
+          transition: "all .25s ease"
         }}
       >
-        <a
-          href="#"
-          style={{
-            fontFamily: "'Bebas Neue',sans-serif",
-            fontSize: 22,
-            letterSpacing: 4,
-            color: s.gold,
-            textDecoration: "none"
-          }}
-        >
-          FITBASE
-        </a>
-        <ul className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 28, listStyle: "none" }}>
-          {navLinks.map((l) => (
-            <li key={l.href}>
-              <a
-                href={l.href}
-                style={{
-                  color: s.muted,
-                  textDecoration: "none",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  letterSpacing: "1.5px",
-                  textTransform: "uppercase"
-                }}
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-          <li>
-            <a
-              href={`${APP_SITE_BASE}/login.html`}
-              style={{
-                color: s.muted,
-                textDecoration: "none",
-                fontSize: 12,
-                fontWeight: 500,
-                letterSpacing: "1.5px",
-                textTransform: "uppercase"
-              }}
-            >
-              Login
-            </a>
-          </li>
-          <li>
-            <a
-              href="#apply"
-              style={{
-                background: s.gold,
-                color: "#fff",
-                padding: "9px 20px",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                textDecoration: "none",
-                letterSpacing: 0.5
-              }}
-            >
-              Get Access
-            </a>
-          </li>
-        </ul>
+        <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "#c9a84c", fontSize: 30 }}>FITBASE</div>
+        <div className="hide-mobile" style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 13 }}>
+          <a href="#problem" style={{ color: "#9a8f7e", textDecoration: "none" }}>Problem</a>
+          <a href="#how" style={{ color: "#9a8f7e", textDecoration: "none" }}>How it works</a>
+          <a href="#dashboard" style={{ color: "#9a8f7e", textDecoration: "none" }}>Dashboard</a>
+          <a href="#client-portal" style={{ color: "#9a8f7e", textDecoration: "none" }}>Client Portal</a>
+          <a href="#pricing" style={{ color: "#9a8f7e", textDecoration: "none" }}>Pricing</a>
+          <a href="/login.html" style={{ color: "#9a8f7e", textDecoration: "none" }}>Login</a>
+          <button
+            type="button"
+            onClick={() => applyRef.current?.scrollIntoView({ behavior: "smooth" })}
+            style={{ border: "none", background: "#c9a84c", color: "#fff", padding: "10px 16px", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}
+          >
+            Get Access
+          </button>
+        </div>
       </nav>
 
-      <section
-        className="hero-pad"
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          padding: "130px 48px 90px",
-          background: s.bg,
-          position: "relative",
-          overflow: "hidden"
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            width: 700,
-            height: 700,
-            borderRadius: "50%",
-            background: "radial-gradient(circle,rgba(201,168,76,0.09) 0%,transparent 65%)",
-            top: -200,
-            right: -150,
-            pointerEvents: "none"
-          }}
-        />
-        <div
-          className="grid-2"
-          style={{
-            maxWidth: 1180,
-            margin: "0 auto",
-            width: "100%",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 80,
-            alignItems: "center",
-            position: "relative",
-            zIndex: 1
-          }}
-        >
-          <div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                background: s.goldDim,
-                border: "1px solid rgba(201,168,76,.35)",
-                color: s.gold,
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: "2.5px",
-                textTransform: "uppercase",
-                padding: "6px 14px",
-                borderRadius: 100,
-                marginBottom: 24
-              }}
-            >
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: s.gold,
-                  animation: "pulse 2s infinite",
-                  display: "inline-block"
-                }}
-              />
-              Now in Early Access
+      {/* 2. HERO */}
+      <section className="pad hero" style={{ padding: "110px 36px 80px", background: "#faf6ef" }}>
+        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, alignItems: "center" }}>
+          <div className="reveal" data-reveal>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "#fff", border: "1px solid #e8e2d6", marginBottom: 16 }}>
+              <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
+              <span style={{ fontSize: 12, color: "#9a8f7e" }}>Now in Early Access</span>
             </div>
-            <h1
-              style={{
-                fontFamily: "'Bebas Neue',sans-serif",
-                fontSize: "clamp(54px,6vw,88px)",
-                lineHeight: 0.95,
-                letterSpacing: 2,
-                color: s.text,
-                marginBottom: 20
-              }}
-            >
+            <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(52px,7vw,96px)", margin: 0, letterSpacing: 1, lineHeight: 0.95 }}>
               THE PLATFORM THAT POWERS{" "}
-              <span
-                style={{
-                  fontFamily: "'Instrument Serif',serif",
-                  fontStyle: "italic",
-                  color: s.gold,
-                  fontSize: ".88em",
-                  letterSpacing: 0
-                }}
-              >
-                Modern Trainers
-              </span>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "#c9a84c" }}>Modern Trainers</span>
             </h1>
-            <p style={{ fontSize: 17, color: s.muted, maxWidth: 440, marginBottom: 36, lineHeight: 1.75 }}>
-              Professional coaching infrastructure for onboarding, tracking, communication, and measurable results - all
-              in one place.
+            <p style={{ margin: "18px 0 24px", color: "#9a8f7e", maxWidth: 560, lineHeight: 1.7 }}>
+              Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
             </p>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <a
-                href="#apply"
-                style={{
-                  background: s.gold,
-                  color: "#fff",
-                  padding: "13px 28px",
-                  borderRadius: 8,
-                  fontWeight: 600,
-                  fontSize: 14,
-                  textDecoration: "none",
-                  letterSpacing: 0.5,
-                  display: "inline-block"
-                }}
-              >
-                Request Trainer Access
-              </a>
-              <a
-                href="#dashboard"
-                style={{
-                  background: "transparent",
-                  color: s.text,
-                  padding: "13px 28px",
-                  borderRadius: 8,
-                  border: `1.5px solid ${s.border}`,
-                  fontWeight: 500,
-                  fontSize: 14,
-                  textDecoration: "none",
-                  display: "inline-block"
-                }}
-              >
-                See the Dashboard
-              </a>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <a href="#apply" style={{ textDecoration: "none", background: "#c9a84c", color: "#fff", padding: "12px 16px", borderRadius: 8, fontWeight: 600 }}>Request Trainer Access</a>
+              <a href="#dashboard" style={{ textDecoration: "none", background: "transparent", color: "#2c2416", padding: "12px 16px", borderRadius: 8, border: "1px solid #e8e2d6", fontWeight: 600 }}>See the Dashboard</a>
             </div>
-            <div style={{ display: "flex", gap: 36, marginTop: 48, paddingTop: 32, borderTop: `1px solid ${s.border}` }}>
-              {[
-                ["500+", "Active Trainers"],
-                ["12K+", "Clients Managed"],
-                ["4.9/5", "Platform Rating"]
-              ].map(([n, l]) => (
-                <div key={l}>
-                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 38, color: s.text, letterSpacing: 1, lineHeight: 1 }}>
-                    {n}
-                  </div>
-                  <div style={{ fontSize: 11, color: s.muted, marginTop: 4 }}>{l}</div>
-                </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 24 }}>
+              {["500+ Active Trainers", "12K+ Clients Managed", "4.9/5 Platform Rating"].map((t) => (
+                <div key={t} style={{ padding: "12px", background: "#fff", border: "1px solid #e8e2d6", borderRadius: 10, fontSize: 13 }}>{t}</div>
               ))}
             </div>
           </div>
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                background: s.surface,
-                border: `1px solid ${s.border}`,
-                borderRadius: 20,
-                overflow: "hidden",
-                boxShadow: "0 40px 80px rgba(44,36,22,0.14),0 0 0 1px rgba(201,168,76,0.08)"
-              }}
-            >
-              <MacDots />
-              <img
-                src={IMG_DASHBOARD}
-                alt="FitBase Dashboard"
-                style={{ width: "100%", display: "block", maxHeight: 440, objectFit: "cover", objectPosition: "top" }}
-              />
+          <div className="reveal" data-reveal style={{ position: "relative" }}>
+            <div style={{ border: "1px solid #e8e2d6", borderRadius: 18, background: "#fff", overflow: "hidden", boxShadow: "0 20px 50px rgba(44,36,22,.10)" }}>
+              <div style={{ display: "flex", gap: 8, padding: "12px", borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+              </div>
+              <img src="/img/Dashboard%20png.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
+            </div>
+            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "0 8px 24px rgba(44,36,22,.12)" }}>
+              Client check-in logged ✓<br />94% weekly compliance
+            </div>
+            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "0 8px 24px rgba(44,36,22,.12)" }}>
+              3× Revenue growth
             </div>
           </div>
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
+      {/* 3. PROBLEM */}
+      <section id="problem" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+        <div style={sectionBase}>
+          <div className="reveal" data-reveal>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>The problem</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>You didn't become a trainer to fight admin</h2>
+          </div>
+          <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
+            {[
+              ["📊", "Spreadsheet Hell", "Client data everywhere, no single source of truth."],
+              ["👻", "Zero Accountability", "Check-ins disappear and progress stalls without consistency."],
+              ["🔧", "The Franken-Stack", "Too many tools, no clean workflow between them."]
+            ].map(([icon, title, body]) => (
+              <div key={title} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 18 }}>
+                <div style={{ fontSize: 24 }}>{icon}</div>
+                <div style={{ fontWeight: 600, marginTop: 8 }}>{title}</div>
+                <p style={{ margin: "8px 0 0", color: "#9a8f7e", lineHeight: 1.6 }}>{body}</p>
+              </div>
+            ))}
+          </div>
+          <blockquote className="reveal" data-reveal style={{ margin: "20px 0 0", borderLeft: "4px solid #c9a84c", padding: "8px 0 8px 14px", color: "#2c2416", fontStyle: "italic" }}>
+            "You did not become a trainer to spend your evenings buried in spreadsheets..."
+          </blockquote>
+        </div>
+      </section>
 
-      <section id="problem" className="section-pad" style={{ padding: "96px 48px", background: s.bg2 }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <FadeUp>
-            <span
-              style={{
-                display: "block",
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: 3,
-                textTransform: "uppercase",
-                color: s.gold,
-                marginBottom: 14
-              }}
-            >
-              The problem
-            </span>
-          </FadeUp>
-          <FadeUp delay={60}>
-            <h2
-              style={{
-                fontFamily: "'Bebas Neue',sans-serif",
-                fontSize: "clamp(34px,4.5vw,58px)",
-                color: s.text,
-                lineHeight: 1,
-                letterSpacing: 1,
-                marginBottom: 14
-              }}
-            >
-              You didn&apos;t become a trainer to{" "}
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: s.gold }}>
-                fight admin
-              </span>
-            </h2>
-          </FadeUp>
-          <div
-            className="grid-3"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3,1fr)",
-              gap: 1,
-              background: s.border,
-              border: `1px solid ${s.border}`,
-              borderRadius: 12,
-              overflow: "hidden",
-              marginTop: 24
-            }}
-          >
-            {PAIN_POINTS.map((p, i) => (
-              <FadeUp key={p.title} delay={i * 80}>
-                <div style={{ background: s.bg2, padding: "32px 28px", height: "100%" }}>
-                  <div style={{ fontSize: 26, marginBottom: 14 }}>{p.icon}</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: s.text, marginBottom: 8 }}>{p.title}</div>
-                  <p style={{ fontSize: 14, color: s.muted, lineHeight: 1.65 }}>{p.desc}</p>
+      {/* 4. HOW IT WORKS */}
+      <section id="how" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+        <div style={sectionBase}>
+          <div className="reveal" data-reveal>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>How it works</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>From application to transformation</h2>
+          </div>
+          <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
+            {[
+              ["01", "Apply", "Submit your trainer application and get reviewed quickly."],
+              ["02", "Onboard", "Set up forms, client structure, and coaching workflow."],
+              ["03", "Grow", "Scale client outcomes and business revenue with confidence."]
+            ].map(([n, t, d]) => (
+              <div key={t} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 18 }}>
+                <div style={{ color: "#c9a84c", fontFamily: "'Bebas Neue',sans-serif", fontSize: 38 }}>{n}</div>
+                <div style={{ fontWeight: 600 }}>{t}</div>
+                <div style={{ color: "#9a8f7e", marginTop: 6 }}>{d}</div>
+              </div>
+            ))}
+          </div>
+          <div className="stack-2-tight reveal" data-reveal style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 10 }}>
+            {["3× Faster onboarding", "94% Check-in rate", "40% More clients retained", "10h Saved weekly"].map((m) => (
+              <div key={m} style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 10, padding: 12, textAlign: "center", fontSize: 13 }}>{m}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. DASHBOARD */}
+      <section id="dashboard" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "center" }}>
+          <div className="reveal" data-reveal>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Dashboard</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>Your coaching command center</h2>
+            {["📋 Client Sign-ups & Onboarding", "✅ Daily & Weekly Check-Ins", "💬 Integrated Messaging", "📊 Analytics & Progress Tracking"].map((f) => (
+              <div key={f} style={{ padding: "12px 0", borderBottom: "1px solid #e8e2d6" }}>{f}</div>
+            ))}
+          </div>
+          <div className="stack-2 reveal" data-reveal style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              ["/img/Dashboard%20png.png", "Dashboard view"],
+              ["/img/forms.png", "Forms view"]
+            ].map(([src, label]) => (
+              <div key={label} style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 14, overflow: "hidden" }}>
+                <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
                 </div>
-              </FadeUp>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="how" className="section-pad" style={{ padding: "96px 48px", background: s.bg }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <FadeUp>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-              How it works
-            </h2>
-          </FadeUp>
-          <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, marginTop: 24 }}>
-            {STEPS.map((step, i) => (
-              <FadeUp key={step.n} delay={i * 90}>
-                <div style={{ background: s.surface, border: `1px solid ${s.border}`, borderRadius: 12, padding: "32px 26px" }}>
-                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 52, color: s.gold, opacity: 0.25 }}>{step.n}</div>
-                  <div style={{ fontSize: 17, fontWeight: 600, color: s.text, marginBottom: 8 }}>{step.title}</div>
-                  <p style={{ fontSize: 14, color: s.muted, lineHeight: 1.65 }}>{step.desc}</p>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-          <div
-            className="grid-4"
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 1,
-              background: s.border,
-              border: `1px solid ${s.border}`,
-              borderRadius: 12,
-              overflow: "hidden",
-              marginTop: 36
-            }}
-          >
-            {METRICS.map((m) => (
-              <div key={m.val} style={{ background: s.bg2, padding: 28, textAlign: "center" }}>
-                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 44, color: s.gold, lineHeight: 1 }}>{m.val}</div>
-                <div style={{ fontSize: 13, color: s.muted }}>{m.desc}</div>
+                <img src={src} alt={label} style={{ width: "100%", display: "block" }} />
+                <div style={{ fontSize: 12, color: "#9a8f7e", padding: 10 }}>{label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="dashboard" className="section-pad" style={{ padding: "96px 48px", background: s.bg2 }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 70, alignItems: "center" }}>
-            <div>
-              <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-                Your coaching command center
-              </h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
-                {DASH_FEATURES.map((f) => (
-                  <div key={f.title} style={{ display: "flex", gap: 14, padding: 16, borderRadius: 12 }}>
-                    <div
-                      style={{
-                        width: 42,
-                        height: 42,
-                        background: s.goldDim,
-                        borderRadius: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 19,
-                        flexShrink: 0
-                      }}
-                    >
-                      {f.icon}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: s.text, marginBottom: 3 }}>{f.title}</div>
-                      <p style={{ fontSize: 13, color: s.muted, lineHeight: 1.55 }}>{f.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* 6. CLIENT PORTAL */}
+      <section id="client-portal" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "center" }}>
+          <div className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div style={{ gridRow: "span 2", background: s.surface, border: `1px solid ${s.border}`, borderRadius: 16, overflow: "hidden" }}>
-                <MacDots />
-                <img src={IMG_DASHBOARD} alt="Trainer Dashboard" style={{ width: "100%", display: "block" }} />
+            <img src="/img/checkin.png" alt="Client Portal" style={{ width: "100%", display: "block" }} />
+            <div style={{ fontSize: 12, color: "#9a8f7e", padding: 10 }}>Client Portal</div>
+          </div>
+          <div className="reveal" data-reveal>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Client Portal</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>What your clients actually see</h2>
+            {["Daily check-in form", "Sunday progress review", "Program & workout access", "Trainer messaging"].map((f) => (
+              <div key={f} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                <span style={{ color: "#4caf7d", fontWeight: 700 }}>✓</span>
+                <span>{f}</span>
               </div>
-              <div style={{ background: s.surface, border: `1px solid ${s.border}`, borderRadius: 16, overflow: "hidden" }}>
-                <MacDots />
-                <img src={IMG_FORMS} alt="Forms" style={{ width: "100%", display: "block" }} />
-              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 7. AI FOR TRAINERS */}
+      <section className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20, padding: 18, borderRadius: 16, border: "1px solid #c9a84c", background: "linear-gradient(180deg,#fff,#faf6ef)" }}>
+          <div className="reveal" data-reveal>
+            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Trainer AI</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 14px" }}>Your AI coaching co-pilot</h2>
+            <p style={{ color: "#9a8f7e" }}>FitBase AI is built exclusively for trainers — not for clients.</p>
+            {[
+              "✍️ Draft client feedback in seconds",
+              "📊 Analyze check-in data trends",
+              "📋 Generate weekly progress summaries",
+              "🎯 Build personalized program adjustments"
+            ].map((f) => (
+              <div key={f} style={{ marginTop: 8 }}>{f}</div>
+            ))}
+          </div>
+          <div className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <strong>FitBase AI</strong>
+              <span style={{ color: "#4caf7d", fontSize: 12 }}>● Trainer only</span>
+            </div>
+            <div style={{ background: "#f4efe4", padding: 10, borderRadius: 10, marginBottom: 8, fontSize: 14 }}>
+              Trainer: "Client is plateauing for 2 weeks. What should I adjust?"
+            </div>
+            <div style={{ background: "#faf6ef", border: "1px solid #e8e2d6", padding: 10, borderRadius: 10, fontSize: 14 }}>
+              AI: "Reduce calories by 150, increase steps by 2k, keep protein stable, and switch two sessions to higher volume lower load."
             </div>
           </div>
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="client-portal" className="section-pad" style={{ padding: "96px 48px", background: s.bg }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
-            <div style={{ background: s.surface, border: `1px solid ${s.border}`, borderRadius: 20, overflow: "hidden" }}>
-              <MacDots />
-              <img src={IMG_CHECKIN} alt="Client Check-In" style={{ width: "100%", display: "block" }} />
-            </div>
-            <div>
-              <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-                What your clients actually see
-              </h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 20 }}>
-                {PORTAL_FEATURES.map((f) => (
-                  <div key={f.title} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: 22,
-                        height: 22,
-                        background: s.goldDim,
-                        borderRadius: "50%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 11,
-                        color: s.gold,
-                        flexShrink: 0,
-                        marginTop: 2
-                      }}
-                    >
-                      ✓
-                    </div>
-                    <p style={{ fontSize: 15, color: s.text, lineHeight: 1.55 }}>
-                      <strong>{f.title}</strong> - {f.desc}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="testimonials" className="section-pad" style={{ padding: "96px 48px", background: s.bg }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-            Trainer stories
-          </h2>
-          <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, marginTop: 24 }}>
-            {TESTIMONIALS.map((t) => (
-              <div
-                key={t.name}
-                style={{
-                  background: s.surface,
-                  border: `1px solid ${s.border}`,
-                  borderRadius: 12,
-                  padding: 26,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 16
-                }}
-              >
-                <div style={{ color: s.gold, fontSize: 14, letterSpacing: 3 }}>★★★★★</div>
-                <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", fontSize: 16, color: s.text, lineHeight: 1.65 }}>
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: s.goldDim,
-                      border: `2px solid ${s.gold}`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center"
-                    }}
-                  >
-                    {t.initial}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: s.text }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: s.muted, marginTop: 2 }}>{t.meta}</div>
-                  </div>
+      {/* 8. TESTIMONIALS */}
+      <section id="testimonials" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+        <div style={sectionBase}>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Results that speak</h2>
+          <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14, marginTop: 16 }}>
+            {[
+              ["R", "Rahul Sharma", "Independent Trainer · Mumbai", "FitBase brought structure and scale to my coaching instantly."],
+              ["P", "Priya Nair", "Online Coach · Bangalore", "My check-in consistency and client retention jumped fast."],
+              ["A", "Arjun Mehta", "Gym Owner · Delhi", "This is the first platform my whole team actually sticks to."]
+            ].map(([i, n, m, q]) => (
+              <div key={n} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 16 }}>
+                <div style={{ color: "#c9a84c", marginBottom: 8 }}>★★★★★</div>
+                <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", marginTop: 0 }}>{q}</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#ede7d9", display: "grid", placeItems: "center" }}>{i}</div>
+                  <div><strong>{n}</strong><div style={{ fontSize: 12, color: "#9a8f7e" }}>{m}</div></div>
                 </div>
               </div>
             ))}
@@ -820,61 +322,35 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="comparison" className="section-pad" style={{ padding: "96px 48px", background: s.bg2 }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-            How we compare
-          </h2>
-          <div style={{ overflowX: "auto", borderRadius: 12, border: `1px solid ${s.border}`, marginTop: 24 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+      {/* 9. COMPARISON TABLE */}
+      <section className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+        <div style={sectionBase}>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>How we compare</h2>
+          <div className="reveal" data-reveal style={{ overflowX: "auto", marginTop: 14, border: "1px solid #e8e2d6", borderRadius: 12 }}>
+            <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", background: "#fff" }}>
               <thead>
                 <tr>
-                  {[
-                    { l: "Feature", hl: false },
-                    { l: "FitBase", hl: true },
-                    { l: "Trainerize", hl: false },
-                    { l: "TrueCoach", hl: false },
-                    { l: "PT Distinction", hl: false }
-                  ].map((h) => (
-                    <th
-                      key={h.l}
-                      style={{
-                        background: h.hl ? "rgba(201,168,76,0.10)" : s.bg3,
-                        padding: "16px 20px",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: 1.5,
-                        textTransform: "uppercase",
-                        color: h.hl ? s.gold : s.muted,
-                        textAlign: h.l === "Feature" ? "left" : "center",
-                        borderBottom: `1px solid ${s.border}`
-                      }}
-                    >
-                      {h.l}
-                    </th>
+                  {["Feature", "FitBase", "Trainerize", "TrueCoach", "PT Distinction"].map((h) => (
+                    <th key={h} style={{ padding: 12, borderBottom: "1px solid #e8e2d6", textAlign: h === "Feature" ? "left" : "center", background: h === "FitBase" ? "#ede7d9" : "#faf6ef", color: h === "FitBase" ? "#c9a84c" : "#9a8f7e" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {COMPARE_ROWS.map((row, ri) => (
-                  <tr key={row.feature} style={{ background: ri % 2 === 0 ? s.surface : s.bg }}>
-                    <td style={{ padding: "14px 20px", fontSize: 14, color: s.text, borderBottom: `1px solid ${s.border}` }}>
-                      {row.feature}
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${s.border}` }}>
-                      <CheckCell val={row.fitbase} />
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${s.border}` }}>
-                      <CheckCell val={row.trainerize} />
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${s.border}` }}>
-                      <CheckCell val={row.truecoach} />
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center", borderBottom: `1px solid ${s.border}` }}>
-                      <CheckCell val={row.ptd} />
-                    </td>
+                {[
+                  ["Daily check-in tracking", "✓", "✓", "Limited", "✓"],
+                  ["AI assistant for trainers", "✓", "✗", "✗", "✗"],
+                  ["Client audit forms", "✓", "Basic", "Basic", "✓"],
+                  ["White-label option", "✓", "✓", "✗", "✓"],
+                  ["Starts at per month", "$24", "$35", "$19", "$49"],
+                  ["India-focused onboarding", "✓", "✗", "✗", "✗"],
+                  ["Dedicated superadmin support", "✓", "✗", "✗", "Paid"]
+                ].map((r) => (
+                  <tr key={r[0]}>
+                    <td style={{ padding: 12, borderBottom: "1px solid #e8e2d6" }}>{r[0]}</td>
+                    {[1, 2, 3, 4].map((idx) => {
+                      const val = r[idx] as CompareValue;
+                      return <td key={idx} style={{ padding: 12, borderBottom: "1px solid #e8e2d6", textAlign: "center" }}>{val}</td>;
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -883,59 +359,18 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="faq" className="section-pad" style={{ padding: "96px 48px", background: s.bg }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-            Questions answered
-          </h2>
-          <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 24 }}>
-            {FAQS.map((faq, i) => (
-              <div
-                key={faq.q}
-                style={{
-                  background: s.surface,
-                  border: `1px solid ${openFaq === i ? "rgba(201,168,76,.5)" : s.border}`,
-                  borderRadius: 12,
-                  overflow: "hidden"
-                }}
-              >
-                <div
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  style={{
-                    padding: "18px 20px",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: s.text,
-                    cursor: "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12
-                  }}
-                >
-                  {faq.q}
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      background: s.goldDim,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: s.gold,
-                      fontSize: 18
-                    }}
-                  >
-                    +
-                  </div>
-                </div>
-                <div style={{ maxHeight: openFaq === i ? 200 : 0, overflow: "hidden", transition: "max-height .4s ease" }}>
-                  <p style={{ padding: "14px 20px 18px", fontSize: 14, color: s.muted, lineHeight: 1.7, borderTop: `1px solid ${s.border}` }}>
-                    {faq.a}
-                  </p>
+      {/* 10. FAQ */}
+      <section id="faq" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+        <div style={sectionBase}>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Questions answered</h2>
+          <div className="stack-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
+            {faqs.map((item, idx) => (
+              <div key={item.q} className="reveal" data-reveal style={{ background: "#fff", border: `1px solid ${activeFaq === idx ? "#c9a84c" : "#e8e2d6"}`, borderRadius: 10, overflow: "hidden" }}>
+                <button type="button" onClick={() => setActiveFaq(activeFaq === idx ? null : idx)} style={{ width: "100%", textAlign: "left", border: "none", background: "transparent", padding: 12, fontWeight: 600, cursor: "pointer" }}>
+                  {item.q}
+                </button>
+                <div style={{ maxHeight: activeFaq === idx ? 180 : 0, overflow: "hidden", transition: "max-height .35s ease" }}>
+                  <p style={{ margin: 0, padding: "0 12px 12px", color: "#9a8f7e", lineHeight: 1.6 }}>{item.a}</p>
                 </div>
               </div>
             ))}
@@ -943,172 +378,70 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="pricing" className="section-pad" style={{ padding: "96px 48px", background: s.bg2 }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-            Invest in your growth
-          </h2>
-          <div className="grid-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 24, marginTop: 24 }}>
-            {PLANS.map((plan) => (
-              <div
-                key={plan.name}
-                style={{
-                  background: plan.featured ? `linear-gradient(135deg,rgba(201,168,76,0.08),${s.surface})` : s.surface,
-                  border: `1px solid ${plan.featured ? s.gold : s.border}`,
-                  borderRadius: 12,
-                  padding: "34px 28px",
-                  display: "flex",
-                  flexDirection: "column"
-                }}
-              >
-                <div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: s.muted, marginBottom: 14 }}>
-                  {plan.name}
-                </div>
-                <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 54, color: s.text, lineHeight: 1 }}>
-                  {plan.price}
-                  <span style={{ fontSize: 18, color: s.muted, fontFamily: "'DM Sans',sans-serif", fontWeight: 300 }}>/mo</span>
-                </div>
-                <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 11, marginTop: 20, marginBottom: 24 }}>
-                  {plan.features.map((f) => (
-                    <li key={f} style={{ fontSize: 14, color: s.text, display: "flex", gap: 9, alignItems: "flex-start" }}>
-                      <span style={{ color: s.gold, fontSize: 12, marginTop: 3, flexShrink: 0 }}>✓</span>
-                      {f}
-                    </li>
-                  ))}
+      {/* 11. PRICING */}
+      <section id="pricing" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+        <div style={sectionBase}>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Invest in your growth</h2>
+          <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 16 }}>
+            {plans.map((p) => (
+              <div key={p.name} className="reveal" data-reveal style={{ background: "#fff", border: `1px solid ${p.featured ? "#c9a84c" : "#e8e2d6"}`, borderRadius: 12, padding: 16 }}>
+                {p.badge ? <div style={{ display: "inline-block", background: "#c9a84c", color: "#fff", borderRadius: 999, fontSize: 11, padding: "4px 8px", marginBottom: 8 }}>{p.badge}</div> : null}
+                <h3 style={{ margin: "0 0 4px" }}>{p.name}</h3>
+                <div style={{ color: "#c9a84c", fontFamily: "'Bebas Neue',sans-serif", fontSize: 40 }}>{p.price}</div>
+                <ul style={{ paddingLeft: 18, margin: "10px 0", color: "#9a8f7e" }}>
+                  {p.features.map((f) => <li key={f} style={{ marginBottom: 6 }}>{f}</li>)}
                 </ul>
-                <a
-                  href="#apply"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    padding: 13,
-                    borderRadius: 8,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    background: plan.featured ? s.gold : "transparent",
-                    color: plan.featured ? "#fff" : s.text,
-                    border: plan.featured ? "none" : `1.5px solid ${s.border}`
-                  }}
-                >
-                  {plan.cta}
-                </a>
+                <a href="#apply" style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#c9a84c", color: "#fff", padding: "10px 12px", borderRadius: 8, fontWeight: 600 }}>Get Access</a>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <div style={{ height: 1, background: s.border }} />
-
-      <section id="apply" className="section-pad" style={{ padding: "96px 48px", background: s.bg }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(34px,4.5vw,58px)", color: s.text }}>
-            Ready to run a serious coaching business?
-          </h2>
-          {submitted ? (
-            <div style={{ background: s.surface, border: "1px solid rgba(76,175,125,0.4)", borderRadius: 16, padding: 48, textAlign: "center", marginTop: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-              <h3 style={{ fontSize: 22, fontWeight: 700, color: s.text, marginBottom: 10 }}>Application received!</h3>
-              <p style={{ color: s.muted, fontSize: 15 }}>
-                We&apos;ll review your details and send your trainer credentials within 24 hours.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} style={{ background: s.surface, border: `1px solid ${s.border}`, borderRadius: 16, padding: 40, marginTop: 24 }}>
-              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                {[
-                  { key: "name", label: "Full Name", type: "text", ph: "Your full name", req: true },
-                  { key: "email", label: "Email", type: "email", ph: "you@example.com", req: true },
-                  { key: "phone", label: "Phone", type: "tel", ph: "+91 98765 43210", req: true },
-                  { key: "gym", label: "Gym / Brand", type: "text", ph: "Your gym or brand", req: false },
-                  { key: "city", label: "City", type: "text", ph: "Your city", req: false },
-                  { key: "clients", label: "Approx. Clients", type: "number", ph: "e.g. 20", req: false }
-                ].map((f) => (
-                  <div key={f.key} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: s.muted }}>
-                      {f.label}
-                    </label>
-                    <input
-                      type={f.type}
-                      placeholder={f.ph}
-                      required={f.req}
-                      className="fb-input"
-                      value={(form as Record<string, string>)[f.key]}
-                      onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
-                    />
-                  </div>
-                ))}
-                <div className="form-full" style={{ gridColumn: "span 2", display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 10, fontWeight: 600, letterSpacing: "1.5px", textTransform: "uppercase", color: s.muted }}>
-                    Message
-                  </label>
-                  <textarea
-                    placeholder="Tell us about your coaching business..."
-                    rows={4}
-                    className="fb-input"
-                    style={{ resize: "none" }}
-                    value={form.message}
-                    onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                style={{
-                  width: "100%",
-                  padding: 14,
-                  background: s.gold,
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 15,
-                  fontWeight: 600,
-                  fontFamily: "'DM Sans',sans-serif",
-                  cursor: "pointer",
-                  letterSpacing: 0.5
-                }}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Application →"}
+      {/* 12. APPLY FORM */}
+      <section id="apply" ref={applyRef} className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Ready to run a serious coaching business?</h2>
+          {!submitted ? (
+            <form
+              className="reveal stack-2"
+              data-reveal
+              onSubmit={(e) => {
+                e.preventDefault();
+                // TODO: POST to NestJS /api/trainer-applications
+                setSubmitted(true);
+              }}
+              style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+            >
+              {["Full Name", "Email", "Phone", "Gym/Brand", "City", "Approx Clients"].map((label) => (
+                <input key={label} required placeholder={label} style={{ border: "1px solid #e8e2d6", borderRadius: 8, padding: 12, background: "#fff" }} />
+              ))}
+              <textarea placeholder="Message" style={{ gridColumn: "1 / -1", border: "1px solid #e8e2d6", borderRadius: 8, padding: 12, minHeight: 120, background: "#fff" }} />
+              <button type="submit" style={{ gridColumn: "1 / -1", border: "none", borderRadius: 8, background: "#c9a84c", color: "#fff", padding: 12, fontWeight: 600, cursor: "pointer" }}>
+                Submit Application →
               </button>
-              {submitError ? (
-                <p style={{ fontSize: 12, color: "#c0392b", textAlign: "center", marginTop: 10 }}>{submitError}</p>
-              ) : null}
             </form>
+          ) : (
+            <div className="reveal" data-reveal style={{ marginTop: 14, background: "#fff", border: "1px solid #4caf7d", borderRadius: 12, padding: 20, color: "#2c2416" }}>
+              <div style={{ color: "#4caf7d", fontSize: 24 }}>✓</div>
+              <strong>Application received!</strong>
+            </div>
           )}
         </div>
       </section>
 
-      <footer
-        style={{
-          background: s.bg3,
-          borderTop: `1px solid ${s.border}`,
-          padding: "40px 48px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 20
-        }}
-      >
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 20, letterSpacing: 4, color: s.gold }}>FITBASE</div>
-        <ul style={{ display: "flex", gap: 24, listStyle: "none", flexWrap: "wrap" }}>
-          {navLinks.map((l) => (
-            <li key={l.href}>
-              <a
-                href={l.href}
-                style={{ color: s.muted, textDecoration: "none", fontSize: 12, letterSpacing: 1, textTransform: "uppercase" }}
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div style={{ fontSize: 12, color: s.muted }}>© 2026 FitBase. All rights reserved.</div>
+      {/* 13. FOOTER */}
+      <footer className="pad" style={{ padding: "30px 36px", background: "#ede7d9", borderTop: "1px solid #e8e2d6" }}>
+        <div style={{ ...sectionBase, display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "#c9a84c", fontSize: 28 }}>FITBASE</div>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            {["Problem", "How it works", "Dashboard", "Client Portal", "Pricing", "Login"].map((label) => (
+              <a key={label} href={label === "Login" ? "/login.html" : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "#9a8f7e", textDecoration: "none", fontSize: 13 }}>{label}</a>
+            ))}
+          </div>
+          <div style={{ color: "#9a8f7e", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>
+        </div>
       </footer>
-    </>
+    </main>
   );
 }
