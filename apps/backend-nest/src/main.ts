@@ -9,7 +9,7 @@ async function bootstrap() {
   const publicDir = join(process.cwd(), "../../public");
   app.useStaticAssets(publicDir, { index: false });
   app.getHttpAdapter().get("/", (_req: any, res: any) => {
-    res.redirect("/fitbase.html");
+    res.sendFile(join(publicDir, "fitbase.html"));
   });
   app.setGlobalPrefix("");
   const port = Number(process.env.PORT || 3200);
