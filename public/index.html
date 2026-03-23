@@ -4,6 +4,22 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#f5f2eb" />
+<script>
+  (function routePublicTrafficToFitBaseLanding() {
+    try {
+      var params = new URLSearchParams(window.location.search || "");
+      var hasShareToken = !!(params.get("superadmin_share") || params.get("t"));
+      var hasResetToken = !!params.get("reset");
+      if (hasShareToken || hasResetToken) return;
+      var raw = localStorage.getItem("fitbase_session");
+      var session = raw ? JSON.parse(raw) : null;
+      var hasToken = !!(session && session.token);
+      if (!hasToken) window.location.replace("/fitbase.html");
+    } catch (e) {
+      window.location.replace("/fitbase.html");
+    }
+  })();
+</script>
 
 <!-- Safari / iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
