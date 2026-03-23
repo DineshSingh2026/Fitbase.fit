@@ -5,7 +5,7 @@
 # 4. When prompted, use your GitHub username and Personal Access Token (as password)
 
 $ErrorActionPreference = "Stop"
-$repoUrl = "https://github.com/DineshSingh2026/Bodybank.fit.git"
+$repoUrl = "https://github.com/your-username/fitbase.fit.git"
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Host "Git is not installed or not in PATH." -ForegroundColor Red
@@ -34,7 +34,7 @@ Write-Host "Staging all files..." -ForegroundColor Cyan
 git add -A
 
 Write-Host "Committing..." -ForegroundColor Cyan
-git commit -m "BodyBank: PostgreSQL backend, E2E tests, scripts, admin fixes" 2>$null
+git commit -m "FitBase: PostgreSQL backend, E2E tests, scripts, admin fixes" 2>$null
 if ($LASTEXITCODE -ne 0) {
     $status = git status --short
     if (-not $status) {
@@ -58,7 +58,7 @@ git push -u origin main --force
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "Done! Your repo is updated: https://github.com/DineshSingh2026/Bodybank.fit" -ForegroundColor Green
+    Write-Host "Done! Your repo is updated: https://github.com/your-username/fitbase.fit" -ForegroundColor Green
 } else {
     Write-Host "Push failed. Check your credentials and try again." -ForegroundColor Red
     exit 1

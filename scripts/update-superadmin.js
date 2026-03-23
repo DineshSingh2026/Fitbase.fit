@@ -8,15 +8,15 @@
  *   A) Set in .env: SUPERADMIN_EMAIL=..., SUPERADMIN_PASS=...
  *      node scripts/update-superadmin.js
  *   B) Pass email and password as arguments (password not saved in .env):
- *      node scripts/update-superadmin.js "Superadmin@gmail.com" "Bodybank@2026"
+ *      node scripts/update-superadmin.js "Superadmin@gmail.com" "Fitbase@2026"
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
-const SUPERADMIN_EMAIL = process.argv[2] || process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
+const SUPERADMIN_EMAIL = process.argv[2] || process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
 const SUPERADMIN_PASS = process.argv[3] || process.env.SUPERADMIN_PASS || 'superadmin123';
 
 function toPg(sql) {
@@ -29,7 +29,7 @@ async function main() {
     console.error('Provide email and password: node scripts/update-superadmin.js "your@email.com" "YourPassword"');
     process.exit(1);
   }
-  if (!DATABASE_URL || DATABASE_URL === 'postgresql://localhost:5432/bodybank') {
+  if (!DATABASE_URL || DATABASE_URL === 'postgresql://localhost:5432/fitbase') {
     console.error('Set DATABASE_URL in .env to your Render Postgres Internal URL (Render → Postgres → Connect → Internal Database URL).');
     process.exit(1);
   }

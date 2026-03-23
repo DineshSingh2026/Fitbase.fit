@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f2eb" />
+  <meta name="description" content="FitBase - luxury coaching infrastructure for serious trainers." />
+  <title>FitBase - Luxury Platform for Trainers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root{--bg:#f5f2eb;--panel:#fbf8f1;--panel2:#f2ebde;--text:#1f1a14;--muted:#746858;--gold:#8c6a3f;--line:rgba(126,95,55,.24)}
+    *{box-sizing:border-box} html{scroll-behavior:smooth}
+    body{margin:0;background:linear-gradient(180deg,#faf8f2 0%,#f3efe6 100%);color:var(--text);font-family:Outfit,system-ui,sans-serif}
+    .grain{position:fixed;inset:0;pointer-events:none;opacity:.016;z-index:9999;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+    .wrap{max-width:1220px;margin:0 auto;padding:0 22px}
+    header{position:sticky;top:0;z-index:50;background:rgba(250,248,242,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .nav{height:82px;display:flex;align-items:center;justify-content:space-between}
+    .logo img{height:58px}
+    .menu{display:flex;gap:28px;align-items:center}
+    .menu a{color:var(--muted);text-decoration:none;font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+    .btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid var(--line);padding:13px 22px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:12px;color:var(--text);background:transparent}
+    .btn.gold{background:linear-gradient(135deg,#9b7648,#7e5f37);color:#fff;border:none}
+    .hero{padding:78px 0 52px;border-bottom:1px solid var(--line)}
+    .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+    h1{font-family:Syne,Outfit,sans-serif;font-size:clamp(44px,7vw,90px);line-height:1.03;letter-spacing:-.03em;margin:0 0 20px;max-width:850px}
+    .gold{color:var(--gold)} .lead{font-size:clamp(18px,2vw,33px);max-width:820px;color:#2b251f;line-height:1.35}
+    .cta{display:flex;gap:14px;margin-top:28px;flex-wrap:wrap}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px;max-width:760px}
+    .stat{background:linear-gradient(180deg,#fbf8f1,#f2ebde);border:1px solid var(--line);padding:16px}.stat b{font-size:42px;color:var(--gold);font-family:Syne,sans-serif}.stat span{display:block;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+    section{padding:56px 0;border-bottom:1px solid rgba(126,95,55,.14)}
+    .grid2{display:grid;grid-template-columns:1.1fr 1fr;gap:22px;align-items:start}
+    .quote{font-size:clamp(26px,3vw,46px);line-height:1.2;font-weight:700;max-width:680px}
+    .card{background:linear-gradient(180deg,#fbf8f1,#f2ebde);border:1px solid var(--line);padding:20px;border-radius:2px}
+    .card h4{margin:0 0 7px;font-size:29px;font-family:Syne,sans-serif}.card p{margin:0;color:var(--muted)}
+    .stack{display:grid;gap:14px}
+    h2{font-family:Syne,sans-serif;font-size:clamp(34px,5vw,64px);line-height:1.1;margin:0 0 10px}.sub{color:var(--muted);max-width:760px}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}.step{padding:18px;border:1px solid var(--line);background:linear-gradient(180deg,#fbf8f1,#f2ebde)}.step .n{width:58px;height:58px;border:1px solid var(--line);display:grid;place-items:center;border-radius:999px;color:var(--gold);font-size:26px;font-family:Syne,sans-serif;margin-bottom:10px}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.k{padding:15px;border:1px solid var(--line);text-align:center;background:#fbf8f1}.k b{font-size:40px;color:var(--gold);font-family:Syne,sans-serif;display:block}
+    .shots{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px;max-width:920px}
+    .shot{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#fbf8f1,#f2ebde);
+      padding:8px;
+    }
+    .shot img{
+      width:100%;
+      height:auto;
+      max-height:360px;
+      display:block;
+      border:1px solid rgba(126,95,55,.18);
+      background:#fff;
+      object-fit:contain;
+    }
+    .shot p{margin:8px 2px 0;color:var(--muted);line-height:1.45;font-size:13px}
+    .testi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}.t{border:1px solid var(--line);padding:18px;background:linear-gradient(180deg,#fbf8f1,#f2ebde)}
+    .pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.p{border:1px solid var(--line);padding:20px;background:linear-gradient(180deg,#fbf8f1,#f2ebde)}.p.featured{border-color:#8c6a3f;box-shadow:0 0 0 1px rgba(140,106,63,.25) inset}
+    .p .price{font-family:Syne,sans-serif;font-size:56px;color:var(--gold)} .p ul{margin:14px 0 0;padding-left:18px;color:#4e4337;line-height:1.9}
+    .join{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:860px}
+    .field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    input,textarea{width:100%;background:#fff;border:1px solid var(--line);color:var(--text);padding:12px 14px;font:inherit} textarea{min-height:100px}
+    .msg{grid-column:1/-1;min-height:18px;color:var(--muted);margin:0}
+    footer{padding:30px 0;color:var(--muted);font-size:13px;text-align:center}
+    @media(max-width:980px){.grid2,.steps,.pricing,.testi,.shots,.stats,.kpis{grid-template-columns:1fr}.menu{display:none}.join{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <header>
+    <div class="wrap nav">
+      <a class="logo" href="#top"><img src="/img/Fitbase_logo2.png" alt="FitBase" /></a>
+      <div class="menu">
+        <a href="#problem">Problem</a>
+        <a href="#how">How it works</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/login.html" class="btn">Sign in</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top" class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Now in early access</div>
+      <h1>THE PLATFORM THAT POWERS MODERN <span class="gold">TRAINERS</span></h1>
+      <p class="lead">Professional coaching infrastructure for onboarding, tracking, communication, and measurable results.</p>
+      <div class="cta">
+        <a href="#join" class="btn gold">Request Trainer Access</a>
+        <a href="#dashboard" class="btn">Explore Features</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>500+</b><span>Active trainers</span></div>
+        <div class="stat"><b>12,000+</b><span>Clients managed</span></div>
+        <div class="stat"><b>4.9/5</b><span>Platform rating</span></div>
+      </div>
+    </section>
+
+    <section id="problem" class="grid2">
+      <div>
+        <p class="quote">"You did not become a trainer to spend your evenings buried in spreadsheets, chasing screenshots, and rewriting the same program in a notes app."</p>
+      <p class="sub" style="margin-top:10px">- A common story before FitBase</p>
+      </div>
+      <div class="stack">
+        <div class="card"><h4>Spreadsheet Hell</h4><p>Client data scattered across sheets, WhatsApp, and outdated folders.</p></div>
+        <div class="card"><h4>Zero Accountability</h4><p>Clients ghost check-ins. You cannot track what you cannot see.</p></div>
+        <div class="card"><h4>Franken-Stack</h4><p>Payments, scheduling, and programs in disconnected tools.</p></div>
+      </div>
+    </section>
+
+    <section id="how">
+      <div class="eyebrow">How it works</div>
+      <h2>Three <span class="gold">steps</span></h2>
+      <p class="sub">From application to transformation - in under 30 minutes.</p>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><h3>Apply</h3><p>Submit your trainer application. We onboard serious trainers only.</p></div>
+        <div class="step"><div class="n">2</div><h3>Onboard</h3><p>Get credentials, import clients, and customize your coaching system fast.</p></div>
+        <div class="step"><div class="n">3</div><h3>Grow</h3><p>Focus on training. FitBase handles admin, tracking, and client communication.</p></div>
+      </div>
+      <div class="kpis">
+        <div class="k"><b>3x</b><span>Faster onboarding</span></div>
+        <div class="k"><b>94%</b><span>Check-in rate</span></div>
+        <div class="k"><b>40%</b><span>More clients retained</span></div>
+        <div class="k"><b>10hrs</b><span>Saved weekly</span></div>
+      </div>
+    </section>
+
+    <section id="dashboard">
+      <div class="eyebrow">The dashboard</div>
+      <h2>Your coaching <span class="gold">command center</span></h2>
+      <p class="sub">A clean workspace for client progress, trainer operations, and daily decisions.</p>
+    </section>
+
+    <section>
+      <div class="eyebrow">Testimonials</div>
+      <h2>Trainers <span class="gold">love it</span></h2>
+      <div class="testi">
+        <div class="t">"FitBase changed how I run my business. I went from 15 clients to 45 clients and clarity. My revenue tripled."</div>
+        <div class="t">"I tried every app. FitBase is the first one that actually feels like it was built by someone who trains people."</div>
+        <div class="t">"The check-in system alone saved me 8 hours every week. My clients love it because it takes two minutes."</div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="eyebrow">Pricing</div>
+      <h2>Invest in your <span class="gold">growth</span></h2>
+      <p class="sub">Start free. Scale when you are ready.</p>
+      <div class="pricing">
+        <div class="p"><h3>Starter</h3><div class="price">$24</div><ul><li>Up to 15 clients</li><li>Progress tracking</li><li>Weekly check-ins</li><li>Basic messaging</li></ul></div>
+        <div class="p featured"><h3>Professional</h3><div class="price">$49</div><ul><li>Unlimited clients</li><li>Advanced analytics</li><li>Campaign engine</li><li>Priority support</li></ul></div>
+        <div class="p"><h3>Enterprise</h3><div class="price">$124</div><ul><li>Multi-trainer support</li><li>White-label option</li><li>SLA guarantee</li><li>Custom integrations</li></ul></div>
+      </div>
+    </section>
+
+    <section id="join">
+      <div class="eyebrow">Trainer onboarding</div>
+      <h2>Apply for <span class="gold">early access</span></h2>
+      <p class="sub">Submit your details. Superadmin reviews and sends your trainer login credentials.</p>
+      <form id="trainerRequestForm" class="join" novalidate>
+        <div class="field"><label for="trName">Full name</label><input id="trName" name="full_name" type="text" required></div>
+        <div class="field"><label for="trEmail">Email</label><input id="trEmail" name="email" type="email" required></div>
+        <div class="field"><label for="trPhone">Phone</label><input id="trPhone" name="phone" type="text"></div>
+        <div class="field"><label for="trGym">Gym / brand name</label><input id="trGym" name="gym_name" type="text"></div>
+        <div class="field full"><label for="trCity">City</label><input id="trCity" name="city" type="text"></div>
+        <div class="field full"><label for="trMsg">Message</label><textarea id="trMsg" name="message" placeholder="Tell us about your coaching business."></textarea></div>
+        <button id="trSubmitBtn" type="submit" class="btn gold full">Submit request</button>
+        <p id="trainerRequestMsg" class="msg"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">(c) <span id="year"></span> FitBase. All rights reserved.</div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const trainerForm = document.getElementById('trainerRequestForm');
+    const trainerMsg = document.getElementById('trainerRequestMsg');
+    const trainerBtn = document.getElementById('trSubmitBtn');
+    if (trainerForm) {
+      trainerForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const payload = {
+          full_name: (document.getElementById('trName') || {}).value || '',
+          email: (document.getElementById('trEmail') || {}).value || '',
+          phone: (document.getElementById('trPhone') || {}).value || '',
+          gym_name: (document.getElementById('trGym') || {}).value || '',
+          city: (document.getElementById('trCity') || {}).value || '',
+          message: (document.getElementById('trMsg') || {}).value || ''
+        };
+        if (!String(payload.full_name).trim() || !String(payload.email).trim()) {
+          trainerMsg.textContent = 'Full name and email are required.';
+          return;
+        }
+        trainerBtn.disabled = true; trainerBtn.textContent = 'Submitting...'; trainerMsg.textContent = '';
+        try {
+          const res = await fetch('/api/trainer-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (!res.ok || data.error) throw new Error(data.error || 'Could not submit request');
+          trainerMsg.textContent = 'Request submitted. Superadmin will contact you with your credentials.';
+          trainerForm.reset();
+        } catch (err) {
+          trainerMsg.textContent = err.message || 'Failed to submit request.';
+        } finally {
+          trainerBtn.disabled = false; trainerBtn.textContent = 'Submit request';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

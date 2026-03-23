@@ -1,10 +1,33 @@
-# Render Blueprint — BodyBank
-# Add a PostgreSQL database (Render Postgres) and set DATABASE_URL in environment variables.
-
 services:
   - type: web
-    name: bodybank-fit
+    name: fitbase-backend-nest
     env: node
-    buildCommand: npm ci --omit=dev
-    startCommand: npm start
-    healthCheckPath: /health
+    rootDir: apps/backend-nest
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3200
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: LEGACY_SERVER_URL
+        sync: false
+
+  - type: web
+    name: fitbase-frontend-next
+    env: node
+    rootDir: apps/frontend-next
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_LEGACY_SITE_URL
+        sync: false
+      - key: BACKEND_URL
+        sync: false

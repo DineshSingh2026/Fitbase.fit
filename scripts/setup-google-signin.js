@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * Setup Google Sign-In: ensures .env exists, opens Google Console, optionally updates GOOGLE_CLIENT_ID.
  * Run: npm run setup:google
@@ -63,7 +63,7 @@ async function main() {
   console.log('\n2. In Google Console:');
   console.log('   - Create Credentials → OAuth client ID');
   console.log('   - Application type: Web application');
-  console.log('   - Authorized JavaScript origins: http://localhost:3000 and your live URL (e.g. https://bodybank-fit.onrender.com)');
+  console.log('   - Authorized JavaScript origins: http://localhost:3000 and your live URL (e.g. https://fitbase-fit.onrender.com)');
   console.log('   - Copy the Client ID (xxxxx.apps.googleusercontent.com)\n');
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

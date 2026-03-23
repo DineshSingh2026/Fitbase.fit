@@ -1,11 +1,13 @@
 {
-  "name": "bodybank",
+  "name": "fitbase",
   "version": "1.0.0",
-  "description": "BodyBank — Lifestyle Management Platform",
+  "description": "FitBase — Lifestyle Management Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "dev:frontend-next": "npm --prefix apps/frontend-next run dev",
+    "dev:backend-nest": "npm --prefix apps/backend-nest run dev",
     "setup:google": "node scripts/setup-google-signin.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
     "test": "node scripts/ensure-password-resets-table.js && node tests/e2e-flow.js",

@@ -1,8 +1,8 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
- * One-time migration: copy data from SQLite (data/bodybank.db) to PostgreSQL.
- * Requires: DATABASE_URL in .env (e.g. postgresql://user:pass@localhost:5432/bodybank)
- *           SQLite file at DB_PATH or data/bodybank.db
+ * One-time migration: copy data from SQLite (data/fitbase.db) to PostgreSQL.
+ * Requires: DATABASE_URL in .env (e.g. postgresql://user:pass@localhost:5432/fitbase)
+ *           SQLite file at DB_PATH or data/fitbase.db
  * Run: node scripts/migrate-sqlite-to-postgres.js
  * Then start the server with PostgreSQL (it will use DATABASE_URL).
  */
@@ -12,8 +12,8 @@ const fs = require('fs');
 const initSqlJs = require('sql.js');
 const { Pool } = require('pg');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'bodybank.db');
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'fitbase.db');
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 
 const TABLE_LIST = [
   'users',

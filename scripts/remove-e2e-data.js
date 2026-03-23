@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Remove all data created by E2E tests from the database.
  * Run: node scripts/remove-e2e-data.js
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 
 async function run() {
   const pool = new Pool({ connectionString: DATABASE_URL });
@@ -13,9 +13,9 @@ async function run() {
 
   console.log('Removing E2E test data...\n');
 
-  // Get E2E user ids first (email like e2e.% or @test.bodybank.fit)
+  // Get E2E user ids first (email like e2e.% or @test.fitbase.fit)
   const e2eUsers = await pool.query(
-    "SELECT id FROM users WHERE email LIKE 'e2e.%' OR email LIKE '%@test.bodybank.fit'"
+    "SELECT id FROM users WHERE email LIKE 'e2e.%' OR email LIKE '%@test.fitbase.fit'"
   );
   const e2eUserIds = (e2eUsers.rows || []).map(r => r.id);
 
@@ -41,7 +41,7 @@ async function run() {
 
   // Delete E2E users (keep admin)
   const delUsers = await pool.query(
-    "DELETE FROM users WHERE (email LIKE 'e2e.%' OR email LIKE '%@test.bodybank.fit') AND role = 'user'"
+    "DELETE FROM users WHERE (email LIKE 'e2e.%' OR email LIKE '%@test.fitbase.fit') AND role = 'user'"
   );
   totalDeleted += delUsers.rowCount || 0;
   console.log('  users:', delUsers.rowCount || 0);

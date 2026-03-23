@@ -1,4 +1,4 @@
-# Forgot Password (User-Only)
+﻿# Forgot Password (User-Only)
 
 Password reset is available **only for users** (role `user`). Admins and superadmins cannot use this flow.
 
@@ -24,8 +24,8 @@ Password reset is available **only for users** (role `user`). Admins and superad
    - `SMTP_SECURE` – optional, `true` for port 465
    - `SMTP_USER` – SMTP username
    - `SMTP_PASS` – SMTP password / app password
-   - `SMTP_FROM` – optional, e.g. `BodyBank <noreply@bodybank.fit>`
-   - `RESET_BASE_URL` – optional. On Render, `RENDER_EXTERNAL_URL` is used automatically. Set `RESET_BASE_URL` for custom domains, e.g. `https://bodybank.fit`
+   - `SMTP_FROM` – optional, e.g. `FitBase <noreply@fitbase.fit>`
+   - `RESET_BASE_URL` – optional. On Render, `RENDER_EXTERNAL_URL` is used automatically. Set `RESET_BASE_URL` for custom domains, e.g. `https://fitbase.fit`
 3. Users receive the reset link by email within seconds
 
 ### Gmail

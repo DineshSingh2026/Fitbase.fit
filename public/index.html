@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<meta name="theme-color" content="#0a0a0a" />
+<meta name="theme-color" content="#f5f2eb" />
 
 <!-- Safari / iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Body Bank" />
+<meta name="apple-mobile-web-app-title" content="FitBase" />
 
 <!-- Chrome / Android / other browsers -->
 <meta name="mobile-web-app-capable" content="yes" />
 
 <link rel="manifest" href="/manifest.json" />
-<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="/img/Fitbase_logo_PWA2.png" />
 <!-- Google tag (gtag.js) - GA4 -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
 <script>
@@ -23,7 +23,7 @@
   gtag('js', new Date());
   gtag('config', 'G-8G93TR92QT');
 </script>
-<title>BodyBank — Build Real, Sustainable Transformation</title>
+<title>FitBase — Build Real, Sustainable Transformation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -87,7 +87,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 nav{position:fixed;top:0;left:0;right:0;z-index:10010;display:flex;align-items:center;justify-content:space-between;padding:12px 48px;padding-left:max(48px,var(--safe-left));padding-right:max(48px,var(--safe-right));padding-top:calc(var(--safe-top) + 12px);background:#060606;border-bottom:1px solid var(--bdr);gap:20px;flex-wrap:nowrap}
 body.site-nav-hidden nav#nv{display:none !important}
 .nb{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
-.nav-logo-img{height:54px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nav-logo-img{height:68px;width:auto;object-fit:contain;mix-blend-mode:lighten}
 .nm{display:flex;gap:28px;list-style:none;align-items:center;flex-shrink:1;min-width:0}
 .nm a{color:var(--creamd);text-decoration:none;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;transition:color .3s;white-space:nowrap}
 .nm a:hover{color:var(--gold)}
@@ -381,6 +381,27 @@ textarea.form-input{resize:vertical;min-height:80px}
 .login-footer{text-align:left;margin-top:20px;font-size:14px;color:var(--creamd)}
 .login-footer a{color:var(--gold);text-decoration:none;font-weight:600;display:inline-block;padding:10px 6px;margin:-10px -6px;border-radius:6px;-webkit-tap-highlight-color:transparent}
 .login-footer a:hover{text-decoration:underline}
+
+/* FitBase replica login surfaces: lighter professional theme (logic unchanged) */
+#signupModal.modal-overlay,#loginModal.modal-overlay,#googleCompleteModal.modal-overlay{background:rgba(58,43,24,0.24);backdrop-filter:blur(10px)}
+#signupModal .modal,#loginModal .modal,#googleCompleteModal .modal{background:linear-gradient(180deg,#fbf8f1 0%,#f4eee3 100%);border:1.5px solid rgba(140,106,63,0.5);box-shadow:0 28px 80px rgba(48,35,20,0.2)}
+#signupModal .modal h2,#loginModal .modal h2,#googleCompleteModal .modal h2{color:#2b2118}
+#signupModal .modal .modal-close,#loginModal .modal .modal-close,#googleCompleteModal .modal .modal-close{color:#7e5f37}
+#signupModal .modal .modal-close:hover,#loginModal .modal .modal-close:hover,#googleCompleteModal .modal .modal-close:hover{background:rgba(140,106,63,0.12)}
+#signupModal .modal .form-group label,#loginModal .modal .form-group label,#googleCompleteModal .modal .form-group label{color:#3a2d21}
+#signupModal .modal .form-input,#loginModal .modal .form-input,#googleCompleteModal .modal .form-input{background:rgba(255,255,255,0.82);border:1px solid rgba(126,95,55,0.28);color:#261d15}
+#signupModal .modal .form-input::placeholder,#loginModal .modal .form-input::placeholder,#googleCompleteModal .modal .form-input::placeholder{color:rgba(56,43,30,0.52)}
+#signupModal .modal .form-input:focus,#loginModal .modal .form-input:focus,#googleCompleteModal .modal .form-input:focus{border-color:#8c6a3f;box-shadow:0 0 0 3px rgba(140,106,63,0.12)}
+#signupModal .modal .form-submit,#loginModal .modal .form-submit,#googleCompleteModal .modal .form-submit{background:linear-gradient(135deg,#9b7648 0%,#7e5f37 100%);color:#fff;box-shadow:none}
+#signupModal .modal .form-submit:hover,#loginModal .modal .form-submit:hover,#googleCompleteModal .modal .form-submit:hover{box-shadow:0 8px 24px rgba(126,95,55,0.26)}
+#signupModal .modal .google-btn,#loginModal .modal .google-btn,#googleCompleteModal .modal .google-btn{background:rgba(255,255,255,0.7);border-color:rgba(126,95,55,0.26);color:#2b2118}
+#signupModal .modal .google-btn:hover,#loginModal .modal .google-btn:hover,#googleCompleteModal .modal .google-btn:hover{background:rgba(255,255,255,0.95);border-color:rgba(126,95,55,0.45)}
+#signupModal .modal .login-footer,#loginModal .modal .login-footer,#googleCompleteModal .modal .login-footer{color:rgba(43,33,24,0.72)}
+#signupModal .modal .login-footer a,#loginModal .modal .login-footer a,#googleCompleteModal .modal .login-footer a{color:#7e5f37}
+#signupModal .modal .pw-toggle,#loginModal .modal .pw-toggle,#googleCompleteModal .modal .pw-toggle{color:rgba(43,33,24,0.55)}
+#signupModal .modal .pw-toggle:hover,#loginModal .modal .pw-toggle:hover,#googleCompleteModal .modal .pw-toggle:hover{color:#2b2118}
+#signupModal .modal-with-scroll .modal-body-scroll::-webkit-scrollbar-track,#googleCompleteModal .modal-with-scroll .modal-body-scroll::-webkit-scrollbar-track{background:rgba(126,95,55,0.1)}
+#signupModal .modal-with-scroll .modal-body-scroll::-webkit-scrollbar-thumb,#googleCompleteModal .modal-with-scroll .modal-body-scroll::-webkit-scrollbar-thumb{background:rgba(126,95,55,0.38)}
 .pw-wrap{position:relative;display:block}
 .pw-wrap .form-input{padding-right:48px}
 .pw-toggle{position:absolute;right:0;top:0;bottom:0;width:48px;min-width:48px;display:grid;place-items:center;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;-webkit-tap-highlight-color:transparent}
@@ -444,7 +465,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .pwa-standalone .nt{margin-left:14px;padding:10px 14px}
   .nav-login-btn.desktop-only{display:none !important}
   .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
-  .nav-logo-img{height:46px}
+  .nav-logo-img{height:56px}
   .hero{padding:calc(100px + env(safe-area-inset-top,0px)) 24px calc(60px + env(safe-area-inset-bottom,0px));min-height:min(var(--app-height),720px)}
   .hero-sub{font-size:18px}
   .sec{padding:64px 24px}
@@ -487,7 +508,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
-  .nav-logo-img{height:44px}
+  .nav-logo-img{height:52px}
   .mm a{font-size:28px}
   .ph-side{flex-direction:column;align-items:flex-start}
   .ph-title{font-size:24px}
@@ -889,7 +910,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;padding-top:max(24px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));border-bottom:1px solid var(--bdr);background:var(--black);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap;flex-shrink:0;min-height:44px}
 .admin-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0;min-width:0}
 .admin-logo-link{display:flex;align-items:center;text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px}
-.admin-logo-img{height:clamp(40px,10vw,48px);width:auto;display:block;object-fit:contain;max-height:48px}
+.admin-logo-img{height:clamp(52px,10vw,64px);width:auto;display:block;object-fit:contain;max-height:64px}
 .admin-logo-body{color:#fff}
 .admin-logo-bank{color:var(--gold)}
 .admin-ai-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--gold);border-radius:8px;background:transparent;color:var(--cream);font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;flex-shrink:0}
@@ -1419,6 +1440,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .superadmin-card .k{color:var(--muted);min-width:80px}
 .superadmin-card .v{color:var(--cream);word-break:break-word}
 .superadmin-empty{color:var(--muted);font-size:13px;margin:0;padding:12px 0}
+.superadmin-inline-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px}
+.superadmin-inline-form .superadmin-input{width:100%}
+.superadmin-action-row{display:flex;gap:8px;flex-wrap:wrap}
+.superadmin-mini-btn{padding:6px 10px;font-size:11px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--cream);cursor:pointer}
+.superadmin-mini-btn:hover{border-color:var(--gold);color:var(--gold)}
+.superadmin-mini-btn.warn{border-color:rgba(224,80,80,0.35);color:#ffb2b2}
+.superadmin-mini-btn.warn:hover{border-color:#e05050;color:#ffd0d0}
 .superadmin-view-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--bdr);flex-shrink:0}
 .superadmin-tab-btn{padding:12px 24px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s}
 .superadmin-tab-btn:hover{color:var(--cream)}
@@ -1916,7 +1944,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     justify-content:flex-start !important;
   }
   .admin-sidebar .bb-sidebar-logo-img{
-    height:54px !important;
+    height:68px !important;
     width:auto !important;
     object-fit:contain !important;
     display:block !important;
@@ -2240,7 +2268,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     justify-content:flex-start !important;
   }
   .user-sidebar .bb-user-sidebar-logo-img{
-    height:54px !important;
+    height:68px !important;
     width:auto !important;
     object-fit:contain !important;
     display:block !important;
@@ -2334,6 +2362,420 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .bb-user-desktop-dashboard canvas{width:100% !important;max-height:220px}
 }
 
+/* ========= FitBase Light Dashboard Theme (user + trainer + superadmin) ========= */
+body.admin-dashboard-open,
+body.user-dashboard-open{
+  --black:#f5f2eb;
+  --dark:#f5f2eb;
+  --dark2:#fbf8f1;
+  --dark3:#f0eade;
+  --cream:#1f1a14;
+  --creamd:rgba(31,26,20,0.78);
+  --muted:rgba(31,26,20,0.58);
+  --gold:#8c6a3f;
+  --goldb:#9b7648;
+  --goldd:#6f5533;
+  --goldg:linear-gradient(135deg,#9b7648 0%,#8c6a3f 55%,#6f5533 100%);
+  --bdr:rgba(126,95,55,0.24);
+  --bb-bg:#f5f2eb;
+  --bb-surface:#fbf8f1;
+  --bb-surface-hover:#f2ebde;
+  --bb-border:rgba(126,95,55,0.24);
+  --bb-gold:#8c6a3f;
+  --bb-gold-dark:#6f5533;
+  --bb-text:#1f1a14;
+  --bb-muted:rgba(31,26,20,0.58);
+}
+body.admin-dashboard-open,
+body.user-dashboard-open,
+body.admin-dashboard-open::after,
+body.user-dashboard-open::after{
+  background:#f5f2eb !important;
+}
+body.admin-dashboard-open::after,
+body.user-dashboard-open::after{opacity:.012 !important}
+
+body.admin-dashboard-open .admin-panel,
+body.admin-dashboard-open .superadmin-panel,
+body.user-dashboard-open .user-panel{
+  background:var(--bb-bg) !important;
+  color:var(--bb-text) !important;
+}
+body.admin-dashboard-open .admin-sidebar,
+body.admin-dashboard-open .admin-nav-drawer,
+body.user-dashboard-open .user-sidebar{
+  background:var(--bb-surface) !important;
+  border-color:var(--bb-border) !important;
+}
+body.admin-dashboard-open .admin-body.admin-main,
+body.admin-dashboard-open .admin-tab-content-wrap,
+body.user-dashboard-open .user-body,
+body.user-dashboard-open .user-tab-content-wrap{
+  background:var(--bb-bg) !important;
+  color:var(--bb-text) !important;
+}
+body.admin-dashboard-open .admin-bottom-nav,
+body.user-dashboard-open .user-bottom-nav{
+  background:#f2ebde !important;
+  border-top:1px solid var(--bb-border) !important;
+}
+body.admin-dashboard-open .admin-notify-panel,
+body.user-dashboard-open .admin-notify-panel,
+body.admin-dashboard-open .admin-ai-assist-panel,
+body.admin-dashboard-open .view-detail-modal .modal,
+body.admin-dashboard-open .pdf-modal-box,
+body.user-dashboard-open .pdf-modal-box{
+  background:var(--bb-surface) !important;
+  border-color:var(--bb-border) !important;
+  color:var(--bb-text) !important;
+  box-shadow:0 12px 36px rgba(70,52,30,0.16) !important;
+}
+body.admin-dashboard-open .admin-topbar input[type="search"],
+body.admin-dashboard-open .form-input,
+body.admin-dashboard-open .insights-select,
+body.admin-dashboard-open .insights-input,
+body.user-dashboard-open .form-input{
+  background:#fff !important;
+  color:var(--bb-text) !important;
+  border-color:var(--bb-border) !important;
+}
+body.admin-dashboard-open .form-input::placeholder,
+body.user-dashboard-open .form-input::placeholder{color:var(--bb-muted) !important}
+body.admin-dashboard-open .bb-stat-card,
+body.admin-dashboard-open .bb-chart-card,
+body.admin-dashboard-open .bb-program-card,
+body.admin-dashboard-open .bb-table-card,
+body.admin-dashboard-open .bb-quick-btn,
+body.user-dashboard-open .bb-stat-card,
+body.user-dashboard-open .bb-chart-card,
+body.user-dashboard-open .bb-program-card,
+body.user-dashboard-open .bb-table-card,
+body.user-dashboard-open .bb-quick-btn{
+  background:var(--bb-surface) !important;
+  border-color:var(--bb-border) !important;
+  box-shadow:0 8px 22px rgba(70,52,30,0.08) !important;
+}
+body.admin-dashboard-open .superadmin-top,
+body.admin-dashboard-open .superadmin-filters{
+  background:var(--bb-surface) !important;
+  border-color:var(--bb-border) !important;
+}
+body.admin-dashboard-open .superadmin-sub,
+body.admin-dashboard-open .superadmin-card .k,
+body.admin-dashboard-open .superadmin-empty,
+body.user-dashboard-open .form-hint{color:var(--bb-muted) !important}
+body.admin-dashboard-open .superadmin-heading,
+body.admin-dashboard-open .superadmin-card .v,
+body.user-dashboard-open .user-welcome-name,
+body.user-dashboard-open .wc-title{color:var(--bb-text) !important}
+body.admin-dashboard-open .superadmin-input,
+body.admin-dashboard-open .superadmin-select,
+body.admin-dashboard-open .superadmin-share-input{
+  background:#fff !important;
+  color:var(--bb-text) !important;
+  border-color:var(--bb-border) !important;
+}
+body.admin-dashboard-open .admin-sidebar .bb-sidebar-logo-img,
+body.user-dashboard-open .user-sidebar .bb-user-sidebar-logo-img{
+  mix-blend-mode:normal !important;
+}
+
+/* Absolute no-dark pass for all dashboard sections */
+body.admin-dashboard-open #adminPanel,
+body.admin-dashboard-open #superadminPanel,
+body.user-dashboard-open #userPanel{
+  background:#f5f2eb !important;
+  color:#1f1a14 !important;
+}
+body.admin-dashboard-open #adminPanel *,
+body.admin-dashboard-open #superadminPanel *,
+body.user-dashboard-open #userPanel *{
+  border-color:rgba(126,95,55,0.24) !important;
+}
+body.admin-dashboard-open .admin-panel,
+body.admin-dashboard-open .admin-layout,
+body.admin-dashboard-open .admin-body,
+body.admin-dashboard-open .admin-body.admin-main,
+body.admin-dashboard-open .admin-tab-content-wrap,
+body.admin-dashboard-open .admin-tab-content,
+body.admin-dashboard-open .admin-subsection-wrap,
+body.admin-dashboard-open .admin-table-wrap,
+body.admin-dashboard-open .admin-card,
+body.admin-dashboard-open .admin-stat-card,
+body.admin-dashboard-open .admin-summary-card,
+body.admin-dashboard-open .admin-section-card,
+body.admin-dashboard-open .admin-notify-panel,
+body.admin-dashboard-open .admin-ai-assist-panel,
+body.admin-dashboard-open .admin-ai-assist-input-wrap,
+body.admin-dashboard-open .admin-ai-assist-footer,
+body.admin-dashboard-open .admin-nav-drawer,
+body.admin-dashboard-open .admin-nav-drawer-overlay,
+body.admin-dashboard-open .admin-bottom-nav,
+body.admin-dashboard-open .admin-sidebar,
+body.admin-dashboard-open .admin-topbar,
+body.admin-dashboard-open .view-detail-modal .modal,
+body.admin-dashboard-open .pdf-modal-box,
+body.admin-dashboard-open .pdf-modal-header,
+body.admin-dashboard-open .pdf-modal-footer,
+body.admin-dashboard-open .pdf-modal-body,
+body.admin-dashboard-open .popup-box,
+body.admin-dashboard-open .forgot-box,
+body.admin-dashboard-open .superadmin-panel,
+body.admin-dashboard-open .superadmin-top,
+body.admin-dashboard-open .superadmin-filters,
+body.admin-dashboard-open .superadmin-share-url-wrap,
+body.admin-dashboard-open .superadmin-body,
+body.admin-dashboard-open .superadmin-block,
+body.admin-dashboard-open .superadmin-stat,
+body.admin-dashboard-open .superadmin-card,
+body.admin-dashboard-open .superadmin-chart-block,
+body.admin-dashboard-open .superadmin-analytics,
+body.admin-dashboard-open .superadmin-view-tabs,
+body.user-dashboard-open .user-panel,
+body.user-dashboard-open .user-top,
+body.user-dashboard-open .user-body,
+body.user-dashboard-open .user-tab-content-wrap,
+body.user-dashboard-open .user-section,
+body.user-dashboard-open .user-sidebar,
+body.user-dashboard-open .user-bottom-nav,
+body.user-dashboard-open .bb-stat-card,
+body.user-dashboard-open .bb-chart-card,
+body.user-dashboard-open .bb-program-card,
+body.user-dashboard-open .bb-table-card,
+body.user-dashboard-open .bb-quick-btn,
+body.user-dashboard-open .admin-notify-panel,
+body.user-dashboard-open .pdf-modal-box,
+body.user-dashboard-open .pdf-modal-header,
+body.user-dashboard-open .pdf-modal-footer,
+body.user-dashboard-open .pdf-modal-body{
+  background:#fbf8f1 !important;
+  color:#1f1a14 !important;
+  box-shadow:none !important;
+}
+body.admin-dashboard-open .admin-nav-drawer-overlay{
+  background:rgba(140,106,63,0.10) !important;
+}
+body.admin-dashboard-open .modal-overlay,
+body.admin-dashboard-open .popup-overlay,
+body.user-dashboard-open .modal-overlay,
+body.user-dashboard-open .popup-overlay{
+  background:rgba(140,106,63,0.18) !important;
+  backdrop-filter:blur(8px) !important;
+}
+body.admin-dashboard-open input,
+body.admin-dashboard-open select,
+body.admin-dashboard-open textarea,
+body.admin-dashboard-open .form-input,
+body.admin-dashboard-open .superadmin-input,
+body.admin-dashboard-open .superadmin-select,
+body.admin-dashboard-open .superadmin-share-input,
+body.admin-dashboard-open .insights-select,
+body.admin-dashboard-open .insights-input,
+body.user-dashboard-open input,
+body.user-dashboard-open select,
+body.user-dashboard-open textarea,
+body.user-dashboard-open .form-input{
+  background:#ffffff !important;
+  color:#1f1a14 !important;
+  border-color:rgba(126,95,55,0.24) !important;
+}
+body.admin-dashboard-open .admin-table th,
+body.admin-dashboard-open .admin-table td,
+body.admin-dashboard-open .bb-client-table th,
+body.admin-dashboard-open .bb-client-table td,
+body.user-dashboard-open .admin-table th,
+body.user-dashboard-open .admin-table td,
+body.user-dashboard-open .bb-client-table th,
+body.user-dashboard-open .bb-client-table td{
+  background:#fbf8f1 !important;
+  color:#1f1a14 !important;
+}
+body.admin-dashboard-open .admin-table tr:hover td,
+body.admin-dashboard-open .bb-client-table tr:hover td,
+body.user-dashboard-open .admin-table tr:hover td,
+body.user-dashboard-open .bb-client-table tr:hover td{
+  background:#f2ebde !important;
+}
+
+/* Strict light-mode lock for user home shortcuts + welcome avatar */
+body.user-dashboard-open #usec-home .user-welcome,
+body.user-dashboard-open #usec-home .welcome-cards{
+  background:transparent !important;
+}
+body.user-dashboard-open #usec-home .welcome-card{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:0 8px 20px rgba(70,52,30,0.08) !important;
+}
+body.user-dashboard-open .user-panel .welcome-card{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:0 8px 20px rgba(70,52,30,0.08) !important;
+}
+body.user-dashboard-open #usec-home .welcome-card::before{
+  background:linear-gradient(180deg,rgba(140,106,63,0.95),rgba(140,106,63,0.22)) !important;
+}
+body.user-dashboard-open .user-panel .welcome-card::before{
+  background:linear-gradient(180deg,rgba(140,106,63,0.95),rgba(140,106,63,0.22)) !important;
+}
+body.user-dashboard-open #usec-home .welcome-card .wc-icon-wrap{
+  background:rgba(140,106,63,0.08) !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+}
+body.user-dashboard-open .user-panel .welcome-card .wc-icon-wrap{
+  background:rgba(140,106,63,0.08) !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+}
+body.user-dashboard-open #usec-home .welcome-card .wc-title,
+body.user-dashboard-open #usec-home .welcome-card .wc-desc{
+  color:#1f1a14 !important;
+}
+body.user-dashboard-open .user-panel .welcome-card .wc-title,
+body.user-dashboard-open .user-panel .welcome-card .wc-desc{
+  color:#1f1a14 !important;
+}
+body.user-dashboard-open #usec-home .welcome-card::after{
+  color:#8c6a3f !important;
+}
+body.user-dashboard-open .user-panel .welcome-card::after{
+  color:#8c6a3f !important;
+}
+body.user-dashboard-open #usec-home .user-welcome-avatar,
+body.user-dashboard-open #usec-home .user-welcome-avatar-placeholder{
+  background:#f2ebde !important;
+  border:2px solid rgba(126,95,55,0.32) !important;
+  box-shadow:0 8px 20px rgba(70,52,30,0.12) !important;
+}
+body.user-dashboard-open #usec-home .user-welcome-avatar-placeholder svg{
+  stroke:#8c6a3f !important;
+}
+
+/* Strict light-mode lock for message thread areas */
+body.user-dashboard-open .thread-messages-box,
+body.admin-dashboard-open .thread-messages-box{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:none !important;
+}
+body.user-dashboard-open .checkin-option-card,
+body.user-dashboard-open .prog-card{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:0 8px 20px rgba(70,52,30,0.08) !important;
+}
+body.user-dashboard-open .checkin-option-card:hover,
+body.user-dashboard-open .prog-card:hover{
+  background:#f7f2e8 !important;
+  border-color:rgba(126,95,55,0.32) !important;
+  box-shadow:0 10px 24px rgba(70,52,30,0.12) !important;
+}
+body.user-dashboard-open .checkin-option-card .checkin-card-title,
+body.user-dashboard-open .checkin-option-card .checkin-card-desc,
+body.user-dashboard-open .prog-title,
+body.user-dashboard-open .prog-sub{
+  color:#1f1a14 !important;
+}
+body.user-dashboard-open .checkin-option-card .checkin-card-icon,
+body.user-dashboard-open .prog-thumb,
+body.user-dashboard-open .prog-thumb.placeholder,
+body.user-dashboard-open .prog-thumb.placeholder span{
+  background:#f2ebde !important;
+  border-color:rgba(126,95,55,0.24) !important;
+  color:#8c6a3f !important;
+}
+
+/* Strict light-mode lock for trainer dashboard */
+body.admin-dashboard-open .admin-welcome-card,
+body.admin-dashboard-open .admin-summary-card,
+body.admin-dashboard-open .admin-qa-btn,
+body.admin-dashboard-open .admin-home-card,
+body.admin-dashboard-open .admin-home-card-icon,
+body.admin-dashboard-open .admin-section-card{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  color:#1f1a14 !important;
+  box-shadow:0 8px 20px rgba(70,52,30,0.08) !important;
+}
+body.admin-dashboard-open .admin-home-card:hover,
+body.admin-dashboard-open .admin-qa-btn:hover,
+body.admin-dashboard-open .admin-section-card:hover{
+  background:#f7f2e8 !important;
+  border-color:rgba(126,95,55,0.32) !important;
+}
+body.admin-dashboard-open .admin-welcome-title,
+body.admin-dashboard-open .admin-home-card-title,
+body.admin-dashboard-open .admin-section-card-title,
+body.admin-dashboard-open .admin-la-text{
+  color:#1f1a14 !important;
+}
+body.admin-dashboard-open .admin-welcome-date,
+body.admin-dashboard-open .admin-summary-lbl,
+body.admin-dashboard-open .admin-qa-title,
+body.admin-dashboard-open .admin-home-card-desc,
+body.admin-dashboard-open .admin-section-card-desc,
+body.admin-dashboard-open .admin-la-title,
+body.admin-dashboard-open .admin-la-loading{
+  color:rgba(31,26,20,0.62) !important;
+}
+
+body.admin-dashboard-open .admin-filter-bar,
+body.admin-dashboard-open .admin-inline-form-filters:not(:empty){
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:none !important;
+}
+body.admin-dashboard-open .admin-filter-bar input[type="date"],
+body.admin-dashboard-open .admin-filter-bar .admin-filter-search-wrap input[type="text"]{
+  background:#ffffff !important;
+  color:#1f1a14 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+}
+body.admin-dashboard-open .admin-filter-bar input[type="text"]::placeholder{
+  color:rgba(31,26,20,0.5) !important;
+}
+body.admin-dashboard-open .admin-filter-bar .admin-apply-btn{
+  background:#9b7648 !important;
+  color:#ffffff !important;
+}
+body.admin-dashboard-open .admin-filter-bar .admin-filter-clear-btn{
+  background:#fbf8f1 !important;
+  color:#8c6a3f !important;
+  border:1px solid rgba(126,95,55,0.35) !important;
+}
+
+body.admin-dashboard-open .admin-list-table thead th{
+  background:#f2ebde !important;
+  color:#1f1a14 !important;
+  border-bottom:1px solid rgba(126,95,55,0.24) !important;
+}
+body.admin-dashboard-open .admin-list-table tbody tr{
+  border-bottom:1px solid rgba(126,95,55,0.18) !important;
+}
+body.admin-dashboard-open .admin-list-table tbody td{
+  color:#1f1a14 !important;
+}
+body.admin-dashboard-open .admin-list-table tbody tr:hover{
+  background:#f7f2e8 !important;
+}
+
+body.admin-dashboard-open .admin-cp-user-list-inner,
+body.admin-dashboard-open .admin-cp-detail{
+  background:#fbf8f1 !important;
+  border:1px solid rgba(126,95,55,0.24) !important;
+  box-shadow:none !important;
+}
+body.admin-dashboard-open .admin-cp-placeholder,
+body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item .cp-name,
+body.admin-dashboard-open .admin-cp-detail #adminCpDetail{
+  color:#1f1a14 !important;
+}
+body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item{
+  border-bottom:1px solid rgba(126,95,55,0.18) !important;
+}
+body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
+  background:#f7f2e8 !important;
+}
+
 </style>
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
@@ -2347,7 +2789,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <div class="user-panel" id="userPanel">
   <div class="user-top">
     <div class="user-top-left">
-      <img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async">
+      <img src="img/Fitbase_logo2.png" alt="FitBase" class="nav-logo-img" decoding="async">
     </div>
     <div class="user-top-right">
       <div class="user-notify-wrap admin-notify-wrap" style="position:relative">
@@ -2379,7 +2821,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="user-layout">
     <aside class="user-sidebar" id="userSidebar" role="navigation" aria-label="User navigation">
       <div class="sidebar-logo">
-        <img src="img/logo.png" alt="BodyBank" class="bb-user-sidebar-logo-img" decoding="async">
+        <img src="img/Fitbase_logo2.png" alt="FitBase" class="bb-user-sidebar-logo-img" decoding="async">
       </div>
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
@@ -2879,7 +3321,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="admin-top">
     <div class="admin-top-left">
       <a href="#" class="admin-logo-link" onclick="switchToSection('dashboard');return false">
-        <img src="img/logo.png" alt="BodyBank" class="admin-logo-img" decoding="async">
+        <img src="img/Fitbase_logo2.png" alt="FitBase" class="admin-logo-img" decoding="async">
       </a>
     </div>
     <div class="admin-top-right">
@@ -2913,7 +3355,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="admin-layout">
     <aside class="admin-sidebar" id="adminSidebar" role="navigation" aria-label="Primary navigation">
       <div class="sidebar-logo">
-        <img src="img/logo.png" alt="BodyBank" class="bb-sidebar-logo-img" decoding="async">
+        <img src="img/Fitbase_logo2.png" alt="FitBase" class="bb-sidebar-logo-img" decoding="async">
       </div>
       <nav class="admin-sidebar-nav">
         <a class="admin-sidebar-link active" href="#" data-section="dashboard" onclick="switchToSection('dashboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128202;</span>Dashboard</a>
@@ -3276,6 +3718,20 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Pending Sign-ups -->
     <div class="admin-tab-content" id="tab-signups">
+      <div class="admin-subsection-wrap" style="margin-bottom:16px">
+        <h3 class="admin-subsection-title">Add Client Directly</h3>
+        <p class="form-hint" style="margin-bottom:10px">Create a new approved client account from your trainer dashboard.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+          <div class="form-group" style="margin:0"><label>First name</label><input type="text" id="addClientFirstName" class="form-input" placeholder="First name"></div>
+          <div class="form-group" style="margin:0"><label>Last name</label><input type="text" id="addClientLastName" class="form-input" placeholder="Last name"></div>
+          <div class="form-group" style="margin:0"><label>Email</label><input type="email" id="addClientEmail" class="form-input" placeholder="client@email.com"></div>
+          <div class="form-group" style="margin:0"><label>Phone</label><input type="text" id="addClientPhone" class="form-input" placeholder="Phone (optional)"></div>
+          <div class="form-group" style="margin:0"><label>Country</label><input type="text" id="addClientCountry" class="form-input" placeholder="Country (optional)"></div>
+          <div class="form-group" style="margin:0"><label>Timezone</label><input type="text" id="addClientTimezone" class="form-input" placeholder="Timezone (optional)"></div>
+          <div class="form-group" style="margin:0"><label>Password</label><input type="password" id="addClientPassword" class="form-input" placeholder="Temporary password"></div>
+          <button type="button" class="form-submit" style="margin:0" onclick="adminCreateClientFromDashboard()">Add Client</button>
+        </div>
+      </div>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th>Actions</th></tr></thead>
         <tbody id="signupsBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
@@ -3617,7 +4073,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
-        <p>Elite coaching-style analysis on your live BodyBank data: profiles, workouts, check-ins, progress, and risks — plus quick answers on audits, tribe, and messages.</p>
+        <p>Elite coaching-style analysis on your live FitBase data: profiles, workouts, check-ins, progress, and risks — plus quick answers on audits, tribe, and messages.</p>
         <p class="admin-ai-assist-hint">Try &ldquo;Full report&rdquo; for the full structured breakdown, &ldquo;Quick summary&rdquo;, &ldquo;What next?&rdquo;, or &ldquo;Risk?&rdquo; — or ask &ldquo;How many pending audit forms?&rdquo;</p>
       </div>
       <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
@@ -3662,7 +4118,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <!-- SUPERADMIN DASHBOARD (single-page, all data + filters + CSV + share) -->
 <div class="superadmin-panel" id="superadminPanel">
   <div class="superadmin-top">
-    <h1 class="superadmin-heading">BodyBank – Superadmin</h1>
+    <h1 class="superadmin-heading">FitBase – Superadmin</h1>
     <p class="superadmin-sub">Business overview · All data in one view</p>
     <div class="superadmin-top-actions">
       <button type="button" class="superadmin-btn superadmin-share-btn" id="superadminShareBtn" onclick="superadminShareLink()">Share via link</button>
@@ -3689,6 +4145,30 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <section class="superadmin-block">
         <h2 class="superadmin-block-title">Summary</h2>
         <div class="superadmin-stats-grid" id="saStats"></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Trainer management</h2>
+        <div class="superadmin-inline-form" id="saTrainerForm">
+          <input class="superadmin-input" id="saTrainerFirst" placeholder="First name">
+          <input class="superadmin-input" id="saTrainerLast" placeholder="Last name">
+          <input class="superadmin-input" id="saTrainerEmail" placeholder="Trainer email">
+          <input class="superadmin-input" id="saTrainerPhone" placeholder="Phone (optional)">
+          <input class="superadmin-input" id="saTrainerPass" type="password" placeholder="Temporary password">
+          <button type="button" class="superadmin-btn superadmin-apply" onclick="superadminCreateTrainer()">Add trainer</button>
+        </div>
+        <div class="superadmin-table-wrap" id="saTrainersWrap" style="margin-top:12px"><div class="superadmin-cards" id="saTrainers"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Trainer onboarding requests</h2>
+        <div class="superadmin-table-wrap" id="saTrainerRequestsWrap"><div class="superadmin-cards" id="saTrainerRequests"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Trainer and client data</h2>
+        <div class="superadmin-table-wrap" id="saTrainerClientDataWrap"><div class="superadmin-cards" id="saTrainerClientData"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Website sign-up requests</h2>
+        <div class="superadmin-table-wrap" id="saPendingSignupsWrap"><div class="superadmin-cards" id="saPendingSignups"></div></div>
       </section>
       <section class="superadmin-block">
         <h2 class="superadmin-block-title">Audit forms <button type="button" class="superadmin-csv" data-block="audit">Download CSV</button></h2>
@@ -3837,7 +4317,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- NAV -->
 <nav id="nv">
-  <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
+  <a href="index.html" class="nb"><img src="img/Fitbase_logo2.png" alt="FitBase" class="nav-logo-img" decoding="async"></a>
   <ul class="nm">
     <li><a href="#hero">Home</a></li>
     <li><a href="#results">Transformations</a></li>
@@ -3865,7 +4345,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- PWA iOS Add to Home Screen Instructions -->
 <div class="pwa-ios-modal hidden" id="pwaIosModal" role="dialog" aria-labelledby="pwaIosTitle" aria-modal="true">
-  <h3 id="pwaIosTitle">Add BodyBank to Home Screen</h3>
+  <h3 id="pwaIosTitle">Add FitBase to Home Screen</h3>
   <ol>
     <li>Tap the <strong>Share</strong> button (square with arrow pointing up) at the bottom of Safari</li>
     <li>Scroll down and tap <strong>Add to Home Screen</strong></li>
@@ -4093,12 +4573,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
 </section>
 
-<!-- ORIGIN - How Body Bank Started -->
+<!-- ORIGIN - How FitBase Started -->
 <section class="sec origin-sec" id="about">
   <div class="si rv">
     <div class="gold-line"></div>
     <p class="sec-label">Our Story</p>
-    <h2 class="sec-heading"><span class="w">How Body Bank </span><span class="g">Started</span></h2>
+    <h2 class="sec-heading"><span class="w">How FitBase </span><span class="g">Started</span></h2>
     <div class="origin-inner">
       <p>In 2020, gyms closed. People realized they'd been living wrong. We watched the pattern: <span class="g">30-day excitement</span> → <span class="g">6-week crash.</span> Cycle repeats.</p>
       <div class="origin-quote">
@@ -4291,14 +4771,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- FOOTER -->
 <footer>
-  <div class="ft-brand"><img src="img/logo.png" alt="BodyBank" class="foot-logo-img" loading="lazy" decoding="async"></div>
-  <a href="mailto:Bodybank.fit369@gmail.com" class="fe"><svg viewBox="0 0 24 24" fill="none" stroke="#c8a44e" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>Bodybank.fit369@gmail.com</a>
+  <div class="ft-brand"><img src="img/Fitbase_logo2.png" alt="FitBase" class="foot-logo-img" loading="lazy" decoding="async"></div>
+  <a href="mailto:fitbase.fit369@gmail.com" class="fe"><svg viewBox="0 0 24 24" fill="none" stroke="#c8a44e" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>fitbase.fit369@gmail.com</a>
   <div class="fs">
-    <a href="https://www.instagram.com/bodybank.fit?igsh=MWtkdXlkeDhnbnExMA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" class="fso" title="Instagram"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="#c8a44e" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="none" stroke="#c8a44e" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1.3" fill="#c8a44e"/></svg></a>
-    <a href="https://x.com/bodybankfit?s=21" target="_blank" rel="noopener noreferrer" class="fso" title="Twitter / X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-    <a href="https://youtube.com/@bodybank7538?si=lxiyrwVPJhH4ojJ6" target="_blank" rel="noopener noreferrer" class="fso" title="YouTube"><img src="img/youtube_logo1.png" alt="YouTube" class="fso-img" loading="lazy" decoding="async"></a>
+    <a href="https://www.instagram.com/fitbase.fit?igsh=MWtkdXlkeDhnbnExMA%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" class="fso" title="Instagram"><svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="#c8a44e" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="none" stroke="#c8a44e" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1.3" fill="#c8a44e"/></svg></a>
+    <a href="https://x.com/fitbasefit?s=21" target="_blank" rel="noopener noreferrer" class="fso" title="Twitter / X"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+    <a href="https://youtube.com/@fitbase7538?si=lxiyrwVPJhH4ojJ6" target="_blank" rel="noopener noreferrer" class="fso" title="YouTube"><img src="img/youtube_logo1.png" alt="YouTube" class="fso-img" loading="lazy" decoding="async"></a>
   </div>
-  <div class="fb"><span>&copy; 2026 Body Bank. All rights reserved</span><span class="d">·</span><a href="#">Privacy Policy</a><span class="d">·</span><a href="#">Terms of Service</a></div>
+  <div class="fb"><span>&copy; 2026 FitBase. All rights reserved</span><span class="d">·</span><a href="#">Privacy Policy</a><span class="d">·</span><a href="#">Terms of Service</a></div>
   <div class="fitchef-credit">
     <a href="https://www.Fitchef.fit" target="_blank" rel="noopener"><img src="img/Fitchef logo.png" alt="FitChef Nutrition" class="fitchef-logo" loading="lazy" decoding="async"></a>
     <p>Co-Powered by <a href="https://www.Fitchef.fit" target="_blank" rel="noopener">FitChef Nutrition</a></p>
@@ -4722,10 +5202,10 @@ async function loadDashboard() {
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
 }
 
-const SESSION_KEY = 'bodybank_session';
-const RESET_SUCCESS_KEY = 'bodybank_reset_success';
-const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
-const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
+const SESSION_KEY = 'fitbase_session';
+const RESET_SUCCESS_KEY = 'fitbase_reset_success';
+const NOTIFY_CLEARED_KEY = 'fitbase_notify_cleared';
+const NOTIFY_BROWSER_SENT_KEY = 'fitbase_notify_browser_sent';
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
 function getClearedNotifyIds() { try { const s = localStorage.getItem(NOTIFY_CLEARED_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
 function setClearedNotifyIds(ids) { try { localStorage.setItem(NOTIFY_CLEARED_KEY, JSON.stringify(ids)); } catch (e) {} }
@@ -4849,7 +5329,7 @@ function updateNotifyPermissionUI(granted) {
 function showBrowserNotification(n) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !n || !n.title) return;
   try {
-    var opts = { body: (n.desc || '').substring(0, 200), tag: n.id || 'bodybank-' + Date.now() };
+    var opts = { body: (n.desc || '').substring(0, 200), tag: n.id || 'fitbase-' + Date.now() };
     if (document.querySelector('link[rel="icon"]') && document.querySelector('link[rel="icon"]').href) opts.icon = document.querySelector('link[rel="icon"]').href;
     var notif = new Notification(n.title, opts);
     notif.onclick = function() { window.focus(); notif.close(); if (n.link) { var tabBtn = document.querySelector('.admin-tab[data-tab="' + n.link + '"]'); if (tabBtn) tabBtn.click(); } };
@@ -5393,6 +5873,47 @@ async function rejectUser(id) {
   loadNotifications();
 }
 
+async function adminCreateClientFromDashboard() {
+  var first_name = (document.getElementById('addClientFirstName') || {}).value || '';
+  var last_name = (document.getElementById('addClientLastName') || {}).value || '';
+  var email = (document.getElementById('addClientEmail') || {}).value || '';
+  var phone = (document.getElementById('addClientPhone') || {}).value || '';
+  var country = (document.getElementById('addClientCountry') || {}).value || '';
+  var timezone = (document.getElementById('addClientTimezone') || {}).value || '';
+  var password = (document.getElementById('addClientPassword') || {}).value || '';
+  if (!String(email).trim() || !String(password).trim()) {
+    showPopup('Missing details', 'Email and password are required to create a client.', '', 'OK', null, 'error');
+    return;
+  }
+  if (String(password).length < 6) {
+    showPopup('Weak password', 'Password must be at least 6 characters.', '', 'OK', null, 'error');
+    return;
+  }
+  const res = await apiCall('POST', '/api/admin/create-client', {
+    first_name: first_name,
+    last_name: last_name,
+    email: email,
+    phone: phone,
+    country: country,
+    timezone: timezone,
+    password: password
+  });
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  ['addClientFirstName','addClientLastName','addClientEmail','addClientPhone','addClientCountry','addClientTimezone','addClientPassword'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  showPopup('Client added', 'New client account created and approved successfully.', '', 'OK');
+  loadPendingSignups();
+  loadTribe();
+  loadUsersList();
+  loadNotifications();
+  if (typeof loadDashboard === 'function') loadDashboard();
+}
+
 async function loadSundayCheckins() {
   const tbody = document.getElementById('sundayCheckinBody');
   if (!tbody) return;
@@ -5834,6 +6355,7 @@ function logoutAdmin() {
   closePopup('forgotModal');
   closePopup('resetModal');
   unlockBodyScroll();
+  window.location.replace('/login.html');
 }
 
 function openAdminMoreModal() {
@@ -6327,7 +6849,7 @@ async function loadClientProgressUsers() {
     var email = (u.email || '').toLowerCase();
     var first = (u.first_name || '').toLowerCase();
     var name = (u.name || '').toLowerCase();
-    if (email.indexOf('test.bodybank.fit') !== -1) return false;
+    if (email.indexOf('test.fitbase.fit') !== -1) return false;
     if (first.indexOf('e2e') !== -1 || name.indexOf('e2e') !== -1) return false;
     return true;
   });
@@ -6417,7 +6939,7 @@ async function loadProgramsAdmin() {
     users = users.filter(function(u) {
       var e = (u.email || '').toLowerCase();
       var f = (u.first_name || '').toLowerCase();
-      if (e.indexOf('test.bodybank.fit') !== -1) return false;
+      if (e.indexOf('test.fitbase.fit') !== -1) return false;
       if (f.indexOf('e2e') !== -1) return false;
       return true;
     });
@@ -6735,6 +7257,7 @@ function logoutUser() {
   if (userPanel) userPanel.classList.remove('open');
   document.body.classList.remove('site-nav-hidden','user-dashboard-open','admin-dashboard-open');
   unlockBodyScroll();
+  window.location.replace('/login.html');
 }
 
 function toggleUserNavDrawer() {}
@@ -7732,7 +8255,7 @@ async function saveEliteCard() {
   if (!blob) return;
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'bodybank-elite-card.png';
+  a.download = 'fitbase-elite-card.png';
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -7744,10 +8267,10 @@ async function shareEliteCard() {
     if (canvas && canvas.width) blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png', 1); });
   }
   if (!blob) return;
-  var file = new File([blob], 'bodybank-elite-card.png', { type: 'image/png' });
+  var file = new File([blob], 'fitbase-elite-card.png', { type: 'image/png' });
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
-      await navigator.share({ title: 'My BodyBank Elite Card', files: [file] });
+      await navigator.share({ title: 'My FitBase Elite Card', files: [file] });
       closeModal('eliteCardModal');
     } catch (e) { if (e.name !== 'AbortError') saveEliteCard(); }
   } else {
@@ -8639,6 +9162,10 @@ function restoreSession() {
 
 // ========== SUPERADMIN DASHBOARD ==========
 var _superadminData = null;
+var _superadminTrainers = [];
+var _superadminPendingSignups = [];
+var _superadminTrainerRequests = [];
+var _superadminTrainerClientData = [];
 
 function getSuperadminFilters() {
   var from = document.getElementById('saFrom');
@@ -8793,10 +9320,42 @@ function loadSuperadminDashboard() {
   var url = API + '/api/superadmin/dashboard' + (q.length ? '?' + q.join('&') : '');
   var opts = { headers: {} };
   if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
-  fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+  fetch(url, opts).then(function(r) { return r.json(); }).then(async function(data) {
     if (data.error) { if (loading) loading.textContent = data.error; return; }
+    var trainers = [];
+    var pendingSignups = [];
+    var trainerRequests = [];
+    var trainerClientData = [];
+    try {
+      var tRes = await fetch(API + '/api/superadmin/trainers', opts);
+      var tData = await tRes.json();
+      if (!tData.error && Array.isArray(tData)) trainers = tData;
+    } catch (e) {}
+    try {
+      var pRes = await fetch(API + '/api/admin/pending-signups', opts);
+      var pData = await pRes.json();
+      if (!pData.error && Array.isArray(pData)) pendingSignups = pData;
+    } catch (e) {}
+    try {
+      var trReqRes = await fetch(API + '/api/superadmin/trainer-requests', opts);
+      var trReqData = await trReqRes.json();
+      if (!trReqData.error && Array.isArray(trReqData)) trainerRequests = trReqData;
+    } catch (e) {}
+    try {
+      var tcRes = await fetch(API + '/api/superadmin/trainer-client-overview', opts);
+      var tcData = await tcRes.json();
+      if (!tcData.error && Array.isArray(tcData)) trainerClientData = tcData;
+    } catch (e) {}
     _superadminData = data;
+    _superadminTrainers = trainers;
+    _superadminPendingSignups = pendingSignups;
+    _superadminTrainerRequests = trainerRequests;
+    _superadminTrainerClientData = trainerClientData;
     renderSuperadminData(data, false);
+    renderSuperadminTrainers();
+    renderSuperadminPendingSignups();
+    renderSuperadminTrainerRequests();
+    renderSuperadminTrainerClientData();
     if (loading) loading.style.display = 'none';
     var tabsEl = document.getElementById('superadminViewTabs');
     if (tabsEl) tabsEl.style.display = 'flex';
@@ -8822,6 +9381,259 @@ function loadSuperadminDashboard() {
   }).catch(function() {
     if (loading) { loading.textContent = 'Failed to load dashboard.'; loading.style.display = 'block'; }
   });
+}
+
+function superadminAuthHeaders(extra) {
+  var h = Object.assign({}, extra || {});
+  if (window.currentUser && window.currentUser.token) h['Authorization'] = 'Bearer ' + window.currentUser.token;
+  return h;
+}
+
+function renderSuperadminTrainers() {
+  var el = document.getElementById('saTrainers');
+  if (!el) return;
+  if (!_superadminTrainers || !_superadminTrainers.length) {
+    el.innerHTML = '<p class="superadmin-empty">No trainers yet.</p>';
+    return;
+  }
+  el.innerHTML = _superadminTrainers.map(function(t) {
+    var full = [t.first_name || '', t.last_name || ''].join(' ').trim() || t.email || 'Trainer';
+    var status = (t.suspended === true || t.suspended === 't') ? 'Suspended' : 'Active';
+    var trainerId = String(t.id).replace(/'/g, '');
+    var actionBtn = status === 'Active'
+      ? '<button class="superadmin-mini-btn warn" onclick="superadminSuspendTrainer(\'' + trainerId + '\')">Suspend</button>'
+      : '<button class="superadmin-mini-btn" onclick="superadminReactivateTrainer(\'' + trainerId + '\')">Reactivate</button>';
+    var resetBtn = '<button class="superadmin-mini-btn" onclick="superadminResetTrainerPassword(\'' + trainerId + '\')">Reset Password</button>';
+    return '' +
+      '<div class="superadmin-card">' +
+        '<div class="row"><span class="k">name</span><span class="v" data-label="name">' + full + '</span></div>' +
+        '<div class="row"><span class="k">email</span><span class="v" data-label="email">' + (t.email || '') + '</span></div>' +
+        '<div class="row"><span class="k">clients</span><span class="v" data-label="clients">' + (t.clients_total || 0) + ' total · ' + (t.clients_approved || 0) + ' approved · ' + (t.clients_pending || 0) + ' pending</span></div>' +
+        '<div class="row"><span class="k">status</span><span class="v" data-label="status">' + status + '</span></div>' +
+        '<div class="row"><span class="k">actions</span><span class="v" data-label="actions"><span class="superadmin-action-row">' + actionBtn + resetBtn + '</span></span></div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderSuperadminPendingSignups() {
+  var el = document.getElementById('saPendingSignups');
+  if (!el) return;
+  if (!_superadminPendingSignups || !_superadminPendingSignups.length) {
+    el.innerHTML = '<p class="superadmin-empty">No pending website requests.</p>';
+    return;
+  }
+  el.innerHTML = _superadminPendingSignups.map(function(u) {
+    var full = [u.first_name || '', u.last_name || ''].join(' ').trim() || u.email || 'User';
+    var userId = String(u.id || '').replace(/'/g, '');
+    return '' +
+      '<div class="superadmin-card">' +
+        '<div class="row"><span class="k">name</span><span class="v" data-label="name">' + full + '</span></div>' +
+        '<div class="row"><span class="k">email</span><span class="v" data-label="email">' + (u.email || '') + '</span></div>' +
+        '<div class="row"><span class="k">requested</span><span class="v" data-label="requested">' + (u.created_at || '') + '</span></div>' +
+        '<div class="row"><span class="k">actions</span><span class="v" data-label="actions"><span class="superadmin-action-row">' +
+          '<button class="superadmin-mini-btn" onclick="superadminApproveSignup(\'' + userId + '\')">Approve</button>' +
+          '<button class="superadmin-mini-btn warn" onclick="superadminRejectSignup(\'' + userId + '\')">Reject</button>' +
+        '</span></span></div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderSuperadminTrainerRequests() {
+  var el = document.getElementById('saTrainerRequests');
+  if (!el) return;
+  if (!_superadminTrainerRequests || !_superadminTrainerRequests.length) {
+    el.innerHTML = '<p class="superadmin-empty">No pending trainer requests.</p>';
+    return;
+  }
+  el.innerHTML = _superadminTrainerRequests.map(function(r) {
+    var reqId = String(r.id || '').replace(/'/g, '');
+    var name = r.full_name || 'Trainer';
+    return '' +
+      '<div class="superadmin-card">' +
+        '<div class="row"><span class="k">name</span><span class="v" data-label="name">' + escapeHtml(name) + '</span></div>' +
+        '<div class="row"><span class="k">email</span><span class="v" data-label="email">' + escapeHtml(r.email || '') + '</span></div>' +
+        '<div class="row"><span class="k">phone</span><span class="v" data-label="phone">' + escapeHtml(r.phone || '-') + '</span></div>' +
+        '<div class="row"><span class="k">gym</span><span class="v" data-label="gym">' + escapeHtml(r.gym_name || '-') + '</span></div>' +
+        '<div class="row"><span class="k">city</span><span class="v" data-label="city">' + escapeHtml(r.city || '-') + '</span></div>' +
+        '<div class="row"><span class="k">message</span><span class="v" data-label="message">' + escapeHtml(r.message || '-') + '</span></div>' +
+        '<div class="row"><span class="k">requested</span><span class="v" data-label="requested">' + escapeHtml(r.created_at || '') + '</span></div>' +
+        '<div class="row"><span class="k">actions</span><span class="v" data-label="actions"><span class="superadmin-action-row">' +
+          '<button class="superadmin-mini-btn" onclick="superadminApproveTrainerRequest(\'' + reqId + '\')">Approve & Create Login</button>' +
+          '<button class="superadmin-mini-btn warn" onclick="superadminRejectTrainerRequest(\'' + reqId + '\')">Reject</button>' +
+        '</span></span></div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderSuperadminTrainerClientData() {
+  var el = document.getElementById('saTrainerClientData');
+  if (!el) return;
+  if (!_superadminTrainerClientData || !_superadminTrainerClientData.length) {
+    el.innerHTML = '<p class="superadmin-empty">No trainer/client records found.</p>';
+    return;
+  }
+  el.innerHTML = _superadminTrainerClientData.map(function(t) {
+    var full = [t.first_name || '', t.last_name || ''].join(' ').trim() || t.email || 'Trainer';
+    var clients = Array.isArray(t.clients) ? t.clients : [];
+    var clientsHtml = clients.length
+      ? clients.map(function(c) {
+          var cf = [c.first_name || '', c.last_name || ''].join(' ').trim() || c.email || 'Client';
+          var st = (c.approval_status || 'approved');
+          var sus = (c.suspended === true || c.suspended === 't') ? ' · suspended' : '';
+          return '<div class="row"><span class="k">client</span><span class="v" data-label="client">' + escapeHtml(cf) + ' · ' + escapeHtml(c.email || '') + ' · ' + escapeHtml(st + sus) + '</span></div>';
+        }).join('')
+      : '<div class="row"><span class="k">clients</span><span class="v" data-label="clients">No clients yet.</span></div>';
+    return '' +
+      '<div class="superadmin-card">' +
+        '<div class="row"><span class="k">trainer</span><span class="v" data-label="trainer">' + escapeHtml(full) + '</span></div>' +
+        '<div class="row"><span class="k">email</span><span class="v" data-label="email">' + escapeHtml(t.email || '') + '</span></div>' +
+        '<div class="row"><span class="k">phone</span><span class="v" data-label="phone">' + escapeHtml(t.phone || '-') + '</span></div>' +
+        '<div class="row"><span class="k">status</span><span class="v" data-label="status">' + ((t.suspended === true || t.suspended === 't') ? 'Suspended' : 'Active') + '</span></div>' +
+        '<div class="row"><span class="k">total clients</span><span class="v" data-label="total clients">' + clients.length + '</span></div>' +
+        clientsHtml +
+      '</div>';
+  }).join('');
+}
+
+async function superadminCreateTrainer() {
+  var first = (document.getElementById('saTrainerFirst') || {}).value || '';
+  var last = (document.getElementById('saTrainerLast') || {}).value || '';
+  var email = (document.getElementById('saTrainerEmail') || {}).value || '';
+  var phone = (document.getElementById('saTrainerPhone') || {}).value || '';
+  var password = (document.getElementById('saTrainerPass') || {}).value || '';
+  if (!email.trim() || !password.trim()) {
+    showPopup('Missing details', 'Trainer email and temporary password are required.', '', 'OK', null, 'error');
+    return;
+  }
+  try {
+    var res = await fetch(API + '/api/superadmin/trainers', {
+      method: 'POST',
+      headers: superadminAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ first_name: first, last_name: last, email: email, phone: phone, password: password })
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to create trainer');
+    showPopup('Trainer created', 'New trainer has been onboarded successfully.', '', 'OK');
+    ['saTrainerFirst','saTrainerLast','saTrainerEmail','saTrainerPhone','saTrainerPass'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Failed to create trainer.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminSuspendTrainer(trainerId) {
+  try {
+    var res = await fetch(API + '/api/superadmin/trainers/' + encodeURIComponent(trainerId) + '/suspend', {
+      method: 'POST',
+      headers: superadminAuthHeaders()
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to suspend trainer');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not suspend trainer.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminReactivateTrainer(trainerId) {
+  try {
+    var res = await fetch(API + '/api/superadmin/trainers/' + encodeURIComponent(trainerId) + '/reactivate', {
+      method: 'POST',
+      headers: superadminAuthHeaders()
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to reactivate trainer');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not reactivate trainer.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminResetTrainerPassword(trainerId) {
+  var nextPassword = window.prompt('Enter new password for this trainer (minimum 6 characters):', '');
+  if (nextPassword == null) return;
+  nextPassword = String(nextPassword || '').trim();
+  if (nextPassword.length < 6) {
+    showPopup('Invalid password', 'Password must be at least 6 characters.', '', 'OK', null, 'error');
+    return;
+  }
+  try {
+    var res = await fetch(API + '/api/superadmin/trainers/' + encodeURIComponent(trainerId) + '/reset-password', {
+      method: 'POST',
+      headers: superadminAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ password: nextPassword })
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to reset trainer password');
+    showPopup('Password reset', 'Trainer password has been updated successfully.', '', 'OK');
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not reset trainer password.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminApproveSignup(userId) {
+  try {
+    var res = await fetch(API + '/api/admin/approve-user/' + encodeURIComponent(userId), {
+      method: 'POST',
+      headers: superadminAuthHeaders()
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to approve request');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not approve request.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminRejectSignup(userId) {
+  try {
+    var res = await fetch(API + '/api/admin/reject-user/' + encodeURIComponent(userId), {
+      method: 'POST',
+      headers: superadminAuthHeaders()
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to reject request');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not reject request.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminApproveTrainerRequest(requestId) {
+  var nextPassword = window.prompt('Set initial password for this trainer (minimum 6 characters):', '');
+  if (nextPassword == null) return;
+  nextPassword = String(nextPassword || '').trim();
+  if (nextPassword.length < 6) {
+    showPopup('Invalid password', 'Password must be at least 6 characters.', '', 'OK', null, 'error');
+    return;
+  }
+  try {
+    var res = await fetch(API + '/api/superadmin/trainer-requests/' + encodeURIComponent(requestId) + '/approve', {
+      method: 'POST',
+      headers: superadminAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ password: nextPassword })
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to approve trainer request');
+    showPopup('Trainer approved', 'Trainer login created.\nEmail: ' + (data.email || '') + '\nPassword: ' + nextPassword, '', 'OK');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not approve trainer request.', '', 'OK', null, 'error');
+  }
+}
+
+async function superadminRejectTrainerRequest(requestId) {
+  try {
+    var res = await fetch(API + '/api/superadmin/trainer-requests/' + encodeURIComponent(requestId) + '/reject', {
+      method: 'POST',
+      headers: superadminAuthHeaders()
+    });
+    var data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Failed to reject trainer request');
+    loadSuperadminDashboard();
+  } catch (e) {
+    showPopup('Error', e.message || 'Could not reject trainer request.', '', 'OK', null, 'error');
+  }
 }
 
 function renderSuperadminData(data, readOnly) {
@@ -8874,6 +9686,7 @@ function logoutSuperadmin() {
   unlockBodyScroll();
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   window.currentUser = null;
+  window.location.replace('/login.html');
 }
 
 function superadminShareLink() {
@@ -8969,7 +9782,7 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
 // PWA Add to Home Screen
 (function() {
   var deferredPrompt = null;
-  var pwaInstalledKey = 'bodybank-pwa-installed';
+  var pwaInstalledKey = 'fitbase-pwa-installed';
   function isStandalone() {
     return window.matchMedia('(display-mode: standalone)').matches
       || (navigator.standalone === true)
@@ -9262,3 +10075,5 @@ window.addEventListener('resize', applySafeAreaFix);
 </style>
 </body>
 </html>
+
+

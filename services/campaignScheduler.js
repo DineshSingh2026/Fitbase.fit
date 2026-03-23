@@ -1,8 +1,8 @@
-'use strict';
+﻿'use strict';
 
 /**
  * Campaign Scheduler Service
- * Manages node-cron jobs for BodyBank campaign messages.
+ * Manages node-cron jobs for FitBase campaign messages.
  * Timezone: Asia/Kolkata (IST)
  *
  * Usage:
@@ -106,7 +106,7 @@ async function broadcastMessage(message) {
   const trimmed = String(message).trim();
   const bodyForChat = trimmed.slice(0, 5000);
   const pushPayload = JSON.stringify({
-    title: 'BodyBank',
+    title: 'FitBase',
     body: trimmed,
     icon: '/icons/icon-192.png',
   });
@@ -131,7 +131,7 @@ async function broadcastMessage(message) {
     try {
       await _run(
         'INSERT INTO user_inbox (id, user_id, title, body, type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
-        [_uuidv4(), user.id, 'BodyBank', trimmed, 'campaign']
+        [_uuidv4(), user.id, 'FitBase', trimmed, 'campaign']
       );
       inboxCount++;
     } catch (e) {

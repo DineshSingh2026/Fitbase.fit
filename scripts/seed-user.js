@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * One-time script to add/update a user for testing (PostgreSQL).
  * Run: node scripts/seed-user.js
@@ -9,7 +9,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { Pool } = require('pg');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 const EMAIL = process.env.SEED_EMAIL || 'dineshkishoresingh@gmail.com';
 const PASSWORD = process.env.SEED_PASSWORD || 'Password@123';
 

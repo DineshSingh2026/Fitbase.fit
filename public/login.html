@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f5f2eb" />
+  <title>FitBase Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#f5f2eb;
+      --panel:#fbf8f1;
+      --text:#20170f;
+      --muted:rgba(32,23,15,0.62);
+      --line:rgba(126,95,55,0.28);
+      --accent:#c9a24a;
+      --accent-2:#9b7648;
+      --brand:#7e5f37;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(180deg,#faf8f2 0%,#f3efe6 100%);
+      color:var(--text);
+      font-family:'DM Sans',system-ui,sans-serif;
+      padding:24px;
+    }
+    .card{
+      width:min(440px,100%);
+      background:var(--panel);
+      border:1.5px solid var(--line);
+      border-radius:16px;
+      padding:32px 28px;
+      box-shadow:0 20px 48px rgba(48,35,20,0.14);
+    }
+    h1{
+      font-family:'Cormorant Garamond',serif;
+      font-size:38px;
+      line-height:1;
+      margin-bottom:8px;
+      color:var(--text);
+    }
+    p.sub{
+      color:var(--muted);
+      font-size:14px;
+      margin-bottom:22px;
+    }
+    label{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:8px;
+      color:#32434b;
+    }
+    .group{margin-bottom:14px}
+    input{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:12px 14px;
+      font-size:15px;
+      background:#fff;
+      color:#1f2a30;
+      outline:none;
+    }
+    input:focus{
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(92,124,137,0.14);
+    }
+    button{
+      width:100%;
+      border:none;
+      border-radius:10px;
+      padding:13px 14px;
+      margin-top:6px;
+      font-weight:700;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:#1f2a30;
+      background:linear-gradient(135deg,var(--accent-2),var(--accent) 55%,#b98d33);
+      cursor:pointer;
+    }
+    button:disabled{opacity:.6;cursor:not-allowed}
+    .msg{
+      margin-top:12px;
+      font-size:13px;
+      color:#b3261e;
+      min-height:18px;
+    }
+    .back{
+      margin-top:18px;
+      text-align:center;
+      font-size:13px;
+    }
+    .back a{color:var(--brand);text-decoration:none}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>FitBase</h1>
+    <p class="sub">Secure login for superadmin, trainers, and clients.</p>
+    <form id="loginForm">
+      <div class="group">
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required />
+      </div>
+      <div class="group">
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required />
+      </div>
+      <button id="submitBtn" type="submit">Sign In</button>
+      <div id="msg" class="msg"></div>
+    </form>
+    <div class="back"><a href="/">Back to fitbase.fit</a></div>
+  </main>
+
+  <script>
+    const SESSION_KEY = 'fitbase_session';
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('msg');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      submitBtn.disabled = true;
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      try {
+        const r = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await r.json();
+        if (!r.ok || data.error) {
+          msg.textContent = data.message || data.error || 'Login failed.';
+          submitBtn.disabled = false;
+          return;
+        }
+        localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+        window.location.replace('/index.html');
+      } catch (_) {
+        msg.textContent = 'Network error. Please try again.';
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

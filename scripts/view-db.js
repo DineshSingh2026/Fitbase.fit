@@ -1,12 +1,12 @@
-/**
- * View all data in the BodyBank database (PostgreSQL).
+﻿/**
+ * View all data in the FitBase database (PostgreSQL).
  * Run: node scripts/view-db.js
- * Requires: DATABASE_URL in .env (e.g. postgresql://localhost:5432/bodybank)
+ * Requires: DATABASE_URL in .env (e.g. postgresql://localhost:5432/fitbase)
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 
 const TABLES = [
   'users',
@@ -30,7 +30,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('========== BodyBank DB (PostgreSQL) ==========\n');
+  console.log('========== FitBase DB (PostgreSQL) ==========\n');
 
   for (const table of TABLES) {
     try {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Quick API test: login, progress GET/POST, admin user-progress
  * Run: node tests/api-progress-test.js
  * Server must be running on port 3000.
@@ -34,7 +34,7 @@ function request(method, path, body, token) {
 
 async function main() {
   console.log('1. Admin login...');
-  const loginRes = await request('POST', '/api/auth/login', { email: 'admin@bodybank.fit', password: 'admin123' });
+  const loginRes = await request('POST', '/api/auth/login', { email: 'admin@fitbase.fit', password: 'admin123' });
   if (loginRes.status !== 200) {
     console.error('Login failed:', loginRes.status, loginRes.data);
     process.exit(1);

@@ -1,4 +1,4 @@
-# BodyBank — Version Snapshot (Feb 2025)
+﻿# FitBase — Version Snapshot (Feb 2025)
 
 **Saved:** February 2025  
 **Purpose:** Reference this snapshot to recall the current design and feature set.

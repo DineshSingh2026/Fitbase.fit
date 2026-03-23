@@ -1,4 +1,4 @@
-# Final Steps — What You Need to Configure
+﻿# Final Steps — What You Need to Configure
 
 Everything in the codebase is ready. You only need to do these **2 things**:
 
@@ -8,13 +8,13 @@ Everything in the codebase is ready. You only need to do these **2 things**:
 
 1. **Create OAuth client**
    - Click **Create Credentials** → **OAuth client ID**
-   - If asked, configure OAuth consent screen first (External, app name: BodyBank, support email)
+   - If asked, configure OAuth consent screen first (External, app name: FitBase, support email)
    - Application type: **Web application**
-   - Name: e.g. "BodyBank Web"
+   - Name: e.g. "FitBase Web"
 
 2. **Add Authorized JavaScript origins**
    - `http://localhost:3000`
-   - `https://bodybank-fit.onrender.com` (or your actual live URL)
+   - `https://fitbase-fit.onrender.com` (or your actual live URL)
 
 3. **Copy the Client ID** (looks like `123456-abc.apps.googleusercontent.com`)
 
@@ -29,7 +29,7 @@ Everything in the codebase is ready. You only need to do these **2 things**:
 
 ## 2. Render (when you deploy)
 
-1. Go to **Render Dashboard** → your **bodybank-fit** service → **Environment**
+1. Go to **Render Dashboard** → your **fitbase-fit** service → **Environment**
 2. Add: `GOOGLE_CLIENT_ID` = (same Client ID as above)
 3. Save — Render will redeploy
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * End-to-end test: Sign up → Admin approve → Login → User actions → Admin dashboard & DB check.
  * Run: node tests/e2e-flow.js (server must be running on port 3000)
  */
@@ -10,7 +10,7 @@ const BASE = 'http://localhost:3000';
 const PORT = 3000;
 
 const testUser = {
-  email: `e2e.${Date.now()}@test.bodybank.fit`,
+  email: `e2e.${Date.now()}@test.fitbase.fit`,
   password: 'TestPass123!',
   first_name: 'E2E',
   last_name: 'Tester',
@@ -108,7 +108,7 @@ async function runTests() {
   console.log(login.status === 200 ? '  OK' : '  FAIL', login.body?.email);
 
   console.log('=== E2E: Forgot password – admin email (no reset, generic response) ===');
-  const saEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const saEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
   const forgotAdmin = await request('POST', '/api/auth/forgot-password', { email: saEmail });
   if (forgotAdmin.status === 404) console.log('  (404 – restart server to load forgot-password routes)');
   assert(forgotAdmin.status === 200 && forgotAdmin.body?.ok === true, 'Forgot for admin returns ok');
@@ -258,7 +258,7 @@ async function runTests() {
   console.log(stats.status === 200 ? '  OK' : '  FAIL');
 
   /* Admin/superadmin login for auth-required endpoints (e.g. notifications) */
-  const adminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const adminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
   const adminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
   const adminLogin = await request('POST', '/api/auth/login', { email: adminEmail, password: adminPass });
   const adminToken = adminLogin.body?.token || null;
@@ -357,7 +357,7 @@ async function runTests() {
   console.log('  OK');
 
   console.log('=== E2E: Superadmin – login ===');
-  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
   const superadminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
   const saLogin = await request('POST', '/api/auth/login', { email: superadminEmail, password: superadminPass });
   assert(saLogin.status === 200 && saLogin.body?.role === 'superadmin' && saLogin.body?.token, 'Superadmin login');

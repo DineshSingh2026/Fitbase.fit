@@ -1,12 +1,12 @@
-# BodyBank — Deployment Checklist
+# FitBase — Deployment Checklist
 
-**Repo:** [Bodybank.fit](https://github.com/DineshSingh2026/Bodybank.fit) — ready for manual deploy. Use branch **`main`**. Render will use `render.yaml` from the repo root.
+**Repo:** [fitbase.fit](https://github.com/your-username/fitbase.fit) — ready for manual deploy. Use branch **`main`**. Render will use `render.yaml` from the repo root.
 
 ## Cache busting — users see new version after deploy
 
 **On each deploy**, bump the app version so users/admins get the latest UI instead of cached old versions:
 
-1. **`public/sw.js`** — change `CACHE_NAME` (e.g. `bodybank-v11` → `bodybank-v12`)
+1. **`public/sw.js`** — change `CACHE_NAME` (e.g. `fitbase-v11` → `fitbase-v12`)
 2. **All HTML files** that link CSS — change `?v=11` → `?v=12` in:
    - `public/index.html` (2 links)
    - `public/tribe-stories.html`, `public/our-story.html`, `public/part2-form.html`, `public/progress-report.html` (2 links each)
@@ -28,7 +28,7 @@ The service worker will then install the new version, clear old caches, and the 
    - Optionally set `ALLOWED_ORIGIN` to restrict CORS (e.g. `https://yoursite.com`).
 
 3. **Database**
-   - Set `DATABASE_URL` to your PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/bodybank`).
+   - Set `DATABASE_URL` to your PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/fitbase`).
    - To migrate from an existing SQLite file: set `DB_PATH`, run `node scripts/migrate-sqlite-to-postgres.js`, then start the app with `DATABASE_URL`.
 
 4. **Google Sign-In**

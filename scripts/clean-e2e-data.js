@@ -1,13 +1,13 @@
-/**
+﻿/**
  * Remove all e2e test data from the database so admin/superadmin dashboards are clean.
- * Deletes: users (e2e.*@test.bodybank.fit), their workouts, meetings, contact messages,
+ * Deletes: users (e2e.*@test.fitbase.fit), their workouts, meetings, contact messages,
  * sunday check-ins; audit_requests (e2e.test emails); part2_audit (e2e.test); tribe (tribe@e2e.test).
  * Run: node scripts/clean-e2e-data.js
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 
 function toPg(sql) {
   let i = 0;
@@ -19,7 +19,7 @@ async function main() {
   try {
     // 1. Get e2e user ids
     const e2eUsers = await pool.query(
-      toPg("SELECT id FROM users WHERE email LIKE 'e2e.%@test.bodybank.fit'"),
+      toPg("SELECT id FROM users WHERE email LIKE 'e2e.%@test.fitbase.fit'"),
       []
     );
     const userIds = e2eUsers.rows.map((r) => r.id);
@@ -33,7 +33,7 @@ async function main() {
       await pool.query(toPg('DELETE FROM hydration_logs WHERE user_id = ANY(?)'), [userIds]);
       await pool.query(toPg('DELETE FROM weight_logs WHERE user_id = ANY(?)'), [userIds]);
       // progress_logs and user_goals have ON DELETE CASCADE from users, so deleted with users
-      await pool.query(toPg("DELETE FROM users WHERE email LIKE 'e2e.%@test.bodybank.fit'"), []);
+      await pool.query(toPg("DELETE FROM users WHERE email LIKE 'e2e.%@test.fitbase.fit'"), []);
       console.log('Removed', userIds.length, 'e2e user(s) and their related data.');
     } else {
       console.log('No e2e users found.');

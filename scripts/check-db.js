@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Verify PostgreSQL connection and that data is readable/writable.
  * Run: node scripts/check-db.js
  */
 require('dotenv').config();
 const { Pool } = require('pg');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 
 async function run() {
   const pool = new Pool({ connectionString: DATABASE_URL });
@@ -16,7 +16,7 @@ async function run() {
   try {
     const r = await pool.query('SELECT 1 as ok, current_database() as db');
     results.connection = r.rows[0]?.ok === 1;
-    console.log('   OK – connected to database:', r.rows[0]?.db || 'bodybank');
+    console.log('   OK – connected to database:', r.rows[0]?.db || 'fitbase');
   } catch (e) {
     errors.push('Connection failed: ' + e.message);
     console.log('   FAIL:', e.message);

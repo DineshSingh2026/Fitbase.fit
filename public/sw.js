@@ -1,14 +1,14 @@
-/* BodyBank PWA Service Worker â€” bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v30';
+/* FitBase PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
+const CACHE_NAME = 'fitbase-v30';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
 });
 
-/* Push notifications â€” show banner even when app/website is closed (Zomato-style) */
+/* Push notifications — show banner even when app/website is closed (Zomato-style) */
 self.addEventListener('push', (e) => {
   if (!e.data) return;
-  let title = 'Body Bank';
+  let title = 'FitBase';
   let body = '';
   let data = {};
   try {
@@ -23,9 +23,9 @@ self.addEventListener('push', (e) => {
   }
   const opts = {
     body: (body || 'You have a new notification').substring(0, 200),
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    tag: data.id || 'bodybank-' + Date.now(),
+    icon: '/img/Fitbase_logo_PWA2.png',
+    badge: '/img/Fitbase_logo_PWA2.png',
+    tag: data.id || 'fitbase-' + Date.now(),
     requireInteraction: false,
     data: { url: '/', ...data }
   };
@@ -60,7 +60,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  /* Only cache http/https â€” chrome-extension etc. unsupported */
+  /* Only cache http/https — chrome-extension etc. unsupported */
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
   /* API: network only */
@@ -101,3 +101,5 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
+

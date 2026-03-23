@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Generates PWA icons with safe-zone padding so the logo isn't cropped when displayed as a circle.
  * Maskable icons use only the center ~80% - this script places the logo in that safe zone.
  */
 const sharp = require('sharp');
 const path = require('path');
 
-const SRC = path.join(__dirname, '../public/img/bodybank-logo-short.png');
+const SRC = path.join(__dirname, '../public/img/fitbase-logo-short.png');
 const OUT_DIR = path.join(__dirname, '../public/icons');
 const SAFE_RATIO = 0.80; // Logo uses 80% of canvas - leaves 10% padding on each edge
 

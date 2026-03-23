@@ -1,4 +1,4 @@
-# 🏋️ BodyBank — Deployment Guide
+# 🏋️ FitBase — Deployment Guide
 
 ## Repo / live readiness
 
@@ -15,8 +15,8 @@ node server.js
 ```
 Open **http://localhost:3000**
 
-**Admin Login:** `admin@bodybank.fit` / `admin123`  
-**Superadmin (business overview):** `superadmin@bodybank.fit` / `superadmin123` — single-page dashboard with stats, audit/part2/sunday check-ins, users, workouts, tribe, meetings, messages; filters (date/user), CSV export per block, and time-limited “Share via link”. Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in `.env` to override.
+**Admin Login:** `admin@fitbase.fit` / `admin123`  
+**Superadmin (business overview):** `superadmin@fitbase.fit` / `superadmin123` — single-page dashboard with stats, audit/part2/sunday check-ins, users, workouts, tribe, meetings, messages; filters (date/user), CSV export per block, and time-limited “Share via link”. Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in `.env` to override.
 
 ### Set superadmin on localhost first
 
@@ -24,28 +24,28 @@ To use the same superadmin credentials locally as on production:
 
 1. In your project root, open or create **`.env`** and set:
    ```env
-   DATABASE_URL=postgresql://localhost:5432/bodybank
+   DATABASE_URL=postgresql://localhost:5432/fitbase
    SUPERADMIN_EMAIL=Superadmin@gmail.com
-   SUPERADMIN_PASS=Bodybank@2026
+   SUPERADMIN_PASS=Fitbase@2026
    ```
 2. Start the server: **`npm start`** (or `node server.js`).
 3. In the terminal you should see: **`✅ Superadmin synced`** or **`✅ Superadmin created`** with that email.
-4. Open **http://localhost:3000** → **Login** → use **superadmin@gmail.com** and **Bodybank@2026**.
+4. Open **http://localhost:3000** → **Login** → use **superadmin@gmail.com** and **Fitbase@2026**.
 
 Use the same `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in Render so production matches localhost.
 
 ### Verify API & Database Connection
 1. Start the server: `npm start`
 2. Open **http://localhost:3000** (do not open `index.html` as a file; the API needs the server)
-3. Check health: visit **http://localhost:3000/api/health** — should return `{"ok":true,"db":"connected","admin_email":"admin@bodybank.fit","admin_exists":true}`
-4. Login with `admin@bodybank.fit` / `admin123`
+3. Check health: visit **http://localhost:3000/api/health** — should return `{"ok":true,"db":"connected","admin_email":"admin@fitbase.fit","admin_exists":true}`
+4. Login with `admin@fitbase.fit` / `admin123`
 
 If login fails with "Invalid email or password", ensure you're using the correct credentials.
 
 ### Database (PostgreSQL)
-1. Create a database, e.g. `createdb bodybank` (or use pgAdmin / psql: `CREATE DATABASE bodybank;`).
-2. In `.env` set `DATABASE_URL=postgresql://localhost:5432/bodybank` (adjust user/password if needed).
-3. To **migrate existing data from SQLite**: put your old `data/bodybank.db` in place, set `DB_PATH=data/bodybank.db` in `.env`, then run `node scripts/migrate-sqlite-to-postgres.js`. After that, start the server with `DATABASE_URL` set.
+1. Create a database, e.g. `createdb fitbase` (or use pgAdmin / psql: `CREATE DATABASE fitbase;`).
+2. In `.env` set `DATABASE_URL=postgresql://localhost:5432/fitbase` (adjust user/password if needed).
+3. To **migrate existing data from SQLite**: put your old `data/fitbase.db` in place, set `DB_PATH=data/fitbase.db` in `.env`, then run `node scripts/migrate-sqlite-to-postgres.js`. After that, start the server with `DATABASE_URL` set.
 
 ### End-to-end tests
 With the server running (`npm run dev`), run: `npm test`. This exercises sign up → admin approval → login → profile, workouts, contact, meetings, sunday check-in, public audit/part2 forms, admin dashboard and DB.
@@ -74,7 +74,7 @@ With the server running (`npm run dev`), run: `npm test`. This exercises sign up
    | `OPENAI_MODEL` | (optional) `gpt-4o-mini` | Model for Admin AI; default is `gpt-4o-mini`. |
 7. Click **Deploy**
 
-Your site will be live at `https://bodybank-xxxx.onrender.com` (or your custom domain).
+Your site will be live at `https://fitbase-xxxx.onrender.com` (or your custom domain).
 
 ### Live server: Configure Admin AI (OpenAI)
 
@@ -91,9 +91,9 @@ If you don’t set `OPENAI_API_KEY`, the AI panel will show a single message ask
 
 ### Live server: Superadmin login (after deployment)
 
-- **URL:** Your live app URL (e.g. `https://bodybank-xxxx.onrender.com`). Open the site and click **Login**.
+- **URL:** Your live app URL (e.g. `https://fitbase-xxxx.onrender.com`). Open the site and click **Login**.
 - **Superadmin credentials:** Use the **email** and **password** you set for `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in Render environment variables.
-- **Behaviour:** After login, if the user has role `superadmin`, they are taken to the **BodyBank – Superadmin** single-page dashboard (stats, audit forms, Part-2, Sunday check-ins, users, workouts, tribe, meetings, messages; filters, CSV export, “Share via link”).
+- **Behaviour:** After login, if the user has role `superadmin`, they are taken to the **FitBase – Superadmin** single-page dashboard (stats, audit forms, Part-2, Sunday check-ins, users, workouts, tribe, meetings, messages; filters, CSV export, “Share via link”).
 - **First deploy:** On first deploy, the server creates one superadmin user in the database using `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS`. If you do not set these, the app will **not** create a superadmin in production (default password is refused). Set both in Render before the first deploy so the superadmin account exists and you can log in.
 
 ### Superadmin login not working
@@ -129,8 +129,8 @@ curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
 # 3. Clone your repo
-git clone https://github.com/yourusername/bodybank.git
-cd bodybank
+git clone https://github.com/yourusername/fitbase.git
+cd fitbase
 
 # 4. Install dependencies
 npm install --production
@@ -143,13 +143,13 @@ nano .env  # Edit with your admin credentials
 sudo npm install -g pm2
 
 # 7. Start with PM2
-pm2 start server.js --name bodybank
+pm2 start server.js --name fitbase
 pm2 save
 pm2 startup  # Auto-start on reboot
 
 # 8. Setup Nginx reverse proxy
 sudo apt install nginx
-sudo nano /etc/nginx/sites-available/bodybank
+sudo nano /etc/nginx/sites-available/fitbase
 ```
 
 **Nginx config:**
@@ -171,7 +171,7 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/bodybank /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/fitbase /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
@@ -186,17 +186,17 @@ sudo certbot --nginx -d yourdomain.com
 
 ```bash
 # Build
-docker build -t bodybank .
+docker build -t fitbase .
 
 # Run
 docker run -d \
-  --name bodybank \
+  --name fitbase \
   -p 3000:3000 \
-  -v bodybank-data:/app/data \
+  -v fitbase-data:/app/data \
   -e NODE_ENV=production \
-  -e ADMIN_EMAIL=admin@bodybank.fit \
+  -e ADMIN_EMAIL=admin@fitbase.fit \
   -e ADMIN_PASS=YourSecurePassword \
-  bodybank
+  fitbase
 ```
 
 ---
@@ -207,15 +207,15 @@ docker run -d \
 |----------|---------|-------------|
 | `PORT` | 3000 | Server port |
 | `NODE_ENV` | development | Set to `production` for deployment |
-| `ADMIN_EMAIL` | admin@bodybank.fit | Admin login email |
+| `ADMIN_EMAIL` | admin@fitbase.fit | Admin login email |
 | `ADMIN_PASS` | admin123 | Admin login password |
-| `DATABASE_URL` | postgresql://localhost:5432/bodybank | PostgreSQL connection string |
+| `DATABASE_URL` | postgresql://localhost:5432/fitbase | PostgreSQL connection string |
 
 ---
 
 ## Project Structure
 ```
-bodybank/
+fitbase/
 ├── server.js           # Backend (Express + PostgreSQL)
 ├── public/
 │   └── index.html      # Complete frontend

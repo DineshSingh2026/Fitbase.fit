@@ -17,11 +17,11 @@ const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalize
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bodybank.fit';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@fitbase.fit';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
-const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
 const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
@@ -32,11 +32,11 @@ const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
 const SMTP_USER = (process.env.SMTP_USER || '').trim();
 const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
-const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
+const SMTP_FROM = (process.env.SMTP_FROM || 'FitBase <noreply@fitbase.fit>').trim();
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
-    webPush.setVapidDetails('mailto:support@bodybank.fit', VAPID_PUBLIC, VAPID_PRIVATE);
+    webPush.setVapidDetails('mailto:support@fitbase.fit', VAPID_PUBLIC, VAPID_PRIVATE);
   } catch (e) {
     console.warn('VAPID keys invalid or malformed - push notifications disabled. Error:', e.message);
   }
@@ -160,6 +160,27 @@ async function queryOne(sql, params = []) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+function isSuperadminUser(user) {
+  return !!(user && user.role === 'superadmin');
+}
+
+function isAdminUser(user) {
+  return !!(user && user.role === 'admin');
+}
+
+function adminScopeClause(req, userAlias = 'u') {
+  if (isSuperadminUser(req.user)) return { clause: '', params: [] };
+  if (!isAdminUser(req.user)) return { clause: ` AND 1=0`, params: [] };
+  return { clause: ` AND ${userAlias}.trainer_id = ?`, params: [req.user.id] };
+}
+
+async function assertTrainerCanAccessClient(req, clientUserId) {
+  if (isSuperadminUser(req.user)) return true;
+  if (!isAdminUser(req.user)) return false;
+  const row = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'user' AND trainer_id = ?", [clientUserId, req.user.id]);
+  return !!row;
+}
+
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
   const cleanTimezone = String(timezone || '').trim() || inferTimezoneFromCountry(cleanCountry);
@@ -235,7 +256,24 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN suspended BOOLEAN DEFAULT FALSE`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN trainer_id TEXT`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_trainer_id ON users(trainer_id)`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
+  await pool.query(`CREATE TABLE IF NOT EXISTS trainer_requests (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT DEFAULT '',
+    gym_name TEXT DEFAULT '',
+    city TEXT DEFAULT '',
+    message TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP,
+    reviewed_by TEXT,
+    trainer_user_id TEXT
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_trainer_requests_status ON trainer_requests(status)`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
     id TEXT PRIMARY KEY,
@@ -493,7 +531,7 @@ async function initDB() {
   await pool.query(`CREATE TABLE IF NOT EXISTS user_inbox (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
-    title TEXT NOT NULL DEFAULT 'BodyBank',
+    title TEXT NOT NULL DEFAULT 'FitBase',
     body TEXT NOT NULL,
     type TEXT DEFAULT 'campaign',
     is_read BOOLEAN DEFAULT FALSE,
@@ -764,9 +802,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     const pwTrimmed = String(password).trim();
 
-    // Fallback: if login is with Superadmin@gmail.com / Bodybank@2026, ensure superadmin exists and log in (works even if env vars are wrong or missing on Render)
+    // Fallback: if login is with Superadmin@gmail.com / Fitbase@2026, ensure superadmin exists and log in (works even if env vars are wrong or missing on Render)
     const FALLBACK_SA_EMAIL = 'superadmin@gmail.com';
-    const FALLBACK_SA_PASS = 'Bodybank@2026';
+    const FALLBACK_SA_PASS = 'Fitbase@2026';
     const isFallbackCreds = emailNorm === FALLBACK_SA_EMAIL && pwTrimmed === FALLBACK_SA_PASS;
 
     let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
@@ -827,8 +865,8 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
 
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    const token = signToken({ id: user.id, email: user.email, role: user.role, trainer_id: user.trainer_id || null });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -853,13 +891,9 @@ app.post('/api/auth/google', async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      // New user: require profile completion (phone, password) before creating
-      return res.json({
-        needs_profile: true,
-        email: emailNorm,
-        given_name: given_name || '',
-        family_name: family_name || '',
-        picture: picture || ''
+      return res.status(403).json({
+        error: 'signup_disabled',
+        message: 'Self sign-up is disabled. Please contact your trainer or FitBase superadmin to receive login credentials.'
       });
     }
     const status = user.approval_status || 'approved';
@@ -875,8 +909,8 @@ app.post('/api/auth/google', async (req, res) => {
     }
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    const token = signToken({ id: user.id, email: user.email, role: user.role, trainer_id: user.trainer_id || null });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });
@@ -886,7 +920,11 @@ app.post('/api/auth/google', async (req, res) => {
 // Google Sign-up: complete profile (phone, password) for new Google users
 app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { id_token, phone, password } = req.body || {};
+    return res.status(403).json({
+      error: 'signup_disabled',
+      message: 'Self sign-up is disabled. Please contact your trainer or FitBase superadmin to receive login credentials.'
+    });
+    const { id_token, phone, password, trainer_id } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'ID token required' });
     if (!phone || typeof phone !== 'string' || !phone.trim()) return res.status(400).json({ error: 'Mobile (WhatsApp) number is required' });
     if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Password is required' });
@@ -902,11 +940,17 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     const phoneTrimmed = String(phone || '').trim();
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
+    let trainerId = null;
+    if (trainer_id) {
+      const trainer = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [String(trainer_id).trim()]);
+      if (!trainer) return res.status(400).json({ error: 'Invalid trainer_id' });
+      trainerId = trainer.id;
+    }
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status, trainer_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending', trainerId]);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access` })).catch(() => {});
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
@@ -921,29 +965,66 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 
 app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { email, password, first_name, last_name, phone, country, timezone } = req.body || {};
+    return res.status(403).json({
+      error: 'signup_disabled',
+      message: 'Self sign-up is disabled. Please contact your trainer or FitBase superadmin to receive login credentials.'
+    });
+    const { email, password, first_name, last_name, phone, country, timezone, trainer_id } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
     const geo = normalizeGeoFields(country, timezone);
 
     const emailNorm = String(email).trim().toLowerCase();
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    let trainerId = null;
+    if (trainer_id) {
+      const trainer = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [String(trainer_id).trim()]);
+      if (!trainer) return res.status(400).json({ error: 'Invalid trainer_id' });
+      trainerId = trainer.id;
+    }
     if (existing && existing.approval_status === 'rejected') {
       const hash = bcrypt.hashSync(password, 10);
-      await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, country = ?, timezone = ?, approval_status = 'pending' WHERE id = ?",
-        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, existing.id]);
+      await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, country = ?, timezone = ?, approval_status = 'pending', trainer_id = COALESCE(?, trainer_id) WHERE id = ?",
+        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, trainerId, existing.id]);
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status, trainer_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending', trainerId]);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access` })).catch(() => {});
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/trainer-requests', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { full_name, email, phone, gym_name, city, message } = req.body || {};
+    const name = String(full_name || '').trim();
+    const emailNorm = String(email || '').trim().toLowerCase();
+    if (!name || !emailNorm) {
+      return res.status(400).json({ error: 'Full name and email are required' });
+    }
+    const existingTrainer = await queryOne("SELECT id FROM users WHERE LOWER(email) = ? AND role = 'admin'", [emailNorm]);
+    if (existingTrainer) {
+      return res.status(409).json({ error: 'This email is already onboarded as a trainer. Please use your login credentials.' });
+    }
+    const pending = await queryOne("SELECT id FROM trainer_requests WHERE LOWER(email) = ? AND status = 'pending'", [emailNorm]);
+    if (pending) {
+      return res.status(409).json({ error: 'A trainer request with this email is already pending review.' });
+    }
+    await run(
+      "INSERT INTO trainer_requests (id, full_name, email, phone, gym_name, city, message, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')",
+      [uuidv4(), name, emailNorm, String(phone || '').trim(), String(gym_name || '').trim(), String(city || '').trim(), String(message || '').trim()]
+    );
+    res.json({ ok: true, message: 'Request submitted. Superadmin will review and share your credentials.' });
+  } catch (e) {
+    console.error('[trainer request]', e.message);
+    res.status(500).json({ error: 'Failed to submit trainer request' });
   }
 });
 
@@ -988,11 +1069,11 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
               connectionTimeout: 10000,
               greetingTimeout: 10000
             });
-        const fromAddr = isGmail ? `BodyBank <${SMTP_USER}>` : (SMTP_FROM || `BodyBank <${SMTP_USER}>`);
+        const fromAddr = isGmail ? `FitBase <${SMTP_USER}>` : (SMTP_FROM || `FitBase <${SMTP_USER}>`);
         await transporter.sendMail({
           from: fromAddr,
           to: emailNorm,
-          subject: 'Reset your BodyBank password',
+          subject: 'Reset your FitBase password',
           html: `<p>Click the link below to reset your password. It expires in 24 hours.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
         });
         console.log('[ForgotPassword] Reset email sent to', emailNorm, '| link base:', base);
@@ -1624,6 +1705,9 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
        LEFT JOIN users u ON u.id = dc.user_id
        WHERE 1=1`;
     const params = [];
+    const scope = adminScopeClause(req, 'u');
+    sql += scope.clause;
+    params.push(...scope.params);
     if (from) { sql += ` AND dc.checkin_date >= ?`; params.push(from); }
     if (to) { sql += ` AND dc.checkin_date <= ?`; params.push(to); }
     if (search) {
@@ -1642,12 +1726,13 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
 
 app.get('/api/admin/daily-checkins/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
+    const scope = adminScopeClause(req, 'u');
     const row = await queryOne(
       `SELECT dc.*, u.first_name, u.last_name, u.email, u.phone
        FROM daily_checkins dc
        LEFT JOIN users u ON u.id = dc.user_id
-       WHERE dc.id = ?`,
-      [req.params.id]
+       WHERE dc.id = ? ${scope.clause}`,
+      [req.params.id, ...scope.params]
     );
     if (!row) return res.status(404).json({ error: 'Not found' });
     res.json(row);
@@ -1662,8 +1747,14 @@ app.get('/api/admin/audit-requests', verifyToken, requireAdminOrSuperadmin, asyn
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
-    let sql = 'SELECT * FROM audit_requests WHERE 1=1';
+    let sql = `SELECT ar.*
+      FROM audit_requests ar
+      LEFT JOIN users u ON LOWER(u.email) = LOWER(ar.email) AND u.role = 'user'
+      WHERE 1=1`;
     const params = [];
+    const scope = adminScopeClause(req, 'u');
+    sql += scope.clause;
+    params.push(...scope.params);
     if (from) {
       sql += ' AND created_at::date >= ?';
       params.push(from);
@@ -1698,6 +1789,9 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
        LEFT JOIN users u ON u.id = s.user_id
        WHERE 1=1`;
     const params = [];
+    const scope = adminScopeClause(req, 'u');
+    sql += scope.clause;
+    params.push(...scope.params);
     if (from) {
       sql += ' AND s.created_at::date >= ?';
       params.push(from);
@@ -1726,8 +1820,14 @@ app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, a
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
-    let sql = 'SELECT * FROM part2_audit WHERE 1=1';
+    let sql = `SELECT p2.*
+      FROM part2_audit p2
+      LEFT JOIN users u ON LOWER(u.email) = LOWER(p2.email) AND u.role = 'user'
+      WHERE 1=1`;
     const params = [];
+    const scope = adminScopeClause(req, 'u');
+    sql += scope.clause;
+    params.push(...scope.params);
     if (from) {
       sql += ' AND created_at::date >= ?';
       params.push(from);
@@ -1761,6 +1861,9 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
        JOIN users u ON w.user_id = u.id
        WHERE 1=1`;
     const params = [];
+    const scope = adminScopeClause(req, 'u');
+    sql += scope.clause;
+    params.push(...scope.params);
     if (from) {
       sql += ' AND w.created_at::date >= ?';
       params.push(from);
@@ -1786,10 +1889,11 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
 
 app.get('/api/admin/workouts/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
+    const scope = adminScopeClause(req, 'u');
     const row = await queryOne(
       `SELECT w.*, u.first_name, u.last_name, u.email, u.phone
-       FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE w.id = ?`,
-      [req.params.id]
+       FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE w.id = ? ${scope.clause}`,
+      [req.params.id, ...scope.params]
     );
     if (!row) return res.status(404).json({ error: 'Not found' });
     res.json(row);
@@ -1870,22 +1974,39 @@ app.get('/api/push/vapid-public', (req, res) => {
 });
 
 // ============ ADMIN: PENDING SIGNUPS & APPROVE ============
-app.get('/api/admin/pending-signups', async (req, res) => {
+app.get('/api/admin/pending-signups', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const list = await queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC");
+    let sql = "SELECT id, email, first_name, last_name, created_at, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+    const params = [];
+    if (isAdminUser(req.user)) {
+      sql += " AND (trainer_id IS NULL OR trainer_id = ?)";
+      params.push(req.user.id);
+    }
+    sql += " ORDER BY created_at DESC";
+    const list = await queryAll(sql, params);
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch pending sign-ups' });
   }
 });
 
-app.post('/api/admin/approve-user/:id', async (req, res) => {
+app.post('/api/admin/approve-user/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone, country FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone, country, trainer_id FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
-    await run("UPDATE users SET approval_status = 'approved' WHERE id = ?", [id]);
+    if (isAdminUser(req.user) && user.trainer_id && user.trainer_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const targetTrainerId = isSuperadminUser(req.user)
+      ? (req.body && req.body.trainer_id ? String(req.body.trainer_id).trim() : (user.trainer_id || null))
+      : req.user.id;
+    if (targetTrainerId) {
+      const tr = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [targetTrainerId]);
+      if (!tr) return res.status(400).json({ error: 'Invalid trainer_id' });
+    }
+    await run("UPDATE users SET approval_status = 'approved', trainer_id = COALESCE(?, trainer_id) WHERE id = ?", [targetTrainerId, id]);
     await syncUserCountryAndTimezone(user.id, user.email);
     // Add to tribe_members so new member appears in Clients section
     const existing = await queryOne("SELECT id FROM tribe_members WHERE LOWER(email) = ?", [(user.email || '').toLowerCase()]);
@@ -1902,12 +2023,15 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
   }
 });
 
-app.post('/api/admin/reject-user/:id', async (req, res) => {
+app.post('/api/admin/reject-user/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, trainer_id FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
+    if (isAdminUser(req.user) && user.trainer_id && user.trainer_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     await run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
     res.json({ message: 'User rejected' });
   } catch (e) {
@@ -1915,9 +2039,65 @@ app.post('/api/admin/reject-user/:id', async (req, res) => {
   }
 });
 
-app.get('/api/admin/pending-signup/:id', async (req, res) => {
+app.post('/api/admin/create-client', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const user = await queryOne("SELECT id, email, first_name, last_name, phone, country, timezone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
+    const { email, password, first_name, last_name, phone, country, timezone, trainer_id } = req.body || {};
+    const emailNorm = String(email || '').trim().toLowerCase();
+    const pwd = String(password || '');
+    if (!emailNorm || !pwd) return res.status(400).json({ error: 'Email and password are required' });
+    if (pwd.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const geo = normalizeGeoFields(country, timezone);
+
+    const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing) return res.status(409).json({ error: 'Email already registered' });
+
+    let trainerId = null;
+    if (isAdminUser(req.user)) {
+      trainerId = req.user.id;
+    } else if (trainer_id) {
+      const tr = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [String(trainer_id).trim()]);
+      if (!tr) return res.status(400).json({ error: 'Invalid trainer_id' });
+      trainerId = tr.id;
+    }
+
+    const id = uuidv4();
+    const hash = bcrypt.hashSync(pwd, 10);
+    await run(
+      "INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, role, approval_status, trainer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', 'approved', ?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, trainerId]
+    );
+
+    const tribeId = uuidv4();
+    const today = new Date().toISOString().split('T')[0];
+    await run(
+      "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)",
+      [tribeId, first_name || '', last_name || '', emailNorm, phone || '', geo.country || '', today, null, null, null, '', 'Added by trainer dashboard']
+    );
+
+    res.json({
+      id,
+      email: emailNorm,
+      first_name: first_name || '',
+      last_name: last_name || '',
+      role: 'user',
+      approval_status: 'approved',
+      trainer_id: trainerId || null
+    });
+  } catch (e) {
+    console.error('[admin create-client]', e.message);
+    res.status(500).json({ error: 'Failed to create client' });
+  }
+});
+
+app.get('/api/admin/pending-signup/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    let sql = "SELECT id, email, first_name, last_name, phone, country, timezone, created_at, trainer_id FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+    const params = [req.params.id];
+    if (isAdminUser(req.user)) {
+      sql += " AND (trainer_id IS NULL OR trainer_id = ?)";
+      params.push(req.user.id);
+    }
+    const user = await queryOne(sql, params);
     if (!user) return res.status(404).json({ error: 'Not found' });
     res.json(user);
   } catch (e) {
@@ -2190,7 +2370,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           notifications.push({
             id: 'inbox-' + m.id,
             type: 'campaign',
-            title: m.title || 'BodyBank',
+            title: m.title || 'FitBase',
             desc: (m.body || '').substring(0, 120),
             time: m.created_at,
             link: null
@@ -2251,6 +2431,9 @@ app.get('/api/admin/program-catalog', verifyToken, requireAdminOrSuperadmin, asy
 app.get('/api/programs/user/:userId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const userId = req.params.userId;
+    if (!(await assertTrainerCanAccessClient(req, userId))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const rows = await queryAll(
       `SELECT a.id, a.user_id, a.program_id, a.assigned_by, a.assigned_at, a.removed_at,
         p.name as program_name, p.pdf_url, p.youtube_url
@@ -2286,6 +2469,9 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
   try {
     const { user_id, program_id } = req.body;
     if (!user_id || !program_id) return res.status(400).json({ error: 'user_id and program_id required' });
+    if (!(await assertTrainerCanAccessClient(req, user_id))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const activeCount = await queryOne(
       'SELECT COUNT(*) as c FROM user_program_assignments WHERE user_id = ? AND removed_at IS NULL',
       [user_id]
@@ -2311,9 +2497,18 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
 app.delete('/api/programs/assign/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const id = req.params.id;
+    const assignment = await queryOne(
+      `SELECT a.id, a.user_id, u.trainer_id
+       FROM user_program_assignments a
+       LEFT JOIN users u ON u.id = a.user_id
+       WHERE a.id = ?`,
+      [id]
+    );
+    if (!assignment) return res.status(404).json({ error: 'Assignment not found' });
+    if (isAdminUser(req.user) && assignment.trainer_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     await run('UPDATE user_program_assignments SET removed_at = CURRENT_TIMESTAMP WHERE id = ? AND removed_at IS NULL', [id]);
-    const r = await queryOne('SELECT id FROM user_program_assignments WHERE id = ?', [id]);
-    if (!r) return res.status(404).json({ error: 'Assignment not found' });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2449,18 +2644,36 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
   try {
     const limit = 10;
     const activities = [];
-    const sc = await queryAll('SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT ?', [limit]);
+    const trainerFilter = isAdminUser(req.user) ? [req.user.id] : [];
+    const sc = await queryAll(
+      `SELECT s.full_name, s.created_at
+       FROM sunday_checkins s
+       LEFT JOIN users u ON u.id = s.user_id
+       WHERE (?::text IS NULL OR u.trainer_id = ?)
+       ORDER BY s.created_at DESC LIMIT ?`,
+      [isAdminUser(req.user) ? req.user.id : null, isAdminUser(req.user) ? req.user.id : null, limit]
+    );
     (sc || []).forEach(r => activities.push({ name: r.full_name || 'Unknown', type: 'Check-in', status: 'NEW', created_at: r.created_at }));
     const wl = await queryAll(
-      `SELECT u.first_name, u.last_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id ORDER BY w.created_at DESC LIMIT ?`,
-      [limit]
+      `SELECT u.first_name, u.last_name, w.created_at
+       FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id
+       WHERE (?::text IS NULL OR u.trainer_id = ?)
+       ORDER BY w.created_at DESC LIMIT ?`,
+      [isAdminUser(req.user) ? req.user.id : null, isAdminUser(req.user) ? req.user.id : null, limit]
     );
     (wl || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'User', type: 'Workout logged', status: 'DONE', created_at: r.created_at }));
-    const cm = await queryAll('SELECT name, created_at FROM contact_messages ORDER BY created_at DESC LIMIT ?', [limit]);
+    const cm = await queryAll(
+      `SELECT c.name, c.created_at
+       FROM contact_messages c
+       LEFT JOIN users u ON u.id = c.user_id
+       WHERE (?::text IS NULL OR u.trainer_id = ?)
+       ORDER BY c.created_at DESC LIMIT ?`,
+      [isAdminUser(req.user) ? req.user.id : null, isAdminUser(req.user) ? req.user.id : null, limit]
+    );
     (cm || []).forEach(r => activities.push({ name: r.name || 'Unknown', type: 'Message', status: 'UNREAD', created_at: r.created_at }));
     const ps = await queryAll(
-      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND approval_status='pending' ORDER BY created_at DESC LIMIT ?",
-      [limit]
+      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND approval_status='pending' AND (?::text IS NULL OR trainer_id = ?) ORDER BY created_at DESC LIMIT ?",
+      [isAdminUser(req.user) ? req.user.id : null, isAdminUser(req.user) ? req.user.id : null, limit]
     );
     (ps || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'New user', type: 'Sign-up', status: 'PENDING', created_at: r.created_at }));
     activities.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -2472,11 +2685,16 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
 });
 
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const list = await queryAll(
-      "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
-    );
+    let sql = "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.fitbase.fit') AND (LOWER(first_name) NOT LIKE '%e2e%')";
+    const params = [];
+    if (isAdminUser(req.user)) {
+      sql += " AND trainer_id = ?";
+      params.push(req.user.id);
+    }
+    sql += " ORDER BY first_name, last_name";
+    const list = await queryAll(sql, params);
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2486,9 +2704,10 @@ app.get('/api/admin/users', async (req, res) => {
 app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, trainer_id FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only suspend client users' });
+    if (isAdminUser(req.user) && user.trainer_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
     await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
     res.json({ message: 'User suspended' });
   } catch (e) {
@@ -2500,9 +2719,10 @@ app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, 
 app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, trainer_id FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only reactivate client users' });
+    if (isAdminUser(req.user) && user.trainer_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
     await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
     res.json({ message: 'User reactivated' });
   } catch (e) {
@@ -2515,9 +2735,10 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
   try {
     const { id } = req.params;
     if (NODE_ENV !== 'production') console.log('[DELETE /api/admin/users/:id] id=', id);
-    const user = await queryOne("SELECT id, role, email FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, trainer_id FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only remove client users' });
+    if (isAdminUser(req.user) && user.trainer_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
     const threads = await queryAll('SELECT id FROM message_threads WHERE user_id = ?', [id]);
     const threadIds = (threads || []).map(t => t.id).filter(Boolean);
     if (threadIds.length > 0) {
@@ -2543,9 +2764,11 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
 });
 
 // ============ ADMIN: PERFORMANCE INSIGHTS ============
-app.get('/api/admin/performance-insights', async (req, res) => {
+app.get('/api/admin/performance-insights', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { source = 'all', from: dateFrom, to: dateTo, user_id: filterUserId } = req.query || {};
+    const scopedUserId = isAdminUser(req.user) ? null : filterUserId;
+    const trainerId = isAdminUser(req.user) ? req.user.id : null;
     const hasDate = dateFrom || dateTo;
     const dateParams = [dateFrom, dateTo].filter(Boolean);
 
@@ -2558,11 +2781,17 @@ app.get('/api/admin/performance-insights', async (req, res) => {
       { key: 'meetings', table: 'meetings', countSql: "SELECT COUNT(*) as c FROM meetings WHERE status='scheduled'", dateCol: 'created_at', userCol: 'user_id' },
       { key: 'messages', table: 'contact_messages', countSql: 'SELECT COUNT(*) as c FROM contact_messages', dateCol: 'created_at', userCol: 'user_id' }
     ];
-    const usersApproved = await queryOne("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved')");
+    const usersApproved = await queryOne(
+      "SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved') AND (?::text IS NULL OR trainer_id = ?)",
+      [trainerId, trainerId]
+    );
     summary.users_approved = usersApproved?.c ?? 0;
     const [pendingAudit] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
     summary.pending_requests = pendingAudit?.c ?? 0;
-    const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
+    const [dailyCheckins] = await queryAll(
+      "SELECT COUNT(*) as c FROM daily_checkins d LEFT JOIN users u ON u.id = d.user_id WHERE (?::text IS NULL OR u.trainer_id = ?)",
+      [trainerId, trainerId]
+    );
     summary.daily_checkins = dailyCheckins?.c ?? 0;
 
     for (const { key, countSql, dateCol, userCol } of tables) {
@@ -2574,9 +2803,9 @@ app.get('/api/admin/performance-insights', async (req, res) => {
         if (dateTo) conditions.push(`date(${dateCol}) <= date(?)`);
         params.push(...dateParams);
       }
-      if (filterUserId && userCol) {
+      if (scopedUserId && userCol) {
         conditions.push(`${userCol} = ?`);
-        params.push(filterUserId);
+        params.push(scopedUserId);
       }
       if (conditions.length) sql += (countSql.toLowerCase().includes(' where ') ? ' AND ' : ' WHERE ') + conditions.join(' AND ');
       const row = await queryOne(sql, params);
@@ -2600,7 +2829,7 @@ app.get('/api/admin/performance-insights', async (req, res) => {
       const msg = (await runQuery('SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200')).map(r => ({ ...r, _source: 'messages', _date: r.created_at }));
       data = [...w, ...sc, ...ar, ...p2, ...meet, ...msg];
       if (hasDate) data = data.filter(r => { const d = (r._date || r.created_at || '').toString().slice(0, 10); return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo); });
-      if (filterUserId) data = data.filter(r => r.user_id === filterUserId);
+      if (scopedUserId) data = data.filter(r => r.user_id === scopedUserId);
       data.sort((a, b) => new Date(b._date || b.created_at) - new Date(a._date || a.created_at));
       data = data.slice(0, limit);
     } else {
@@ -2609,12 +2838,12 @@ app.get('/api/admin/performance-insights', async (req, res) => {
       const uidCol = { workouts: 'w.user_id', sunday_checkin: 'user_id', meetings: 'user_id' }[pickSource];
       if (pickSource === 'workouts') {
         sql = `SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('w.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        if (hasDate || scopedUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (scopedUserId) { c.push('w.user_id = ?'); params.push(scopedUserId); } sql += c.join(' AND '); }
         sql += ' ORDER BY w.created_at DESC LIMIT ' + limit;
         data = await runQuery(sql, params);
       } else if (pickSource === 'sunday_checkin') {
         sql = `SELECT id, user_id, full_name, reply_email, plan, total_weight_loss, created_at FROM sunday_checkins`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        if (hasDate || scopedUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (scopedUserId) { c.push('user_id = ?'); params.push(scopedUserId); } sql += c.join(' AND '); }
         sql += ' ORDER BY created_at DESC LIMIT ' + limit;
         data = await runQuery(sql, params);
       } else if (pickSource === 'audit') {
@@ -2629,12 +2858,12 @@ app.get('/api/admin/performance-insights', async (req, res) => {
         data = await runQuery(sql, params);
       } else if (pickSource === 'meetings') {
         sql = `SELECT id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, created_at FROM meetings`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        if (hasDate || scopedUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (scopedUserId) { c.push('user_id = ?'); params.push(scopedUserId); } sql += c.join(' AND '); }
         sql += ' ORDER BY created_at DESC LIMIT ' + limit;
         data = await runQuery(sql, params);
       } else if (pickSource === 'messages') {
         sql = `SELECT id, user_id, name, email, phone, message, created_at FROM contact_messages`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        if (hasDate || scopedUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (scopedUserId) { c.push('user_id = ?'); params.push(scopedUserId); } sql += c.join(' AND '); }
         sql += ' ORDER BY created_at DESC LIMIT ' + limit;
         data = await runQuery(sql, params);
       }
@@ -2684,7 +2913,7 @@ function num(v) { return (v === undefined || v === null ? 0 : parseInt(String(v)
 async function getAdminAIContext() {
   const lines = [];
   const now = new Date().toISOString();
-  lines.push('LIVE DATA — BodyBank database. Fetched just now (' + now + '). Use this to answer the admin.\n');
+  lines.push('LIVE DATA — FitBase database. Fetched just now (' + now + '). Use this to answer the admin.\n');
 
   try {
     const [pendingReq] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
@@ -2810,7 +3039,7 @@ async function getAdminAIContext() {
   return lines.join('\n');
 }
 
-const AI_SYSTEM_PROMPT = `You are an elite AI Fitness Intelligence Assistant for BodyBank.fit Admin Dashboard.
+const AI_SYSTEM_PROMPT = `You are an elite AI Fitness Intelligence Assistant for FitBase.fit Admin Dashboard.
 
 TARGET BEHAVIOR (quality bar):
 - Operate at the level of a ₹50,000/month personal trainer combined with a data scientist: sharp, personalized, evidence-led.
@@ -2901,7 +3130,7 @@ STRICT RULES:
 
 TONE: Professional, sharp, insightful, premium — like a high-end coaching system.
 
-BODYBANK DATA MAP (only use what appears in context):
+FITBASE DATA MAP (only use what appears in context):
 - Audit / Part-2: onboarding narrative
 - Tribe: active members
 - Sunday / Daily check-ins: adherence and lifestyle signals
@@ -2909,7 +3138,7 @@ BODYBANK DATA MAP (only use what appears in context):
 - Client Progress / Performance data in context: trends
 - Messages / meetings / sign-ups: operational signals
 
-If the question is outside BodyBank data, steer back to relevant tabs and what you can analyze from context.`;
+If the question is outside FitBase data, steer back to relevant tabs and what you can analyze from context.`;
 
 function buildAISystemContent(systemContext) {
   return AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext;
@@ -3052,7 +3281,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     const { message } = req.body || {};
     const text = typeof message === 'string' ? message.trim() : '';
     if (!text) {
-      reply = 'Please ask a question about your BodyBank data (e.g. “How many pending audit forms?” or “Summarize tribe members”).';
+      reply = 'Please ask a question about your FitBase data (e.g. “How many pending audit forms?” or “Summarize tribe members”).';
       return res.json({ reply });
     }
 
@@ -3138,7 +3367,10 @@ app.get('/api/admin/user-progress/:userId', (req, res, next) => {
       .catch((e) => { console.error('[admin user-progress]', e.message); res.status(500).json({ error: e.message }); });
   }
   next();
-}, verifyToken, requireAdmin, (req, res) => {
+}, verifyToken, requireAdmin, async (req, res) => {
+  if (!(await assertTrainerCanAccessClient(req, req.params.userId))) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
   getAdminUserProgress(req, res).catch((e) => {
     console.error('[admin user-progress]', e.message);
     res.status(500).json({ error: e.message });
@@ -3163,6 +3395,20 @@ app.get('/api/progress-report', async (req, res) => {
 app.get('/api/admin/progress-report-link/:userId', verifyToken, requireAdmin, (req, res) => {
   try {
     const userId = req.params.userId;
+    if (req.user.role === 'admin') {
+      // lightweight guard for trainer isolation
+      queryOne("SELECT id FROM users WHERE id = ? AND role = 'user' AND trainer_id = ?", [userId, req.user.id]).then((row) => {
+        if (!row) return res.status(403).json({ error: 'Access denied' });
+        const token = signProgressReportToken(userId);
+        const baseUrl = (req.protocol + '://' + req.get('host')).replace(/\/$/, '');
+        const url = baseUrl + '/progress-report.html?t=' + encodeURIComponent(token);
+        res.json({ url, token });
+      }).catch((e) => {
+        console.error('[progress-report-link]', e.message);
+        res.status(500).json({ error: e.message });
+      });
+      return;
+    }
     const token = signProgressReportToken(userId);
     const baseUrl = (req.protocol + '://' + req.get('host')).replace(/\/$/, '');
     const url = baseUrl + '/progress-report.html?t=' + encodeURIComponent(token);
@@ -3290,6 +3536,200 @@ app.get('/api/superadmin/dashboard', verifyToken, requireSuperadmin, async (req,
   } catch (e) {
     console.error('[superadmin dashboard]', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Superadmin: manage FitBase trainers (admins)
+app.get('/api/superadmin/trainers', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT t.id, t.email, t.first_name, t.last_name, t.phone, t.created_at, COALESCE(t.suspended, FALSE) as suspended,
+              (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id) as clients_total,
+              (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id AND (u.approval_status IS NULL OR u.approval_status = 'approved')) as clients_approved,
+              (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id AND u.approval_status = 'pending') as clients_pending
+       FROM users t
+       WHERE t.role = 'admin'
+       ORDER BY t.created_at DESC`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('[superadmin trainers]', e.message);
+    res.status(500).json({ error: 'Failed to load trainers' });
+  }
+});
+
+app.get('/api/superadmin/trainer-client-overview', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT
+         t.id,
+         t.email,
+         t.first_name,
+         t.last_name,
+         t.phone,
+         COALESCE(t.suspended, FALSE) AS suspended,
+         COALESCE(
+           json_agg(
+             json_build_object(
+               'id', u.id,
+               'email', u.email,
+               'first_name', u.first_name,
+               'last_name', u.last_name,
+               'approval_status', u.approval_status,
+               'suspended', COALESCE(u.suspended, FALSE)
+             )
+             ORDER BY u.created_at DESC
+           ) FILTER (WHERE u.id IS NOT NULL),
+           '[]'::json
+         ) AS clients
+       FROM users t
+       LEFT JOIN users u ON u.trainer_id = t.id AND u.role = 'user'
+       WHERE t.role = 'admin'
+       GROUP BY t.id
+       ORDER BY t.created_at DESC`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('[superadmin trainer-client-overview]', e.message);
+    res.status(500).json({ error: 'Failed to load trainer and client overview' });
+  }
+});
+
+app.get('/api/superadmin/trainer-requests', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT id, full_name, email, phone, gym_name, city, message, status, created_at, reviewed_at, reviewed_by, trainer_user_id
+       FROM trainer_requests
+       WHERE status = 'pending'
+       ORDER BY created_at DESC`
+    );
+    res.json(rows);
+  } catch (e) {
+    console.error('[superadmin trainer-requests]', e.message);
+    res.status(500).json({ error: 'Failed to load trainer requests' });
+  }
+});
+
+app.post('/api/superadmin/trainer-requests/:id/approve', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const requestId = String(req.params.id || '').trim();
+    const password = String((req.body || {}).password || '').trim();
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    const reqRow = await queryOne("SELECT * FROM trainer_requests WHERE id = ? AND status = 'pending'", [requestId]);
+    if (!reqRow) return res.status(404).json({ error: 'Trainer request not found or already reviewed' });
+    const emailNorm = String(reqRow.email || '').trim().toLowerCase();
+    const hash = bcrypt.hashSync(password, 10);
+    const nameParts = String(reqRow.full_name || '').trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts.length ? nameParts[0] : 'Trainer';
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+    let trainerId = null;
+    const existing = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing && existing.role !== 'admin') {
+      return res.status(409).json({ error: 'Email already exists as a non-trainer account' });
+    }
+    if (existing && existing.role === 'admin') {
+      trainerId = existing.id;
+      await run(
+        "UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, approval_status = 'approved', suspended = FALSE WHERE id = ?",
+        [hash, firstName, lastName, reqRow.phone || '', trainerId]
+      );
+    } else {
+      trainerId = uuidv4();
+      await run(
+        "INSERT INTO users (id, email, password, first_name, last_name, phone, role, approval_status, suspended) VALUES (?, ?, ?, ?, ?, ?, 'admin', 'approved', FALSE)",
+        [trainerId, emailNorm, hash, firstName, lastName, reqRow.phone || '']
+      );
+    }
+    await run(
+      "UPDATE trainer_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?, trainer_user_id = ? WHERE id = ?",
+      [req.user.id, trainerId, requestId]
+    );
+    res.json({ ok: true, trainer_id: trainerId, email: emailNorm, password });
+  } catch (e) {
+    console.error('[superadmin approve trainer-request]', e.message);
+    res.status(500).json({ error: 'Failed to approve trainer request' });
+  }
+});
+
+app.post('/api/superadmin/trainer-requests/:id/reject', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const requestId = String(req.params.id || '').trim();
+    const reqRow = await queryOne("SELECT id FROM trainer_requests WHERE id = ? AND status = 'pending'", [requestId]);
+    if (!reqRow) return res.status(404).json({ error: 'Trainer request not found or already reviewed' });
+    await run(
+      "UPDATE trainer_requests SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?",
+      [req.user.id, requestId]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[superadmin reject trainer-request]', e.message);
+    res.status(500).json({ error: 'Failed to reject trainer request' });
+  }
+});
+
+app.post('/api/superadmin/trainers', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { email, password, first_name, last_name, phone } = req.body || {};
+    const emailNorm = String(email || '').trim().toLowerCase();
+    const pwd = String(password || '');
+    if (!emailNorm || !pwd) return res.status(400).json({ error: 'Email and password required' });
+    if (pwd.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing) return res.status(409).json({ error: 'Email already exists' });
+    const id = uuidv4();
+    const hash = bcrypt.hashSync(pwd, 10);
+    await run(
+      "INSERT INTO users (id, email, password, first_name, last_name, phone, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, 'admin', 'approved')",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '']
+    );
+    const created = await queryOne("SELECT id, email, first_name, last_name, phone, created_at FROM users WHERE id = ?", [id]);
+    res.json({ ok: true, trainer: created });
+  } catch (e) {
+    console.error('[superadmin create trainer]', e.message);
+    res.status(500).json({ error: 'Failed to create trainer' });
+  }
+});
+
+app.post('/api/superadmin/trainers/:id/suspend', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const tr = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [id]);
+    if (!tr) return res.status(404).json({ error: 'Trainer not found' });
+    await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to suspend trainer' });
+  }
+});
+
+app.post('/api/superadmin/trainers/:id/reactivate', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const tr = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [id]);
+    if (!tr) return res.status(404).json({ error: 'Trainer not found' });
+    await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to reactivate trainer' });
+  }
+});
+
+app.post('/api/superadmin/trainers/:id/reset-password', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const newPassword = String((req.body && req.body.password) || '');
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+    const tr = await queryOne("SELECT id, email FROM users WHERE id = ? AND role = 'admin'", [id]);
+    if (!tr) return res.status(404).json({ error: 'Trainer not found' });
+    const hash = bcrypt.hashSync(newPassword, 10);
+    await run("UPDATE users SET password = ? WHERE id = ?", [hash, id]);
+    res.json({ ok: true, message: 'Trainer password reset successfully', email: tr.email });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to reset trainer password' });
   }
 });
 
@@ -3488,11 +3928,30 @@ app.get('/api/campaigns/log', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Serve index.html with no-cache so users get latest UI after deploys
-app.get(['/', '/index.html'], (req, res) => {
+// FitBase luxury marketing landing (B2B trainers) — also at /fitbase.html via static
+app.get('/fitbase', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
 });
+
+const USE_FITBASE_ROOT = process.env.USE_FITBASE_ROOT === 'true' || process.env.USE_FITBASE_ROOT === '1';
+
+// Serve index.html with no-cache so users get latest UI after deploys
+if (USE_FITBASE_ROOT) {
+  app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
+  });
+  app.get('/index.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+} else {
+  app.get(['/', '/index.html'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+}
 
 // Server-rendered reset password page — token validated on server, no client-side URL parsing
 app.get('/reset-password', async (req, res) => {
@@ -3517,7 +3976,7 @@ app.get('/reset-password', async (req, res) => {
 });
 
 function resetPasswordHtml(valid, errorMsg, token) {
-  const base = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset Password - BodyBank</title>
+  const base = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reset Password - FitBase</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
 <style>*{margin:0;padding:0;box-sizing:border-box}body{min-height:100vh;background:#060606;color:#e8e4dc;font-family:'Outfit',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
 .box{background:#0d0d0d;border:1.5px solid #c8a44e;border-radius:20px;padding:40px;max-width:400px;width:100%}
@@ -3557,8 +4016,8 @@ document.getElementById('f').onsubmit=async function(e){
       document.getElementById('msg').innerHTML='<span class="err">'+d.error.replace(/</g,'&lt;')+'</span>';
     }else{
       try{
-        localStorage.setItem('bodybank_session', JSON.stringify(d));
-        localStorage.setItem('bodybank_reset_success', '1');
+        localStorage.setItem('fitbase_session', JSON.stringify(d));
+        localStorage.setItem('fitbase_reset_success', '1');
       }catch(_){}
       document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully. Taking you to your dashboard...</span>';
       this.style.display='none';
@@ -3609,7 +4068,7 @@ app.use((err, req, res, next) => {
 // ============ START ============
 // Listen first so Render health check passes; initDB runs in background
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🏋️ BodyBank Server listening on port ${PORT}`);
+  console.log(`\n🏋️ FitBase Server listening on port ${PORT}`);
   initDB().then(async () => {
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';

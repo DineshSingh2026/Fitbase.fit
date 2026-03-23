@@ -8,7 +8,7 @@
 <!-- Safari / iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Body Bank" />
+<meta name="apple-mobile-web-app-title" content="FitBase" />
 
 <!-- Chrome / Android / other browsers -->
 <meta name="mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
   gtag('js', new Date());
   gtag('config', 'G-8G93TR92QT');
 </script>
-<title>Body Audit â€” Part 2 | BodyBank</title>
+<title>Body Audit — Part 2 | FitBase</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -111,12 +111,12 @@ textarea.form-input{resize:vertical;min-height:120px}
 <a href="#main" class="skip-link">Skip to main content</a>
 <nav class="p2-nav" role="navigation" aria-label="Part 2 form navigation">
   <a href="index.html" class="p2-back" title="Back to home" aria-label="Back to home">&#10094;</a>
-  <a href="index.html"><img src="img/logo.png" alt="BodyBank" class="p2-nav-logo" decoding="async"></a>
+  <a href="index.html"><img src="img/Fitbase_logo2.png" alt="FitBase" class="p2-nav-logo" decoding="async"></a>
 </nav>
 <div class="p2-wrap" id="main" role="main">
   <div id="formSection">
     <div class="p2-header">
-      <img src="img/logo-bb.png" alt="Body Bank" class="p2-logo" decoding="async">
+      <img src="img/Fitbase_logo2.png" alt="FitBase" class="p2-logo" decoding="async">
       <h1 class="p2-title">Body Audit</h1>
     </div>
     <form id="part2Form" onsubmit="return submitPart2(event)">
@@ -143,7 +143,7 @@ textarea.form-input{resize:vertical;min-height:120px}
         </select>
       </div>
 
-      <p class="form-quote"><span class="q">"As you THINK, so shall you BECOME."</span><span class="attr">â€” Bruce Lee</span></p>
+      <p class="form-quote"><span class="q">"As you THINK, so shall you BECOME."</span><span class="attr">— Bruce Lee</span></p>
       <button type="submit" class="form-submit" id="submitBtn"><span class="spinner" aria-hidden="true"></span><span class="btn-text">Submit</span></button>
       <div class="p2-skip"><a href="index.html">Skip &gt;&gt;</a></div>
     </form>
@@ -182,7 +182,7 @@ async function submitPart2(e) {
   btn.disabled = true;
   btn.classList.add('loading');
   var txt = btn.querySelector('.btn-text');
-  if (txt) txt.textContent = 'Submittingâ€¦';
+  if (txt) txt.textContent = 'Submitting…';
   const errEl = form.querySelector('.p2-err');
   if (errEl) errEl.remove();
 
@@ -244,3 +244,6 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
+
+

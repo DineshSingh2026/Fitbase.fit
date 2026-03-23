@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
+﻿const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bodybank-progress-secret-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'fitbase-progress-secret-change-in-production';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
 function signToken(payload) {

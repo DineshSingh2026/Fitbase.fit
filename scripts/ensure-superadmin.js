@@ -1,4 +1,4 @@
-/**
+﻿/**
  * One-off: ensure a superadmin user exists (same logic as server.js init).
  * Run: node scripts/ensure-superadmin.js (with server stopped or use separate DB concern)
  */
@@ -7,8 +7,8 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
-const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/fitbase';
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
 const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
 
 function toPg(sql) {
