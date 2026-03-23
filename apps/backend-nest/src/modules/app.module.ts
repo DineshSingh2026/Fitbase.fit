@@ -12,6 +12,7 @@ import { SuperadminController } from "./superadmin.controller";
 import { AdminManagementController } from "./admin-management.controller";
 import { NotificationsController } from "./notifications.controller";
 import { ProgramsController } from "./programs.controller";
+import { BootstrapService } from "./bootstrap.service";
 
 @Module({
   imports: [
@@ -31,6 +32,6 @@ import { ProgramsController } from "./programs.controller";
     ProgramsController,
     AdminController
   ],
-  providers: [AuthService, RolesGuard]
+  providers: [AuthService, RolesGuard, BootstrapService]
 })
 export class AppModule {}
