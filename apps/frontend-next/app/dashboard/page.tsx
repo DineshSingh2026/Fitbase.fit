@@ -27,6 +27,10 @@ export default function DashboardPage() {
   const [threads, setThreads] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [forms, setForms] = useState<any[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<string>("");
+  const [threadMessages, setThreadMessages] = useState<any[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiReply, setAiReply] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -72,6 +76,15 @@ export default function DashboardPage() {
       .catch(() => setError("Failed to load dashboard data."));
   }, [session]);
 
+  useEffect(() => {
+    if (!session?.token || !selectedThreadId) return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    fetch(`${APP_SITE_BASE}/api/threads/${encodeURIComponent(selectedThreadId)}/messages`, { headers })
+      .then((r) => r.json())
+      .then((data) => setThreadMessages(Array.isArray(data) ? data : []))
+      .catch(() => setThreadMessages([]));
+  }, [session, selectedThreadId]);
+
   async function sendAi() {
     const text = aiPrompt.trim();
     if (!text || !session?.token) return;
@@ -93,6 +106,26 @@ export default function DashboardPage() {
       setAiReply("Failed to reach AI assistant.");
     } finally {
       setIsAiLoading(false);
+    }
+  }
+
+  async function sendReply() {
+    const text = replyText.trim();
+    if (!text || !session?.token || !selectedThreadId) return;
+    setIsReplying(true);
+    try {
+      await fetch(`${APP_SITE_BASE}/api/threads/${encodeURIComponent(selectedThreadId)}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ body: text })
+      });
+      setReplyText("");
+      const data = await fetch(`${APP_SITE_BASE}/api/threads/${encodeURIComponent(selectedThreadId)}/messages`, {
+        headers: { Authorization: `Bearer ${session.token}` }
+      }).then((r) => r.json()).catch(() => []);
+      setThreadMessages(Array.isArray(data) ? data : []);
+    } finally {
+      setIsReplying(false);
     }
   }
 
@@ -217,6 +250,9 @@ export default function DashboardPage() {
 
         {activeTab === "clients" ? (
           <div style={{ ...cardBase, marginTop: 12 }}>
+            <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+              Total clients: <strong style={{ color: s.gold }}>{clients.length}</strong>
+            </div>
             {clients.length ? (
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
                 {clients.slice(0, 25).map((u: any) => (
@@ -237,6 +273,9 @@ export default function DashboardPage() {
 
         {activeTab === "forms" ? (
           <div style={{ ...cardBase, marginTop: 12 }}>
+            <div style={{ marginBottom: 10, color: s.muted, fontSize: 12 }}>
+              Pending audits/forms: <strong style={{ color: s.gold }}>{forms.length}</strong>
+            </div>
             {forms.length ? (
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
                 {forms.slice(0, 20).map((f: any) => (
@@ -253,19 +292,87 @@ export default function DashboardPage() {
         ) : null}
 
         {activeTab === "messages" ? (
-          <div style={{ ...cardBase, marginTop: 12 }}>
-            {threads.length ? (
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
-                {threads.slice(0, 20).map((t: any) => (
-                  <li key={t.id} style={{ borderBottom: `1px solid ${s.line}`, paddingBottom: 8 }}>
-                    <div style={{ fontWeight: 700 }}>{[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Client"}</div>
-                    <div style={{ color: s.muted, fontSize: 12 }}>{String(t.last_message || "No messages yet").slice(0, 80)}</div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p style={{ margin: 0, color: s.muted }}>No message threads yet.</p>
-            )}
+          <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+            <div style={cardBase}>
+              {threads.length ? (
+                <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                  {threads.slice(0, 20).map((t: any) => {
+                    const id = String(t.id || "");
+                    const active = selectedThreadId === id;
+                    return (
+                      <li
+                        key={id}
+                        onClick={() => setSelectedThreadId(id)}
+                        style={{
+                          border: `1px solid ${active ? s.gold : s.line}`,
+                          borderRadius: 10,
+                          padding: 10,
+                          cursor: "pointer",
+                          background: active ? "rgba(140,106,63,.08)" : "transparent"
+                        }}
+                      >
+                        <div style={{ fontWeight: 700 }}>{[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Client"}</div>
+                        <div style={{ color: s.muted, fontSize: 12 }}>{String(t.last_message || "No messages yet").slice(0, 80)}</div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, color: s.muted }}>No message threads yet.</p>
+              )}
+            </div>
+
+            <div style={cardBase}>
+              {!selectedThreadId ? (
+                <p style={{ margin: 0, color: s.muted }}>Select a thread to view conversation.</p>
+              ) : (
+                <>
+                  <div style={{ maxHeight: 260, overflowY: "auto", display: "grid", gap: 8 }}>
+                    {threadMessages.length ? (
+                      threadMessages.map((m: any) => {
+                        const isAdmin = m.sender_role === "admin";
+                        return (
+                          <div
+                            key={m.id}
+                            style={{
+                              alignSelf: isAdmin ? "end" : "start",
+                              justifySelf: isAdmin ? "end" : "start",
+                              maxWidth: "88%",
+                              background: isAdmin ? "rgba(140,106,63,.14)" : "#fff",
+                              border: `1px solid ${s.line}`,
+                              borderRadius: 10,
+                              padding: 10
+                            }}
+                          >
+                            <div style={{ fontSize: 13 }}>{m.body}</div>
+                            <div style={{ marginTop: 4, color: s.muted, fontSize: 10 }}>
+                              {isAdmin ? "You" : "Client"} - {m.created_at ? new Date(m.created_at).toLocaleString() : ""}
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p style={{ margin: 0, color: s.muted }}>No messages yet.</p>
+                    )}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 10 }}>
+                    <input
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      placeholder="Type your reply..."
+                      style={{ width: "100%", border: `1px solid ${s.line}`, borderRadius: 10, padding: "10px 12px", font: "inherit" }}
+                    />
+                    <button
+                      onClick={sendReply}
+                      disabled={isReplying}
+                      style={{ border: "none", background: `linear-gradient(135deg,#9b7648,#7e5f37)`, color: "#fff", borderRadius: 10, padding: "10px 12px", fontWeight: 700 }}
+                    >
+                      {isReplying ? "..." : "Send"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         ) : null}
 
