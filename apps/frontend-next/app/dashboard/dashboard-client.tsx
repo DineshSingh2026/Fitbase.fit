@@ -28,6 +28,36 @@ function getSession(): Session | null {
   }
 }
 
+type FetchFitbaseJsonResult = { ok: boolean; data: any; error?: string };
+
+async function fetchFitbaseJson(
+  baseUrl: string,
+  path: string,
+  headers: HeadersInit,
+  label: string
+): Promise<FetchFitbaseJsonResult> {
+  try {
+    const r = await fetch(`${baseUrl}${path}`, { headers });
+    const text = await r.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      return { ok: false, data: null, error: `${label}: response is not valid JSON` };
+    }
+    if (!r.ok) {
+      const fromBody =
+        data && typeof data === "object" ? String((data as { message?: string; error?: string }).message || (data as { error?: string }).error || "") : "";
+      const detail = fromBody || text.slice(0, 200) || r.statusText;
+      return { ok: false, data, error: `${label}: HTTP ${r.status} — ${detail}` };
+    }
+    return { ok: true, data };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Network error";
+    return { ok: false, data: null, error: `${label}: ${msg}` };
+  }
+}
+
 export default function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
   const role = String(session?.user?.role || "")
@@ -82,6 +112,11 @@ export default function DashboardPage() {
   const [superadminSnapshot, setSuperadminSnapshot] = useState<any | null>(null);
   const [superadminTrainers, setSuperadminTrainers] = useState<any[]>([]);
   const [superadminQueueBusy, setSuperadminQueueBusy] = useState("");
+  const [superadminSync, setSuperadminSync] = useState<{
+    loading: boolean;
+    lastLoadedLabel: string | null;
+    issues: string[];
+  }>({ loading: false, lastLoadedLabel: null, issues: [] });
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
   const [staffOverlay, setStaffOverlay] = useState<StaffOverlay>(null);
@@ -213,6 +248,111 @@ export default function DashboardPage() {
     return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${m.time_slot || ""}`.trim();
   }, [userToday]);
 
+  const loadSuperadminDashboard = useCallback(async () => {
+    const token = session?.token;
+    if (!token || role !== "superadmin") return;
+
+    const headers = { Authorization: `Bearer ${token}` };
+    const issues: string[] = [];
+
+    setSuperadminSync((s) => ({ ...s, loading: true }));
+
+    try {
+      const [dash, reqsRes, clientRes, overviewRes, trainersRes, threadRes, sunRes, p2Res] = await Promise.all([
+        fetchFitbaseJson(apiBase, "/api/superadmin/dashboard", headers, "Platform overview"),
+        fetchFitbaseJson(apiBase, "/api/superadmin/trainer-requests?status=all", headers, "Trainer applications"),
+        fetchFitbaseJson(apiBase, "/api/superadmin/client-requests?status=all", headers, "Client coaching requests"),
+        fetchFitbaseJson(apiBase, "/api/superadmin/trainer-client-overview", headers, "Roster overview"),
+        fetchFitbaseJson(apiBase, "/api/superadmin/trainers", headers, "Trainers list"),
+        fetchFitbaseJson(apiBase, "/api/threads", headers, "Message threads"),
+        fetchFitbaseJson(apiBase, "/api/admin/sunday-checkins", headers, "Sunday check-ins"),
+        fetchFitbaseJson(apiBase, "/api/admin/part2-submissions", headers, "Part 2 submissions")
+      ]);
+
+      const listFrom = (res: FetchFitbaseJsonResult, label: string): any[] => {
+        if (!res.ok) {
+          if (res.error) issues.push(res.error);
+          return [];
+        }
+        if (!Array.isArray(res.data)) {
+          issues.push(`${label}: expected a JSON array`);
+          return [];
+        }
+        return res.data;
+      };
+
+      if (!dash.ok) {
+        if (dash.error) issues.push(dash.error);
+        setSuperadminSnapshot(null);
+      } else if (dash.data && typeof dash.data === "object" && dash.data.error) {
+        issues.push(`Platform overview: ${dash.data.error}`);
+        setSuperadminSnapshot(null);
+      } else if (dash.data && typeof dash.data === "object") {
+        const s = dash.data;
+        setSuperadminSnapshot(s);
+        const statObj = s?.stats || {};
+        setStats({
+          active_members: Number(statObj.approved_users || 0),
+          daily_checkins: Number(statObj.daily_checkins || 0),
+          pending_signups: Number(statObj.pending_signups || 0),
+          messages: Number(statObj.messages || 0)
+        });
+        setForms(Array.isArray(s?.audit) ? s.audit : []);
+        setActivity(Array.isArray(s?.meetings) ? s.meetings.slice(0, 8) : []);
+        setClients(Array.isArray(s?.users) ? s.users : []);
+        setDailyCheckins(Array.isArray(s?.daily_checkins) ? s.daily_checkins : []);
+        setWorkouts(Array.isArray(s?.workouts) ? s.workouts : []);
+        setPendingUsers(
+          Array.isArray(s?.users) ? s.users.filter((u: any) => String(u.approval_status || "").toLowerCase() === "pending") : []
+        );
+      } else {
+        issues.push("Platform overview: empty response");
+        setSuperadminSnapshot(null);
+      }
+
+      setTrainerRequests(listFrom(reqsRes, "Trainer applications"));
+      setClientLeadRequests(listFrom(clientRes, "Client coaching requests"));
+      setTrainerClientOverview(listFrom(overviewRes, "Roster overview"));
+      setSuperadminTrainers(listFrom(trainersRes, "Trainers list"));
+      setThreads(listFrom(threadRes, "Message threads"));
+      setSundayCheckinsApi(listFrom(sunRes, "Sunday check-ins"));
+      setPart2Submissions(listFrom(p2Res, "Part 2 submissions"));
+
+      const nowLabel = new Date().toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+
+      setSuperadminSync({
+        loading: false,
+        lastLoadedLabel: nowLabel,
+        issues
+      });
+
+      if (issues.length) {
+        setError(
+          issues.slice(0, 3).join(" · ") + (issues.length > 3 ? ` (+${issues.length - 3} more — see status panel)` : "")
+        );
+      } else {
+        setError("");
+      }
+    } catch (e: unknown) {
+      const crash = e instanceof Error ? e.message : "Unknown error";
+      const nowLabel = new Date().toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      setSuperadminSync({
+        loading: false,
+        lastLoadedLabel: nowLabel,
+        issues: [`Unexpected error while loading: ${crash}`]
+      });
+      setError(`Unexpected error while loading: ${crash}`);
+    }
+  }, [apiBase, role, session?.token]);
+
   const refreshUserTodayAndStreak = useCallback(() => {
     if (!session?.token || role !== "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
@@ -223,7 +363,7 @@ export default function DashboardPage() {
       if (todayData && !todayData.error) setUserToday(todayData);
       if (streakData && !streakData.error) setUserStreak(streakData);
     });
-  }, [session?.token, role]);
+  }, [session?.token, role, apiBase]);
 
   useEffect(() => {
     if (!timerRunning) {
@@ -300,47 +440,15 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!session?.token) return;
-    const headers = { Authorization: `Bearer ${session.token}` };
-    if (role === "superadmin") {
-      Promise.all([
-        fetch(`${apiBase}/api/superadmin/dashboard`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${apiBase}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
-      ])
-        .then(([s, reqs, clientReqs, overview, trainersList, t, sun, p2]) => {
-          if (s?.error) setError(s.error);
-          setSuperadminSnapshot(s && !s.error ? s : null);
-          const statObj = s?.stats || {};
-          setStats({
-            active_members: Number(statObj.approved_users || 0),
-            daily_checkins: Number(statObj.daily_checkins || 0),
-            pending_signups: Number(statObj.pending_signups || 0),
-            messages: Number(statObj.messages || 0)
-          });
-          setForms(Array.isArray(s?.audit) ? s.audit : []);
-          setTrainerRequests(Array.isArray(reqs) ? reqs : []);
-          setClientLeadRequests(Array.isArray(clientReqs) ? clientReqs : []);
-          setTrainerClientOverview(Array.isArray(overview) ? overview : []);
-          setSuperadminTrainers(Array.isArray(trainersList) ? trainersList : []);
-          setThreads(Array.isArray(t) ? t : []);
-          setActivity(Array.isArray(s?.meetings) ? s.meetings.slice(0, 8) : []);
-          setClients(Array.isArray(s?.users) ? s.users : []);
-          setDailyCheckins(Array.isArray(s?.daily_checkins) ? s.daily_checkins : []);
-          setWorkouts(Array.isArray(s?.workouts) ? s.workouts : []);
-          setPendingUsers(Array.isArray(s?.users) ? s.users.filter((u: any) => String(u.approval_status || "").toLowerCase() === "pending") : []);
-          setSundayCheckinsApi(Array.isArray(sun) ? sun : []);
-          setPart2Submissions(Array.isArray(p2) ? p2 : []);
-        })
-        .catch(() => setError("Failed to load dashboard data."));
-      return;
-    }
+    if (!session?.token || role !== "superadmin") return;
+    void loadSuperadminDashboard();
+  }, [session?.token, role, apiBase, loadSuperadminDashboard]);
 
+  useEffect(() => {
+    if (!session?.token) return;
+    if (role === "superadmin") return;
+
+    const headers = { Authorization: `Bearer ${session.token}` };
     if (role === "user") {
       const userId = String(session?.user?.id || "");
       Promise.all([
@@ -397,7 +505,7 @@ export default function DashboardPage() {
         setPart2Submissions(Array.isArray(p2) ? p2 : []);
       })
       .catch(() => setError("Failed to load dashboard data."));
-  }, [session, role]);
+  }, [session?.token, role, apiBase]);
 
   useEffect(() => {
     if (!session?.token || role !== "admin") {
@@ -851,6 +959,10 @@ export default function DashboardPage() {
   }
 
   async function refreshSuperadminQueues() {
+    if (role === "superadmin") {
+      await loadSuperadminDashboard();
+      return;
+    }
     if (!session?.token) return;
     const headers = { Authorization: `Bearer ${session.token}` };
     const [reqs, clientReqs, overview, trainersList] = await Promise.all([
@@ -1336,7 +1448,15 @@ export default function DashboardPage() {
             🔔
             <span className="bb-header-badge">99+</span>
           </button>
-          <button className="bb-header-btn" aria-label="Refresh" onClick={() => window.location.reload()}>
+          <button
+            className="bb-header-btn"
+            aria-label="Refresh"
+            disabled={role === "superadmin" && superadminSync.loading}
+            onClick={() => {
+              if (role === "superadmin") void loadSuperadminDashboard();
+              else window.location.reload();
+            }}
+          >
             ↻
           </button>
           <button
@@ -1704,6 +1824,74 @@ export default function DashboardPage() {
                     <span className="bb-admin-summary-lbl">MESSAGES</span>
                     <span className="bb-admin-summary-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
                   </button>
+                </div>
+                <div
+                  className="bb-panel"
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 16,
+                    padding: 14,
+                    border: `1px solid ${superadminSync.issues.length ? "var(--red)" : "var(--border)"}`,
+                    background: "var(--bg-card)"
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      alignItems: "flex-start",
+                      justifyContent: "space-between",
+                      gap: 12
+                    }}
+                  >
+                    <div>
+                      <p className="bb-inline-label" style={{ marginTop: 0 }}>
+                        API &amp; data sync
+                      </p>
+                      <p className="bb-list-row-sub" style={{ marginTop: 4, wordBreak: "break-word" }}>
+                        Using <strong>{apiBase}</strong>
+                      </p>
+                      {superadminSync.lastLoadedLabel ? (
+                        <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
+                          Last loaded: {superadminSync.lastLoadedLabel}
+                          {superadminSync.loading ? " · refreshing…" : ""}
+                        </p>
+                      ) : superadminSync.loading ? (
+                        <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
+                          Loading platform data…
+                        </p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={superadminSync.loading}
+                      onClick={() => void loadSuperadminDashboard()}
+                      style={{
+                        border: "1px solid var(--accent)",
+                        background: "transparent",
+                        color: "var(--accent)",
+                        borderRadius: 8,
+                        padding: "8px 14px",
+                        fontWeight: 700,
+                        cursor: superadminSync.loading ? "wait" : "pointer",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {superadminSync.loading ? "Loading…" : "Reload all data"}
+                    </button>
+                  </div>
+                  {!superadminSync.issues.length ? (
+                    <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--green)" }}>
+                      All super admin endpoints responded OK. If trainer or client application counts stay at zero, the public
+                      forms must be submitted on this same site URL (check the address bar).
+                    </p>
+                  ) : (
+                    <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 13, lineHeight: 1.55 }}>
+                      {superadminSync.issues.map((msg, i) => (
+                        <li key={i}>{msg}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                     <h3 className="bb-admin-qa-title" style={{ marginTop: 4 }}>
                       TRAINER ACCESS REQUESTS ·{" "}
