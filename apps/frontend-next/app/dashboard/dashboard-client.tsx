@@ -262,16 +262,18 @@ export default function DashboardPage() {
     setSuperadminSync((s) => ({ ...s, loading: true }));
 
     try {
-      const [dash, reqsRes, clientRes, overviewRes, trainersRes, threadRes, sunRes, p2Res] = await Promise.all([
-        fetchFitbaseJson(apiBase, "/api/superadmin/dashboard", headers, "Platform overview"),
-        fetchFitbaseJson(apiBase, "/api/superadmin/trainer-requests?status=all", headers, "Trainer applications"),
-        fetchFitbaseJson(apiBase, "/api/superadmin/client-requests?status=all", headers, "Client coaching requests"),
-        fetchFitbaseJson(apiBase, "/api/superadmin/trainer-client-overview", headers, "Roster overview"),
-        fetchFitbaseJson(apiBase, "/api/superadmin/trainers", headers, "Trainers list"),
-        fetchFitbaseJson(apiBase, "/api/threads", headers, "Message threads"),
-        fetchFitbaseJson(apiBase, "/api/admin/sunday-checkins", headers, "Sunday check-ins"),
-        fetchFitbaseJson(apiBase, "/api/admin/part2-submissions", headers, "Part 2 submissions")
-      ]);
+      const [dash, reqsRes, clientRes, overviewRes, trainersRes, threadRes, sunRes, p2Res, recentActRes] =
+        await Promise.all([
+          fetchFitbaseJson(apiBase, "/api/superadmin/dashboard", headers, "Platform overview"),
+          fetchFitbaseJson(apiBase, "/api/superadmin/trainer-requests?status=all", headers, "Trainer applications"),
+          fetchFitbaseJson(apiBase, "/api/superadmin/client-requests?status=all", headers, "Client coaching requests"),
+          fetchFitbaseJson(apiBase, "/api/superadmin/trainer-client-overview", headers, "Roster overview"),
+          fetchFitbaseJson(apiBase, "/api/superadmin/trainers", headers, "Trainers list"),
+          fetchFitbaseJson(apiBase, "/api/threads", headers, "Message threads"),
+          fetchFitbaseJson(apiBase, "/api/admin/sunday-checkins", headers, "Sunday check-ins"),
+          fetchFitbaseJson(apiBase, "/api/admin/part2-submissions", headers, "Part 2 submissions"),
+          fetchFitbaseJson(apiBase, "/api/admin/recent-activity", headers, "Recent activity")
+        ]);
 
       const listFrom = (res: FetchFitbaseJsonResult, label: string): any[] => {
         if (!res.ok) {
@@ -302,7 +304,15 @@ export default function DashboardPage() {
           messages: Number(statObj.messages || 0)
         });
         setForms(Array.isArray(s?.audit) ? s.audit : []);
-        setActivity(Array.isArray(s?.meetings) ? s.meetings.slice(0, 8) : []);
+        const fromRecent =
+          recentActRes.ok && Array.isArray(recentActRes.data) ? (recentActRes.data as any[]) : [];
+        const fromMeetings = (Array.isArray(s?.meetings) ? s.meetings : []).map((m: any) => ({
+          name: m.user_name || m.user_email || "Client",
+          type: "Meeting scheduled",
+          status: "LIVE",
+          created_at: m.created_at || m.meeting_date
+        }));
+        setActivity(fromRecent.length ? fromRecent.slice(0, 24) : fromMeetings.slice(0, 12));
         setClients(Array.isArray(s?.users) ? s.users : []);
         setDailyCheckins(Array.isArray(s?.daily_checkins) ? s.daily_checkins : []);
         setWorkouts(Array.isArray(s?.workouts) ? s.workouts : []);
@@ -312,6 +322,19 @@ export default function DashboardPage() {
       } else {
         issues.push("Platform overview: empty response");
         setSuperadminSnapshot(null);
+      }
+
+      const dashOk =
+        dash.ok &&
+        dash.data &&
+        typeof dash.data === "object" &&
+        !(dash.data as { error?: string }).error;
+      if (!dashOk) {
+        if (recentActRes.ok && Array.isArray(recentActRes.data) && recentActRes.data.length > 0) {
+          setActivity((recentActRes.data as any[]).slice(0, 24));
+        } else {
+          setActivity([]);
+        }
       }
 
       setTrainerRequests(listFrom(reqsRes, "Trainer applications"));

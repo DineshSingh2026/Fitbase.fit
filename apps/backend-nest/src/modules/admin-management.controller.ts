@@ -548,35 +548,61 @@ export class AdminManagementController {
   async recentActivity(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json([]);
     try {
-      const limit = 10;
+      const perSource = 12;
+      const maxOut = 24;
       const activities: Array<{ name: string; type: string; status: string; created_at: string }> = [];
-      const trainerId = isAdmin(req.user) ? req.user.id : null;
+      const trainerId = isAdmin(req.user) ? String(req.user.id || "") : null;
+      const scopeSql = `($1::text IS NULL OR u.trainer_id::text = $2::text)`;
+      const pendingScope = `($1::text IS NULL OR trainer_id::text = $2::text)`;
+      const params = [trainerId, trainerId, perSource];
 
-      const sc = await this.pool.query(
+      const safeQ = async (sql: string): Promise<any[]> => {
+        try {
+          const r = await this.pool!.query(sql, params);
+          return r.rows || [];
+        } catch (err: any) {
+          if (err?.code === "42P01" || err?.code === "42703") return [];
+          console.warn("[recent-activity] source skipped:", err?.message || err);
+          return [];
+        }
+      };
+
+      (await safeQ(
         `SELECT s.full_name, s.created_at
          FROM sunday_checkins s
          LEFT JOIN users u ON u.id::text = s.user_id::text
-         WHERE ($1::text IS NULL OR u.trainer_id = $2)
-         ORDER BY s.created_at DESC LIMIT $3`,
-        [trainerId, trainerId, limit]
-      );
-      sc.rows.forEach((r: any) =>
+         WHERE ${scopeSql}
+         ORDER BY s.created_at DESC LIMIT $3`
+      )).forEach((r: any) =>
         activities.push({
           name: r.full_name || "Unknown",
-          type: "Check-in",
+          type: "Sunday check-in",
           status: "NEW",
           created_at: r.created_at
         })
       );
 
-      const wl = await this.pool.query(
+      (await safeQ(
+        `SELECT u.first_name, u.last_name, dc.checkin_date, dc.created_at
+         FROM daily_checkins dc
+         LEFT JOIN users u ON u.id::text = dc.user_id::text
+         WHERE ${scopeSql}
+         ORDER BY dc.created_at DESC LIMIT $3`
+      )).forEach((r: any) =>
+        activities.push({
+          name: `${r.first_name || ""} ${r.last_name || ""}`.trim() || "Member",
+          type: "Daily check-in",
+          status: "DONE",
+          created_at: r.created_at
+        })
+      );
+
+      (await safeQ(
         `SELECT u.first_name, u.last_name, w.created_at
          FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text
-         WHERE ($1::text IS NULL OR u.trainer_id = $2)
-         ORDER BY w.created_at DESC LIMIT $3`,
-        [trainerId, trainerId, limit]
-      );
-      wl.rows.forEach((r: any) =>
+         WHERE ${scopeSql}
+         ORDER BY w.created_at DESC LIMIT $3`
+      )).forEach((r: any) =>
         activities.push({
           name: `${r.first_name || ""} ${r.last_name || ""}`.trim() || "User",
           type: "Workout logged",
@@ -585,15 +611,13 @@ export class AdminManagementController {
         })
       );
 
-      const cm = await this.pool.query(
+      (await safeQ(
         `SELECT c.name, c.created_at
          FROM contact_messages c
          LEFT JOIN users u ON u.id::text = c.user_id::text
-         WHERE ($1::text IS NULL OR u.trainer_id = $2)
-         ORDER BY c.created_at DESC LIMIT $3`,
-        [trainerId, trainerId, limit]
-      );
-      cm.rows.forEach((r: any) =>
+         WHERE ${scopeSql}
+         ORDER BY c.created_at DESC LIMIT $3`
+      )).forEach((r: any) =>
         activities.push({
           name: r.name || "Unknown",
           type: "Message",
@@ -602,14 +626,12 @@ export class AdminManagementController {
         })
       );
 
-      const ps = await this.pool.query(
+      (await safeQ(
         `SELECT first_name, last_name, created_at
          FROM users
-         WHERE role='user' AND approval_status='pending' AND ($1::text IS NULL OR trainer_id = $2)
-         ORDER BY created_at DESC LIMIT $3`,
-        [trainerId, trainerId, limit]
-      );
-      ps.rows.forEach((r: any) =>
+         WHERE role='user' AND approval_status='pending' AND ${pendingScope}
+         ORDER BY created_at DESC LIMIT $3`
+      )).forEach((r: any) =>
         activities.push({
           name: `${r.first_name || ""} ${r.last_name || ""}`.trim() || "New user",
           type: "Sign-up",
@@ -621,8 +643,9 @@ export class AdminManagementController {
       activities.sort(
         (a, b) => new Date(String(b.created_at || 0)).getTime() - new Date(String(a.created_at || 0)).getTime()
       );
-      return res.json(activities.slice(0, limit));
-    } catch {
+      return res.json(activities.slice(0, maxOut));
+    } catch (e: any) {
+      console.error("[admin recent-activity]", e?.message || e);
       return res.json([]);
     }
   }
