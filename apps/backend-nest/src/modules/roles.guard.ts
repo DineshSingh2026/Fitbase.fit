@@ -5,6 +5,7 @@ import {
   Injectable
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import { normalizeRoleString } from "./auth-role.util";
 import { ROLES_KEY } from "./roles.decorator";
 import { UserRole } from "./auth.types";
 
@@ -20,7 +21,8 @@ export class RolesGuard implements CanActivate {
     if (!required || required.length === 0) return true;
     const req = context.switchToHttp().getRequest();
     const user = req.user as { role?: string } | undefined;
-    if (!user?.role || !required.includes(user.role as UserRole)) {
+    const userRole = normalizeRoleString(user?.role);
+    if (!userRole || !required.includes(userRole as UserRole)) {
       throw new ForbiddenException("Insufficient role");
     }
     return true;

@@ -13,6 +13,7 @@ import { randomUUID } from "crypto";
 import { Pool } from "pg";
 import * as bcrypt from "bcryptjs";
 import { AuthService } from "./auth.service";
+import { toUserRole } from "./auth-role.util";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import type { Response } from "express";
 
@@ -183,7 +184,8 @@ export class AuthController {
         });
       }
 
-      const staffRole = user.role === "superadmin" || user.role === "admin";
+      const initialRole = toUserRole(user.role);
+      const staffRole = initialRole === "superadmin" || initialRole === "admin";
       if (!staffRole) {
         const status = user.approval_status || "approved";
         if (status === "rejected") {
@@ -213,10 +215,20 @@ export class AuthController {
         }
       }
 
+      const resolvedRole = toUserRole(user.role);
+      const rawRoleTrim = String(user.role || "").trim();
+      if (
+        (resolvedRole === "superadmin" || resolvedRole === "admin") &&
+        rawRoleTrim.toLowerCase() === resolvedRole &&
+        rawRoleTrim !== resolvedRole
+      ) {
+        await this.pool.query(`UPDATE users SET role = $1 WHERE id = $2`, [resolvedRole, user.id]);
+      }
+
       const token = this.authService.sign({
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: resolvedRole,
         trainer_id: user.trainer_id || null
       });
 
@@ -226,7 +238,7 @@ export class AuthController {
         first_name: user.first_name || "",
         last_name: user.last_name || "",
         profile_picture: user.profile_picture || "",
-        role: user.role,
+        role: resolvedRole,
         country: user.country || "",
         timezone: user.timezone || "",
         trainer_id: user.trainer_id || null,

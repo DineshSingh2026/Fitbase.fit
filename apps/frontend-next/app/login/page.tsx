@@ -18,7 +18,7 @@ export default function LoginPage() {
       const r = await fetch(`${API_SITE_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password })
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data?.error || !data?.token) {

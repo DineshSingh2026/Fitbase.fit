@@ -1,10 +1,20 @@
-﻿const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fitbase-progress-secret-change-in-production';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
+function normalizeUserRole(role) {
+  const r = String(role == null ? '' : role).trim().toLowerCase();
+  if (r === 'superadmin' || r === 'admin' || r === 'user') return r;
+  return 'user';
+}
+
 function signToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+  const out = { ...payload };
+  if (Object.prototype.hasOwnProperty.call(out, 'role')) {
+    out.role = normalizeUserRole(out.role);
+  }
+  return jwt.sign(out, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
 function verifyToken(req, res, next) {
@@ -15,7 +25,10 @@ function verifyToken(req, res, next) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    req.user =
+      typeof decoded === 'object' && decoded != null
+        ? { ...decoded, role: normalizeUserRole(decoded.role) }
+        : decoded;
     next();
   } catch (e) {
     return res.status(401).json({ error: 'Invalid or expired token' });
@@ -23,17 +36,18 @@ function verifyToken(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (req.user && req.user.role === 'admin') return next();
+  if (req.user && normalizeUserRole(req.user.role) === 'admin') return next();
   return res.status(403).json({ error: 'Admin access required' });
 }
 
 function requireSuperadmin(req, res, next) {
-  if (req.user && req.user.role === 'superadmin') return next();
+  if (req.user && normalizeUserRole(req.user.role) === 'superadmin') return next();
   return res.status(403).json({ error: 'Superadmin access required' });
 }
 
 function requireAdminOrSuperadmin(req, res, next) {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) return next();
+  const r = req.user ? normalizeUserRole(req.user.role) : '';
+  if (r === 'admin' || r === 'superadmin') return next();
   return res.status(403).json({ error: 'Admin or Superadmin access required' });
 }
 
@@ -100,4 +114,18 @@ function verifyPdfAccessToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, JWT_SECRET };
+module.exports = {
+  signToken,
+  verifyToken,
+  requireAdmin,
+  requireSuperadmin,
+  requireAdminOrSuperadmin,
+  normalizeUserRole,
+  signProgressReportToken,
+  verifyProgressReportToken,
+  signShareToken,
+  verifyShareToken,
+  signPdfAccessToken,
+  verifyPdfAccessToken,
+  JWT_SECRET
+};

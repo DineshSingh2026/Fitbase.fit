@@ -5,6 +5,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
+import { toUserRole } from "./auth-role.util";
 import { JwtPayload } from "./auth.types";
 
 @Injectable()
@@ -21,7 +22,10 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) throw new UnauthorizedException("Missing bearer token");
     try {
       const payload = this.authService.verify(token) as JwtPayload;
-      req.user = payload;
+      req.user = {
+        ...payload,
+        role: toUserRole(payload.role)
+      };
       return true;
     } catch {
       throw new UnauthorizedException("Invalid token");

@@ -7,7 +7,7 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const webPush = require('web-push');
-const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, normalizeUserRole, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -930,8 +930,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
 
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
-    const token = signToken({ id: user.id, email: user.email, role: user.role, trainer_id: user.trainer_id || null });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
+    const roleResolved = normalizeUserRole(user.role);
+    const token = signToken({ id: user.id, email: user.email, role: roleResolved, trainer_id: user.trainer_id || null });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: roleResolved, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -974,8 +975,9 @@ app.post('/api/auth/google', async (req, res) => {
     }
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
-    const token = signToken({ id: user.id, email: user.email, role: user.role, trainer_id: user.trainer_id || null });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
+    const roleResolvedGoogle = normalizeUserRole(user.role);
+    const token = signToken({ id: user.id, email: user.email, role: roleResolvedGoogle, trainer_id: user.trainer_id || null });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: roleResolvedGoogle, country: user.country || '', timezone: user.timezone || '', trainer_id: user.trainer_id || null, token });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });

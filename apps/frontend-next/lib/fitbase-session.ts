@@ -23,8 +23,10 @@ export type FitbaseSession = {
 function pickUserFields(src: Record<string, unknown>): FitbaseSessionUser {
   return {
     id: String(src.id ?? ""),
-    email: String(src.email ?? ""),
-    role: String(src.role ?? ""),
+    email: String(src.email ?? "").trim().toLowerCase(),
+    role: String(src.role ?? "")
+      .trim()
+      .toLowerCase(),
     first_name: String(src.first_name ?? ""),
     last_name: String(src.last_name ?? ""),
     profile_picture: String(src.profile_picture ?? ""),
