@@ -2976,7 +2976,7 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
       <div class="user-welcome">
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-        <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
+        <h1><span class="welcome-label">Welcome back</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Tribe Elite Member</p>
 
         <!-- Today dashboard -->
@@ -3459,7 +3459,7 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
       <!-- DESKTOP ADMIN DASHBOARD (hidden on mobile via inline style; enabled by desktop CSS) -->
       <div class="bb-desktop-dashboard" style="display:none">
         <div class="admin-topbar">
-          <h1>Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h1>
+          <h1>Welcome back <span class="admin-welcome-role">Trainer</span></h1>
           <div class="topbar-right">
             <input type="search" placeholder="Search..." aria-label="Search">
             <button type="button" id="adminAiAssistTopBtn" class="bb-top-ai-btn admin-ai-assist-top-btn" onclick="toggleAdminAiAssistPanel();return false" aria-label="Open AI Assist" title="AI Assist">
@@ -3568,7 +3568,7 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
       </div>
       <div class="admin-dash-page">
         <div class="admin-welcome-card">
-          <h2 class="admin-welcome-title">Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h2>
+          <h2 class="admin-welcome-title">Welcome back <span class="admin-welcome-role">Trainer</span></h2>
           <p class="admin-welcome-date" id="adminWelcomeDate">Monday · 9 March 2026</p>
         </div>
         <div class="admin-summary-cards">
@@ -5211,14 +5211,24 @@ function getTrainerDisplayName(user) {
   return "Trainer";
 }
 
+function getClientDisplayName(user) {
+  if (!user) return "Member";
+  var full = [user.first_name || "", user.last_name || ""].join(" ").trim();
+  if (full) return full;
+  var email = String(user.email || "").trim();
+  if (email && email.indexOf("@") > 0) return email.split("@")[0];
+  return "Member";
+}
+
 function applyTrainerIdentityToDashboard(user) {
-  var trainerName = getTrainerDisplayName(user);
+  var role = String(user && user.role || "").trim().toLowerCase();
+  var welcomeText = role === "superadmin" ? "super admin" : getTrainerDisplayName(user);
   var roleEls = document.querySelectorAll(".admin-welcome-role");
   roleEls.forEach(function(el) {
-    el.textContent = '"' + trainerName + '"';
+    el.textContent = welcomeText;
   });
   var topUser = document.querySelector("#adminPanel .bb-top-user");
-  if (topUser) topUser.textContent = trainerName;
+  if (topUser) topUser.textContent = role === "superadmin" ? "Super admin" : getTrainerDisplayName(user);
 }
 
 async function loadDashboard() {
@@ -7109,7 +7119,7 @@ function openUserDashboard(user) {
   if (superadminPanel) superadminPanel.classList.remove('open');
   if (waFloat) waFloat.style.display = 'none';
   document.body.classList.remove('admin-dashboard-open');
-  document.getElementById('userWelcomeName').textContent = user.first_name || 'User';
+  document.getElementById('userWelcomeName').textContent = getClientDisplayName(user);
   setUserWelcomeAvatar(user.profile_picture || '');
   document.getElementById('userPanel').classList.add('open');
   document.body.classList.add('site-nav-hidden','user-dashboard-open');
@@ -8377,7 +8387,7 @@ async function saveProfile() {
     setUserWelcomeAvatar(body.profile_picture);
   }
   persistCurrentSession();
-  document.getElementById('userWelcomeName').textContent = body.first_name || 'User';
+  document.getElementById('userWelcomeName').textContent = getClientDisplayName(window.currentUser);
   if (successEl) { successEl.style.display = 'block'; successEl.style.textAlign = 'center'; }
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.add('has-success'); });
   showPopup('Profile Updated', 'Your information has been saved.', '', 'OK');

@@ -184,12 +184,16 @@ export default function DashboardPage() {
 
   const displayName = useMemo(() => {
     const u = session?.user;
-    if (!u) return "Trainer";
+    if (!u) {
+      if (role === "user") return "Member";
+      return "Trainer";
+    }
     const name = [u.first_name || "", u.last_name || ""].join(" ").trim();
     if (name) return name;
     const email = String(u.email || "");
-    return email ? email.split("@")[0] : "Trainer";
-  }, [session]);
+    if (email) return email.split("@")[0];
+    return role === "user" ? "Member" : "Trainer";
+  }, [session, role]);
 
   const isStaff = role !== "user";
 
@@ -1494,7 +1498,15 @@ export default function DashboardPage() {
         {activeTab !== "home" && !hideTrainerHubWelcome ? (
           <div className="bb-admin-welcome-card" style={{ marginBottom: 14 }}>
             <h2 className="bb-admin-welcome-title" style={{ marginBottom: 4 }}>
-              Welcome back <span className="bb-admin-welcome-role">&ldquo;{displayName}&rdquo;</span>
+              {role === "superadmin" ? (
+                <>
+                  Welcome back <span className="bb-admin-welcome-role">super admin</span>
+                </>
+              ) : (
+                <>
+                  Welcome back <span className="bb-admin-welcome-role">{displayName}</span>
+                </>
+              )}
             </h2>
             <p className="bb-admin-welcome-date" suppressHydrationWarning>
               {todayLabel || "\u00a0"}
@@ -1516,7 +1528,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <h1>
-                    <span className="welcome-label">Welcome</span>
+                    <span className="welcome-label">Welcome back</span>
                     <span className="welcome-name">{displayName}</span>
                   </h1>
                   <p className="user-welcome-tag">Tribe Elite Member</p>
@@ -1756,7 +1768,7 @@ export default function DashboardPage() {
               <>
                 <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
                   <h2 className="bb-admin-welcome-title">
-                    Super admin · <span className="bb-admin-welcome-role">&ldquo;{displayName}&rdquo;</span>
+                    Welcome back <span className="bb-admin-welcome-role">super admin</span>
                   </h2>
                   <p className="bb-admin-welcome-date">Platform overview — trainers, clients, and requests</p>
                   <p className="bb-admin-welcome-date" suppressHydrationWarning>
@@ -2260,7 +2272,7 @@ export default function DashboardPage() {
               <>
                 <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
                   <h2 className="bb-admin-welcome-title">
-                    Welcome back <span className="bb-admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span>
+                    Welcome back <span className="bb-admin-welcome-role">{displayName}</span>
                   </h2>
                   <p className="bb-admin-welcome-date" suppressHydrationWarning>
                     {todayLabel || "\u00a0"}
