@@ -826,7 +826,11 @@ export default function DashboardPage() {
       setWkFeedback("");
       setTimerSeconds(0);
       setTimerRunning(false);
-      const rows = await fetch(`${apiBase}/api/workouts/${encodeURIComponent(String(uid))}`).then((x) => x.json()).catch(() => []);
+      const rows = await fetch(`${apiBase}/api/workouts/${encodeURIComponent(String(uid))}`, {
+        headers: { Authorization: `Bearer ${session.token}` }
+      })
+        .then((x) => x.json())
+        .catch(() => []);
       setWorkouts(Array.isArray(rows) ? rows : []);
       refreshUserTodayAndStreak();
     } catch (e2: any) {
