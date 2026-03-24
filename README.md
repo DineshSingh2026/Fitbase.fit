@@ -50,6 +50,30 @@ If login fails with "Invalid email or password", ensure you're using the correct
 ### End-to-end tests
 With the server running (`npm run dev`), run: `npm test`. This exercises sign up → admin approval → login → profile, workouts, contact, meetings, sunday check-in, public audit/part2 forms, admin dashboard and DB.
 
+### Monorepo: Next.js + Nest (FitBase web + API in this repo)
+
+All source for the **modern stack** lives under `apps/` (tracked in git — no separate download):
+
+| Path | Role |
+|------|------|
+| `apps/backend-nest/` | NestJS API (`/api/*`), default **port 3200** |
+| `apps/frontend-next/` | Next.js site: landing, **`/login`**, **`/dashboard`**, **`/join/[code]`** |
+
+**1. Backend env** — copy [`apps/backend-nest/env.example`](apps/backend-nest/env.example) to `apps/backend-nest/.env` (or use root `.env` if you load it before Nest). Required: **`DATABASE_URL`**, **`JWT_SECRET`**, **`SUPERADMIN_EMAIL`**, **`SUPERADMIN_PASS`**.
+
+**2. Frontend env** — copy [`apps/frontend-next/env.local.example`](apps/frontend-next/env.local.example) to `apps/frontend-next/.env.local`. Set **`BACKEND_URL`** to your Nest URL (e.g. `http://127.0.0.1:3200`) and **`NEXT_PUBLIC_APP_SITE_URL`** to the Next origin (e.g. `http://127.0.0.1:3102`) so browser calls use the same host and Next can rewrite `/api/*` to Nest.
+
+**3. Run both from repo root:**
+```bash
+npm install
+npm --prefix apps/backend-nest install
+npm --prefix apps/frontend-next install
+npm run dev:nest-next
+```
+Then open the Next URL from `.env.local` (e.g. **http://127.0.0.1:3102**), **Login** as superadmin, and use **Dashboard** for trainer/client requests and roster.
+
+The legacy **`server.js`** app (`npm start`) remains for single-process deploys; Nest mirrors key public routes (e.g. client join) so the Next app can target **either** backend if URLs are set correctly.
+
 ---
 
 ## Deploy to Render (FREE — Recommended)

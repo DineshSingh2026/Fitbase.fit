@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { API_SITE_BASE } from "../lib/site-url";
 
 type FaqItem = { q: string; a: string };
 type Plan = { name: string; price: string; featured?: boolean; badge?: string; features: string[] };
@@ -36,6 +37,28 @@ export default function FitBaseLandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(0);
   const [submitted, setSubmitted] = useState(false);
+  const [applySubmitting, setApplySubmitting] = useState(false);
+  const [applyError, setApplyError] = useState("");
+  const [applyForm, setApplyForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    gym_name: "",
+    city: "",
+    message: ""
+  });
+  const [clientSubmitted, setClientSubmitted] = useState(false);
+  const [clientSubmitting, setClientSubmitting] = useState(false);
+  const [clientError, setClientError] = useState("");
+  const [clientForm, setClientForm] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    city: "",
+    goal_focus: "",
+    message: "",
+    heard_about: ""
+  });
   const applyRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -116,6 +139,8 @@ export default function FitBaseLandingPage() {
           <a href="#how" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>How it works</a>
           <a href="#dashboard" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Dashboard</a>
           <a href="#client-portal" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Client Portal</a>
+          <a href="#for-clients" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>For Clients</a>
+          <a href="#request-a-coach" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Request a coach</a>
           <a href="#pricing" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Pricing</a>
           <a href={loginHref} style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Login</a>
           <button
@@ -370,6 +395,126 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
+      {/* 6b. FOR CLIENTS — Built for your transformation */}
+      <section id="for-clients" className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
+        <div style={sectionBase}>
+          <div className="reveal" data-reveal style={{ textAlign: "center", maxWidth: 720, margin: "0 auto 36px" }}>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>For Clients</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>Built for your transformation</h2>
+            <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.7, fontSize: 16 }}>
+              You don&apos;t just get a workout plan. You get a coach who sees your data, adjusts your program, and stays with you every step of the way.
+            </p>
+          </div>
+          <div className="stack-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "start" }}>
+            <div className="reveal" data-reveal style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                ["👁️", "A coach who actually sees you", "Your trainer reviews every check-in — your weight, sleep, energy, and workouts — before your next session. No more feeling like a forgotten number."],
+                ["🔄", "A plan that evolves with you", "Your program isn't static. As your data comes in week by week, your trainer adjusts calories, workouts, and targets. Science-backed, not guesswork."],
+                ["⚡", "Daily check-in in under 2 minutes", "Log weight, protein, sleep, and today's workout from your phone. No app download needed. Your trainer sees it instantly."],
+                ["💬", "Direct line to your trainer", "Message your trainer anytime inside the portal. Questions, doubts, bad days — they're there. Not just on scheduled session days."],
+                ["📈", "Progress you can actually see", "Weekly summaries, body composition trends, and progress graphs. You'll know exactly what's working and why — not just feel it."],
+                ["🤖", "AI-assisted answers between sessions", "Get instant answers to nutrition and recovery questions 24/7 from the built-in AI — so you're never stuck waiting until your next check-in."]
+              ].map(([icon, title, desc]) => (
+                <div
+                  key={title}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "40px 1fr",
+                    gap: 12,
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid var(--border)",
+                    background: "var(--bg-card)"
+                  }}
+                >
+                  <span style={{ fontSize: 22, lineHeight: 1.2 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{title}</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div
+              className="reveal"
+              data-reveal
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--accent)",
+                borderRadius: 14,
+                padding: 20,
+                boxShadow: "0 18px 42px rgba(0,0,0,.35)"
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 18, textAlign: "center" }}>Client results on FitBase</div>
+              {[
+                ["94%", "of clients hit their 12-week goal"],
+                ["3.2kg", "average fat loss in the first 4 weeks"],
+                ["87%", "report feeling more accountable than ever before"],
+                ["9/10", "clients would recommend their FitBase trainer"]
+              ].map(([num, label]) => (
+                <div key={num + label} style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 36, color: "var(--accent)", lineHeight: 1 }}>{num}</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 4, lineHeight: 1.5 }}>{label}</div>
+                </div>
+              ))}
+              <a
+                href="#apply"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  textDecoration: "none",
+                  background: "var(--accent)",
+                  color: "#0f0f0f",
+                  padding: "12px 16px",
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  marginTop: 16
+                }}
+              >
+                Find your trainer →
+              </a>
+            </div>
+          </div>
+          <div
+            className="reveal"
+            data-reveal
+            style={{
+              marginTop: 28,
+              padding: "18px 22px",
+              background: "var(--bg-surface)",
+              borderRadius: 12,
+              border: "1px solid var(--border)",
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 14
+            }}
+          >
+            <div style={{ color: "var(--text-secondary)", fontSize: 15, lineHeight: 1.55, flex: "1 1 240px" }}>
+              Already have a trainer? Ask them to onboard you to FitBase.
+            </div>
+            <a
+              href="#how"
+              style={{
+                textDecoration: "none",
+                background: "transparent",
+                color: "var(--text-primary)",
+                padding: "10px 16px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                fontWeight: 600,
+                fontSize: 13,
+                whiteSpace: "nowrap"
+              }}
+            >
+              Learn how it works
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* 7. AI FOR TRAINERS */}
       <section
         className="pad"
@@ -547,6 +692,152 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
+      {/* 11b. CLIENT — Request coaching */}
+      <section id="request-a-coach" className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto" }}>
+          <div className="reveal" data-reveal style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>For clients</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 12px" }}>Request a coach on FitBase</h2>
+            <p style={{ margin: 0, color: "var(--text-secondary)", lineHeight: 1.65, fontSize: 15 }}>
+              Tell us about your goals. Our team reviews every request, assigns the right trainer, and your coach will send you a secure link to complete signup.
+            </p>
+          </div>
+          {!clientSubmitted ? (
+            <form
+              className="reveal stack-2"
+              data-reveal
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setClientError("");
+                setClientSubmitting(true);
+                try {
+                  const r = await fetch(`${API_SITE_BASE}/api/client-requests`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      full_name: clientForm.full_name.trim(),
+                      email: clientForm.email.trim(),
+                      phone: clientForm.phone.trim(),
+                      city: clientForm.city.trim(),
+                      goal_focus: clientForm.goal_focus.trim(),
+                      message: clientForm.message.trim(),
+                      heard_about: clientForm.heard_about.trim()
+                    })
+                  });
+                  const data = await r.json().catch(() => ({}));
+                  if (!r.ok || data?.error) {
+                    throw new Error(data?.error || "Could not submit your request.");
+                  }
+                  setClientSubmitted(true);
+                } catch (err: unknown) {
+                  setClientError(err instanceof Error ? err.message : "Something went wrong.");
+                } finally {
+                  setClientSubmitting(false);
+                }
+              }}
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+            >
+              <input
+                required
+                placeholder="Full name"
+                value={clientForm.full_name}
+                onChange={(ev) => setClientForm((p) => ({ ...p, full_name: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                required
+                type="email"
+                placeholder="Email"
+                value={clientForm.email}
+                onChange={(ev) => setClientForm((p) => ({ ...p, email: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                placeholder="Phone / WhatsApp"
+                value={clientForm.phone}
+                onChange={(ev) => setClientForm((p) => ({ ...p, phone: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                placeholder="City"
+                value={clientForm.city}
+                onChange={(ev) => setClientForm((p) => ({ ...p, city: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <select
+                required
+                value={clientForm.goal_focus}
+                onChange={(ev) => setClientForm((p) => ({ ...p, goal_focus: ev.target.value }))}
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: 12,
+                  background: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                  gridColumn: "1 / -1",
+                  cursor: "pointer"
+                }}
+              >
+                <option value="">Primary goal</option>
+                <option value="Fat loss">Fat loss</option>
+                <option value="Muscle gain">Muscle gain</option>
+                <option value="Performance / sport">Performance / sport</option>
+                <option value="General health">General health</option>
+                <option value="Other">Other</option>
+              </select>
+              <textarea
+                placeholder="What are you looking for in coaching? (experience, timeline, constraints)"
+                value={clientForm.message}
+                onChange={(ev) => setClientForm((p) => ({ ...p, message: ev.target.value }))}
+                rows={4}
+                style={{
+                  gridColumn: "1 / -1",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: 12,
+                  background: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                  resize: "vertical"
+                }}
+              />
+              <input
+                placeholder="How did you hear about FitBase? (optional)"
+                value={clientForm.heard_about}
+                onChange={(ev) => setClientForm((p) => ({ ...p, heard_about: ev.target.value }))}
+                style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              {clientError ? (
+                <p style={{ gridColumn: "1 / -1", margin: 0, color: "var(--red)", fontSize: 14 }}>{clientError}</p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={clientSubmitting}
+                style={{
+                  gridColumn: "1 / -1",
+                  border: "none",
+                  borderRadius: 8,
+                  background: "var(--accent)",
+                  color: "#0f0f0f",
+                  padding: 14,
+                  fontWeight: 600,
+                  cursor: clientSubmitting ? "wait" : "pointer"
+                }}
+              >
+                {clientSubmitting ? "Submitting…" : "Submit request"}
+              </button>
+            </form>
+          ) : (
+            <div className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 24, textAlign: "center" }}>
+              <div style={{ color: "var(--green)", fontSize: 28, marginBottom: 8 }}>✓</div>
+              <strong style={{ fontSize: 18 }}>Request received</strong>
+              <p style={{ margin: "12px 0 0", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                We&apos;ll review your details and assign a coach. Watch your inbox — your trainer will send you a link to create your account when you&apos;re approved.
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* 12. APPLY FORM */}
       <section id="apply" ref={applyRef} className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
@@ -555,19 +846,94 @@ export default function FitBaseLandingPage() {
             <form
               className="reveal stack-2"
               data-reveal
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                // TODO: POST to NestJS /api/trainer-applications
-                setSubmitted(true);
+                setApplyError("");
+                setApplySubmitting(true);
+                try {
+                  const r = await fetch(`${API_SITE_BASE}/api/trainer-requests`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      full_name: applyForm.full_name.trim(),
+                      email: applyForm.email.trim(),
+                      phone: applyForm.phone.trim(),
+                      gym_name: applyForm.gym_name.trim(),
+                      city: applyForm.city.trim(),
+                      message: applyForm.message.trim()
+                    })
+                  });
+                  const data = await r.json().catch(() => ({}));
+                  if (!r.ok || data?.error) {
+                    throw new Error(data?.error || "Could not submit application.");
+                  }
+                  setSubmitted(true);
+                } catch (err: unknown) {
+                  setApplyError(err instanceof Error ? err.message : "Something went wrong.");
+                } finally {
+                  setApplySubmitting(false);
+                }
               }}
               style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
             >
-              {["Full Name", "Email", "Phone", "Gym/Brand", "City", "Approx Clients"].map((label) => (
-                <input key={label} required placeholder={label} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }} />
-              ))}
-              <textarea placeholder="Message" style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 120, background: "var(--bg-card)", color: "var(--text-primary)" }} />
-              <button type="submit" style={{ gridColumn: "1 / -1", border: "none", borderRadius: 8, background: "var(--accent)", color: "#0f0f0f", padding: 12, fontWeight: 600, cursor: "pointer" }}>
-                Submit Application →
+              <input
+                required
+                placeholder="Full Name"
+                value={applyForm.full_name}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, full_name: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                required
+                type="email"
+                placeholder="Email"
+                value={applyForm.email}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, email: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                placeholder="Phone"
+                value={applyForm.phone}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, phone: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                placeholder="Gym / Brand"
+                value={applyForm.gym_name}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, gym_name: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <input
+                placeholder="City"
+                value={applyForm.city}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, city: ev.target.value }))}
+                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              <textarea
+                placeholder="Anything else we should know? (optional)"
+                value={applyForm.message}
+                onChange={(ev) => setApplyForm((p) => ({ ...p, message: ev.target.value }))}
+                style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 100, background: "var(--bg-card)", color: "var(--text-primary)" }}
+              />
+              {applyError ? (
+                <p style={{ gridColumn: "1 / -1", margin: 0, color: "var(--red)", fontSize: 14 }}>{applyError}</p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={applySubmitting}
+                style={{
+                  gridColumn: "1 / -1",
+                  border: "none",
+                  borderRadius: 8,
+                  background: "var(--accent)",
+                  color: "#0f0f0f",
+                  padding: 12,
+                  fontWeight: 600,
+                  cursor: applySubmitting ? "wait" : "pointer",
+                  opacity: applySubmitting ? 0.85 : 1
+                }}
+              >
+                {applySubmitting ? "Submitting…" : "Submit Application →"}
               </button>
             </form>
           ) : (
@@ -584,7 +950,7 @@ export default function FitBaseLandingPage() {
         <div style={{ ...sectionBase, display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "var(--accent)", fontSize: 36 }}>FITBASE</div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            {["Problem", "How it works", "Dashboard", "Client Portal", "Pricing", "Login"].map((label) => (
+            {["Problem", "How it works", "Dashboard", "Client Portal", "For Clients", "Request a coach", "Pricing", "Login"].map((label) => (
               <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "var(--text-secondary)", textDecoration: "none", fontSize: 13 }}>{label}</a>
             ))}
           </div>

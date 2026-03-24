@@ -64,6 +64,14 @@ export class BootstrapService implements OnModuleInit {
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone text`);
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id uuid`);
     await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS city text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender text`);
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp text`);
+    await this.pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users (referral_code) WHERE referral_code IS NOT NULL AND TRIM(referral_code) <> ''`
+    );
   }
 
   private async ensureOperationalTables() {

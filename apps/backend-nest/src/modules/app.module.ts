@@ -8,6 +8,8 @@ import { RolesGuard } from "./roles.guard";
 import { AdminController } from "./admin.controller";
 import { join } from "path";
 import { TrainerRequestsController } from "./trainer-requests.controller";
+import { ClientRequestsController } from "./client-requests.controller";
+import { PublicSignupController } from "./public-signup.controller";
 import { SuperadminController } from "./superadmin.controller";
 import { AdminManagementController } from "./admin-management.controller";
 import { NotificationsController } from "./notifications.controller";
@@ -30,6 +32,8 @@ import { MessageThreadsController } from "./message-threads.controller";
     HealthController,
     AuthController,
     TrainerRequestsController,
+    ClientRequestsController,
+    PublicSignupController,
     SuperadminController,
     AdminManagementController,
     NotificationsController,

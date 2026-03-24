@@ -45,7 +45,15 @@ export default function DashboardPage() {
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
   const [clientProgress, setClientProgress] = useState<any | null>(null);
   const [clientProgressLink, setClientProgressLink] = useState("");
-  const [newClient, setNewClient] = useState({ first_name: "", last_name: "", email: "", phone: "", password: "" });
+  const [newClient, setNewClient] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    phone: "",
+    city: "",
+    password: ""
+  });
+  const [trainerReferral, setTrainerReferral] = useState<{ code: string; join_path: string } | null>(null);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [isMeetingUpdating, setIsMeetingUpdating] = useState(false);
   const [todayLabel, setTodayLabel] = useState("");
@@ -54,6 +62,12 @@ export default function DashboardPage() {
   const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads">("hub");
   const [sundayCheckinsApi, setSundayCheckinsApi] = useState<any[]>([]);
   const [part2Submissions, setPart2Submissions] = useState<any[]>([]);
+  const [trainerRequests, setTrainerRequests] = useState<any[]>([]);
+  const [clientLeadRequests, setClientLeadRequests] = useState<any[]>([]);
+  const [trainerClientOverview, setTrainerClientOverview] = useState<any[]>([]);
+  const [superadminTrainers, setSuperadminTrainers] = useState<any[]>([]);
+  const [superadminQueueBusy, setSuperadminQueueBusy] = useState("");
+  const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
   const [staffOverlay, setStaffOverlay] = useState<StaffOverlay>(null);
   const [staffAiOpen, setStaffAiOpen] = useState(false);
@@ -276,12 +290,15 @@ export default function DashboardPage() {
     if (role === "superadmin") {
       Promise.all([
         fetch(`${API_SITE_BASE}/api/superadmin/dashboard`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_SITE_BASE}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_SITE_BASE}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_SITE_BASE}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => []),
         fetch(`${API_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
         fetch(`${API_SITE_BASE}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
         fetch(`${API_SITE_BASE}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
       ])
-        .then(([s, reqs, t, sun, p2]) => {
+        .then(([s, reqs, clientReqs, overview, trainersList, t, sun, p2]) => {
           if (s?.error) setError(s.error);
           const statObj = s?.stats || {};
           setStats({
@@ -290,7 +307,11 @@ export default function DashboardPage() {
             pending_signups: Number(statObj.pending_signups || 0),
             messages: Number(statObj.messages || 0)
           });
-          setForms(Array.isArray(reqs) ? reqs : []);
+          setForms(Array.isArray(s?.audit) ? s.audit : []);
+          setTrainerRequests(Array.isArray(reqs) ? reqs : []);
+          setClientLeadRequests(Array.isArray(clientReqs) ? clientReqs : []);
+          setTrainerClientOverview(Array.isArray(overview) ? overview : []);
+          setSuperadminTrainers(Array.isArray(trainersList) ? trainersList : []);
           setThreads(Array.isArray(t) ? t : []);
           setActivity(Array.isArray(s?.meetings) ? s.meetings.slice(0, 8) : []);
           setClients(Array.isArray(s?.users) ? s.users : []);
@@ -361,6 +382,25 @@ export default function DashboardPage() {
       })
       .catch(() => setError("Failed to load dashboard data."));
   }, [session, role]);
+
+  useEffect(() => {
+    if (!session?.token || role !== "admin") {
+      setTrainerReferral(null);
+      return;
+    }
+    const headers = { Authorization: `Bearer ${session.token}` };
+    fetch(`${API_SITE_BASE}/api/admin/referral-link`, { headers })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.referral_code) {
+          setTrainerReferral({
+            code: String(d.referral_code),
+            join_path: String(d.join_path || `/join/${d.referral_code}`)
+          });
+        } else setTrainerReferral(null);
+      })
+      .catch(() => setTrainerReferral(null));
+  }, [session?.token, role]);
 
   useEffect(() => {
     if (!session?.token || !selectedThreadId) return;
@@ -541,13 +581,14 @@ export default function DashboardPage() {
           password,
           first_name: newClient.first_name.trim(),
           last_name: newClient.last_name.trim(),
-          phone: newClient.phone.trim()
+          phone: newClient.phone.trim(),
+          city: newClient.city.trim()
         })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data?.error) throw new Error(data?.error || "Failed to create client.");
       setClients((prev) => [data, ...prev]);
-      setNewClient({ first_name: "", last_name: "", email: "", phone: "", password: "" });
+      setNewClient({ first_name: "", last_name: "", email: "", phone: "", city: "", password: "" });
     } catch (e: any) {
       setError(e?.message || "Failed to create client.");
     } finally {
@@ -790,6 +831,126 @@ export default function DashboardPage() {
       setError(e2?.message || "Failed to save progress.");
     } finally {
       setProgressSaving(false);
+    }
+  }
+
+  async function refreshSuperadminQueues() {
+    if (!session?.token) return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const [reqs, clientReqs, overview, trainersList] = await Promise.all([
+      fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${API_SITE_BASE}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${API_SITE_BASE}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${API_SITE_BASE}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => [])
+    ]);
+    setTrainerRequests(Array.isArray(reqs) ? reqs : []);
+    setClientLeadRequests(Array.isArray(clientReqs) ? clientReqs : []);
+    setTrainerClientOverview(Array.isArray(overview) ? overview : []);
+    setSuperadminTrainers(Array.isArray(trainersList) ? trainersList : []);
+  }
+
+  async function superadminApproveTrainerRequestRow(requestId: string) {
+    const pwd = typeof window !== "undefined" ? window.prompt("Set trainer login password (min 6 characters):") : null;
+    if (pwd === null) return;
+    if (!pwd || pwd.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (!session?.token) return;
+    setSuperadminQueueBusy(`${requestId}-ta`);
+    setError("");
+    try {
+      const r = await fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ password: pwd })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Approve failed");
+      const msg = data?.referral_code
+        ? `Trainer approved. Referral code: ${data.referral_code}\nJoin URL path: /join/${data.referral_code}`
+        : "Trainer approved.";
+      if (typeof window !== "undefined") window.alert(msg);
+      await refreshSuperadminQueues();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setSuperadminQueueBusy("");
+    }
+  }
+
+  async function superadminRejectTrainerRequestRow(requestId: string) {
+    if (typeof window !== "undefined" && !window.confirm("Reject this trainer request?")) return;
+    if (!session?.token) return;
+    setSuperadminQueueBusy(`${requestId}-tr`);
+    setError("");
+    try {
+      const r = await fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Reject failed");
+      await refreshSuperadminQueues();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Reject failed");
+    } finally {
+      setSuperadminQueueBusy("");
+    }
+  }
+
+  async function superadminApproveClientRequestRow(requestId: string, trainerId: string) {
+    if (!trainerId) {
+      setError("Choose a trainer to assign.");
+      return;
+    }
+    if (!session?.token) return;
+    setSuperadminQueueBusy(`${requestId}-ca`);
+    setError("");
+    try {
+      const r = await fetch(`${API_SITE_BASE}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ trainer_user_id: trainerId })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Approve failed");
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const path = String(data?.join_path || "");
+      const url = path ? `${origin}${path}` : "";
+      if (url && typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        if (typeof window !== "undefined") {
+          window.alert(`Approved. Join link copied to clipboard:\n${url}\nSend it to the client to complete signup.`);
+        }
+      } else if (typeof window !== "undefined") {
+        window.alert(url ? `Approved. Share this link with the client:\n${url}` : data?.message || "Approved.");
+      }
+      await refreshSuperadminQueues();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Approve failed");
+    } finally {
+      setSuperadminQueueBusy("");
+    }
+  }
+
+  async function superadminRejectClientRequestRow(requestId: string) {
+    if (typeof window !== "undefined" && !window.confirm("Reject this client coaching request?")) return;
+    if (!session?.token) return;
+    setSuperadminQueueBusy(`${requestId}-cr`);
+    setError("");
+    try {
+      const r = await fetch(`${API_SITE_BASE}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/reject`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Reject failed");
+      await refreshSuperadminQueues();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Reject failed");
+    } finally {
+      setSuperadminQueueBusy("");
     }
   }
 
@@ -1509,6 +1670,292 @@ export default function DashboardPage() {
                     <span className="bb-admin-summary-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
                   </button>
                 </div>
+                {role === "superadmin" ? (
+                  <>
+                    <h3 className="bb-admin-qa-title" style={{ marginTop: 4 }}>
+                      TRAINER ACCESS REQUESTS ·{" "}
+                      <strong style={{ color: "var(--accent)" }}>
+                        {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
+                      </strong>
+                      <span style={{ fontWeight: 400, color: "var(--text-secondary)", fontSize: 12, marginLeft: 8 }}>
+                        ({trainerRequests.length} total on file)
+                      </span>
+                    </h3>
+                    <div className="bb-panel" style={{ marginBottom: 20 }}>
+                      {trainerRequests.filter((r: any) => String(r.status) === "pending").length ? (
+                        <ul className="bb-list-rows">
+                          {trainerRequests
+                            .filter((req: any) => String(req.status) === "pending")
+                            .map((req: any) => {
+                              const rid = String(req.id || "");
+                              const busyTa = superadminQueueBusy === `${rid}-ta`;
+                              const busyTr = superadminQueueBusy === `${rid}-tr`;
+                              const busy = busyTa || busyTr;
+                              return (
+                                <li key={rid || req.email} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+                                  <div>
+                                    <div className="bb-list-row-title">{req.full_name || "Trainer applicant"}</div>
+                                    <p className="bb-list-row-sub">{req.email}</p>
+                                    <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
+                                      {[req.phone && `Phone: ${req.phone}`, req.gym_name && `Gym: ${req.gym_name}`, req.city && `City: ${req.city}`]
+                                        .filter(Boolean)
+                                        .join(" · ") || "—"}
+                                    </p>
+                                    {req.message ? (
+                                      <p className="bb-list-row-sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                                        {req.message}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => void superadminApproveTrainerRequestRow(rid)}
+                                      disabled={busy}
+                                      style={{
+                                        border: "none",
+                                        background: "var(--green)",
+                                        color: "#0f0f0f",
+                                        borderRadius: 8,
+                                        padding: "8px 12px",
+                                        fontWeight: 700,
+                                        cursor: busy ? "wait" : "pointer"
+                                      }}
+                                    >
+                                      {busyTa ? "…" : "Approve & create login"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => void superadminRejectTrainerRequestRow(rid)}
+                                      disabled={busy}
+                                      style={{
+                                        border: "none",
+                                        background: "var(--red)",
+                                        color: "#0f0f0f",
+                                        borderRadius: 8,
+                                        padding: "8px 12px",
+                                        fontWeight: 700,
+                                        cursor: busy ? "wait" : "pointer"
+                                      }}
+                                    >
+                                      {busyTr ? "…" : "Reject"}
+                                    </button>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      ) : (
+                        <p className="bb-live-empty">No pending trainer applications.</p>
+                      )}
+                      {trainerRequests.some((r: any) => String(r.status) !== "pending") ? (
+                        <>
+                          <p className="bb-inline-label" style={{ marginTop: 16 }}>
+                            Recent decisions (trainer applications)
+                          </p>
+                          <ul className="bb-list-rows">
+                            {trainerRequests
+                              .filter((r: any) => String(r.status) !== "pending")
+                              .slice(0, 25)
+                              .map((req: any) => (
+                                <li key={String(req.id)} className="bb-list-row bb-list-row-static">
+                                  <div className="bb-list-row-title">{req.full_name || req.email}</div>
+                                  <p className="bb-list-row-sub">
+                                    {req.email} · <span style={{ color: "var(--accent)" }}>{req.status}</span>
+                                    {req.created_at ? ` · ${String(req.created_at).slice(0, 10)}` : ""}
+                                  </p>
+                                </li>
+                              ))}
+                          </ul>
+                        </>
+                      ) : null}
+                    </div>
+
+                    <h3 className="bb-admin-qa-title">
+                      CLIENT COACHING REQUESTS ·{" "}
+                      <strong style={{ color: "var(--accent)" }}>
+                        {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
+                      </strong>
+                      <span style={{ fontWeight: 400, color: "var(--text-secondary)", fontSize: 12, marginLeft: 8 }}>
+                        (showing recent {Math.min(clientLeadRequests.length, 50)} records)
+                      </span>
+                    </h3>
+                    <div className="bb-panel" style={{ marginBottom: 20 }}>
+                      {clientLeadRequests.length ? (
+                        <ul className="bb-list-rows">
+                          {[...clientLeadRequests]
+                            .sort((a: any, b: any) => {
+                              const pa = String(a.status) === "pending" ? 0 : 1;
+                              const pb = String(b.status) === "pending" ? 0 : 1;
+                              if (pa !== pb) return pa - pb;
+                              return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+                            })
+                            .slice(0, 50)
+                            .map((c: any) => {
+                              const cid = String(c.id || "");
+                              const pending = String(c.status) === "pending";
+                              const busyCa = superadminQueueBusy === `${cid}-ca`;
+                              const busyCr = superadminQueueBusy === `${cid}-cr`;
+                              const busy = busyCa || busyCr;
+                              const pick = assignTrainerForClient[cid] || "";
+                              return (
+                                <li key={cid || c.email} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
+                                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
+                                    <div>
+                                      <div className="bb-list-row-title">{c.full_name || "Client"}</div>
+                                      <p className="bb-list-row-sub">{c.email}</p>
+                                    </div>
+                                    <span
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        letterSpacing: 1,
+                                        textTransform: "uppercase",
+                                        color:
+                                          c.status === "approved" ? "var(--green)" : c.status === "rejected" ? "var(--red)" : "var(--accent)"
+                                      }}
+                                    >
+                                      {c.status || "pending"}
+                                    </span>
+                                  </div>
+                                  <p className="bb-list-row-sub">
+                                    {[c.phone && `Phone: ${c.phone}`, c.city && `City: ${c.city}`, c.goal_focus && `Goal: ${c.goal_focus}`]
+                                      .filter(Boolean)
+                                      .join(" · ") || "—"}
+                                  </p>
+                                  {c.message ? (
+                                    <p className="bb-list-row-sub" style={{ whiteSpace: "pre-wrap" }}>
+                                      {c.message}
+                                    </p>
+                                  ) : null}
+                                  {c.heard_about ? <p className="bb-list-row-sub">Heard about: {c.heard_about}</p> : null}
+                                  {!pending && c.trainer_email ? (
+                                    <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                      Assigned coach: {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email}
+                                    </p>
+                                  ) : null}
+                                  {pending ? (
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                      <label className="bb-list-row-sub" style={{ margin: 0 }}>
+                                        Assign trainer
+                                      </label>
+                                      <select
+                                        value={pick}
+                                        onChange={(e) => setAssignTrainerForClient((p) => ({ ...p, [cid]: e.target.value }))}
+                                        style={{
+                                          padding: 10,
+                                          borderRadius: 8,
+                                          border: "1px solid var(--border)",
+                                          background: "var(--bg-card)",
+                                          color: "var(--text-primary)",
+                                          maxWidth: 400
+                                        }}
+                                      >
+                                        <option value="">Choose trainer…</option>
+                                        {superadminTrainers.map((t: any) => (
+                                          <option key={t.id} value={t.id}>
+                                            {[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email}
+                                            {t.suspended ? " (suspended)" : ""}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => void superadminApproveClientRequestRow(cid, pick)}
+                                          disabled={busy}
+                                          style={{
+                                            border: "none",
+                                            background: "var(--green)",
+                                            color: "#0f0f0f",
+                                            borderRadius: 8,
+                                            padding: "8px 12px",
+                                            fontWeight: 700,
+                                            cursor: busy ? "wait" : "pointer"
+                                          }}
+                                        >
+                                          {busyCa ? "…" : "Approve & get invite link"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => void superadminRejectClientRequestRow(cid)}
+                                          disabled={busy}
+                                          style={{
+                                            border: "none",
+                                            background: "var(--red)",
+                                            color: "#0f0f0f",
+                                            borderRadius: 8,
+                                            padding: "8px 12px",
+                                            fontWeight: 700,
+                                            cursor: busy ? "wait" : "pointer"
+                                          }}
+                                        >
+                                          {busyCr ? "…" : "Reject"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </li>
+                              );
+                            })}
+                        </ul>
+                      ) : (
+                        <p className="bb-live-empty">No client coaching requests yet.</p>
+                      )}
+                    </div>
+
+                    <h3 className="bb-admin-qa-title">ROSTER · TRAINERS &amp; CLIENTS</h3>
+                    <div className="bb-panel" style={{ marginBottom: 20 }}>
+                      {trainerClientOverview.length ? (
+                        <ul className="bb-list-rows">
+                          {trainerClientOverview.map((row: any) => {
+                            let clients: any[] = [];
+                            try {
+                              const raw = row.clients;
+                              if (Array.isArray(raw)) clients = raw;
+                              else if (typeof raw === "string") clients = JSON.parse(raw || "[]");
+                            } catch {
+                              clients = [];
+                            }
+                            const tname = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.email || "Trainer";
+                            return (
+                              <li key={String(row.id)} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
+                                  <div className="bb-list-row-title">{tname}</div>
+                                  <span style={{ fontSize: 11, color: row.suspended ? "var(--red)" : "var(--text-secondary)" }}>
+                                    {row.suspended ? "Suspended" : "Active"}
+                                    {row.referral_code ? ` · code ${row.referral_code}` : ""}
+                                  </span>
+                                </div>
+                                <p className="bb-list-row-sub">{row.email}</p>
+                                <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                  Clients: {clients.length}
+                                  {clients.length
+                                    ? ` · ${clients.filter((u: any) => String(u.approval_status).toLowerCase() === "pending").length} pending approval`
+                                    : ""}
+                                </p>
+                                {clients.length ? (
+                                  <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)" }}>
+                                    {clients.slice(0, 12).map((u: any) => (
+                                      <li key={String(u.id)}>
+                                        {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email} ({u.email}) — {u.approval_status || "—"}
+                                      </li>
+                                    ))}
+                                    {clients.length > 12 ? <li>…and {clients.length - 12} more</li> : null}
+                                  </ul>
+                                ) : (
+                                  <p className="bb-list-row-sub">No clients linked yet.</p>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      ) : (
+                        <p className="bb-live-empty">No trainers yet. Approve trainer requests to build your roster.</p>
+                      )}
+                    </div>
+                  </>
+                ) : null}
                 <h3 className="bb-admin-qa-title">QUICK ACCESS</h3>
                 <div className="bb-admin-qa-grid">
                   {[
@@ -1698,6 +2145,46 @@ export default function DashboardPage() {
                 </button>
                 {trainerClientsView === "hub" ? (
                   <div className="bb-admin-hub-cards">
+                    {role === "admin" && trainerReferral ? (
+                      <div className="bb-panel" style={{ gridColumn: "1 / -1", marginBottom: 4 }}>
+                        <span className="bb-inline-label">CLIENT INVITE LINK</span>
+                        <p style={{ margin: "8px 0 10px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                          Clients use this link to submit their details. Approve them under Pending Sign-ups.
+                        </p>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+                          <code
+                            style={{
+                              flex: "1 1 220px",
+                              padding: "10px 12px",
+                              background: "var(--bg-card)",
+                              border: "1px solid var(--border)",
+                              borderRadius: 8,
+                              wordBreak: "break-all",
+                              fontSize: 12,
+                              color: "var(--text-primary)"
+                            }}
+                          >
+                            {typeof window !== "undefined"
+                              ? `${window.location.origin}${trainerReferral.join_path}`
+                              : trainerReferral.join_path}
+                          </code>
+                          <button
+                            type="button"
+                            className="bb-btn-primary"
+                            style={{ alignSelf: "center" }}
+                            onClick={() => {
+                              const url =
+                                typeof window !== "undefined"
+                                  ? `${window.location.origin}${trainerReferral.join_path}`
+                                  : "";
+                              if (url) void navigator.clipboard.writeText(url);
+                            }}
+                          >
+                            Copy link
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     <HubCard
                       icon={String.fromCodePoint(0x1f4e7)}
                       title="Pending Sign-ups"
@@ -1733,6 +2220,13 @@ export default function DashboardPage() {
                             <li key={id} className="bb-list-row bb-list-row-static">
                               <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "User"}</div>
                               <p className="bb-list-row-sub">{u.email || "No email"}</p>
+                              {u.city || u.date_of_birth || u.gender || u.whatsapp ? (
+                                <p className="bb-list-row-sub" style={{ marginTop: 6, fontSize: 12, lineHeight: 1.45 }}>
+                                  {[u.city && `City: ${u.city}`, u.date_of_birth && `DOB: ${u.date_of_birth}`, u.gender && `Gender: ${u.gender}`, u.whatsapp && `WhatsApp: ${u.whatsapp}`]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </p>
+                              ) : null}
                               {role === "admin" || role === "superadmin" ? (
                                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                                   <button
@@ -1790,7 +2284,14 @@ export default function DashboardPage() {
                             className="bb-input"
                             value={newClient.phone}
                             onChange={(e) => setNewClient((p) => ({ ...p, phone: e.target.value }))}
-                            placeholder="Phone"
+                            placeholder="Mobile / phone"
+                          />
+                          <input
+                            className="bb-input"
+                            value={newClient.city}
+                            onChange={(e) => setNewClient((p) => ({ ...p, city: e.target.value }))}
+                            placeholder="City"
+                            style={{ gridColumn: "1 / -1" }}
                           />
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>

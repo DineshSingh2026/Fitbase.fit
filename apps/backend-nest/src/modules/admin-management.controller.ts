@@ -32,12 +32,47 @@ export class AdminManagementController {
     }
   }
 
+  @Get("referral-link")
+  async referralLink(@Req() req: any, @Res() res: Response) {
+    if (!this.pool) return res.status(500).json({ error: "Failed to load invite link" });
+    if (!isAdmin(req.user)) {
+      return res.status(403).json({ error: "Only trainers have a client invite link" });
+    }
+    const trainerId = String(req.user?.id || "");
+    try {
+      const cur = await this.pool.query(
+        "SELECT referral_code FROM users WHERE id = $1 AND role = 'admin' LIMIT 1",
+        [trainerId]
+      );
+      let code = String(cur.rows[0]?.referral_code || "").trim();
+      if (!code) {
+        const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        for (let attempt = 0; attempt < 40; attempt++) {
+          let g = "";
+          for (let i = 0; i < 10; i++) g += chars[Math.floor(Math.random() * chars.length)];
+          const taken = await this.pool.query("SELECT id FROM users WHERE referral_code = $1 LIMIT 1", [g]);
+          if (taken.rows[0]) continue;
+          await this.pool.query("UPDATE users SET referral_code = $1 WHERE id = $2 AND role = 'admin'", [
+            g,
+            trainerId
+          ]);
+          code = g;
+          break;
+        }
+      }
+      if (!code) return res.status(500).json({ error: "Could not generate invite code" });
+      return res.json({ referral_code: code, join_path: `/join/${code}` });
+    } catch {
+      return res.status(500).json({ error: "Failed to load invite link" });
+    }
+  }
+
   @Get("pending-signups")
   async pendingSignups(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Failed to fetch pending sign-ups" });
     try {
       let sql =
-        "SELECT id, email, first_name, last_name, created_at, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+        "SELECT id, email, first_name, last_name, phone, city, date_of_birth, gender, whatsapp, country, created_at, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
       const params: string[] = [];
       if (isAdmin(req.user)) {
         sql += " AND (trainer_id IS NULL OR trainer_id = $1)";
@@ -61,7 +96,7 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Failed to approve user" });
     try {
       const userRes = await this.pool.query(
-        "SELECT id, role, email, first_name, last_name, phone, country, trainer_id FROM users WHERE id = $1 LIMIT 1",
+        "SELECT id, role, email, first_name, last_name, phone, country, city, trainer_id FROM users WHERE id = $1 LIMIT 1",
         [id]
       );
       const user = userRes.rows[0];
@@ -97,7 +132,7 @@ export class AdminManagementController {
       if (!existingTribe.rows[0]) {
         const tribeId = randomUUID();
         const today = new Date().toISOString().split("T")[0];
-        const city = String(user.country || "").trim();
+        const city = String(user.city || user.country || "").trim();
         await this.pool.query(
           "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12)",
           [
@@ -148,7 +183,7 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Failed to fetch sign-up request" });
     try {
       let sql =
-        "SELECT id, email, first_name, last_name, phone, country, timezone, created_at, trainer_id FROM users WHERE id = $1 AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+        "SELECT id, email, first_name, last_name, phone, city, date_of_birth, gender, whatsapp, country, timezone, created_at, trainer_id FROM users WHERE id = $1 AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
       const params: string[] = [id];
       if (isAdmin(req.user)) {
         sql += " AND (trainer_id IS NULL OR trainer_id = $2)";
@@ -172,6 +207,7 @@ export class AdminManagementController {
       first_name?: string;
       last_name?: string;
       phone?: string;
+      city?: string;
       country?: string;
       timezone?: string;
       trainer_id?: string;
@@ -207,8 +243,10 @@ export class AdminManagementController {
       const hash = bcrypt.hashSync(pwd, 10);
       const country = String(body?.country || "").trim();
       const timezone = String(body?.timezone || "").trim();
+      const cityTrim = String(body?.city || "").trim();
+      const cityForTribe = cityTrim || country || "";
       await this.pool.query(
-        "INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, role, approval_status, trainer_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'user','approved',$9)",
+        "INSERT INTO users (id, email, password, first_name, last_name, phone, city, country, timezone, role, approval_status, trainer_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'user','approved',$10)",
         [
           id,
           emailNorm,
@@ -216,6 +254,7 @@ export class AdminManagementController {
           body?.first_name || "",
           body?.last_name || "",
           body?.phone || "",
+          cityTrim,
           country,
           timezone,
           trainerId
@@ -233,7 +272,7 @@ export class AdminManagementController {
             body?.last_name || "",
             emailNorm,
             body?.phone || "",
-            country,
+            cityForTribe,
             today,
             null,
             null,

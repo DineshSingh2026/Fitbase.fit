@@ -181,6 +181,33 @@ async function assertTrainerCanAccessClient(req, clientUserId) {
   return !!row;
 }
 
+function generateReferralCode() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for (let i = 0; i < 10; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+/** Ensures role=admin user has a unique referral_code; returns the code. */
+async function ensureTrainerReferralCode(trainerId) {
+  if (!trainerId) return null;
+  const row = await queryOne("SELECT referral_code FROM users WHERE id = ? AND role = 'admin'", [trainerId]);
+  if (!row) return null;
+  if (row.referral_code && String(row.referral_code).trim()) return String(row.referral_code).trim();
+  for (let i = 0; i < 40; i++) {
+    const code = generateReferralCode();
+    const taken = await queryOne("SELECT id FROM users WHERE referral_code = ?", [code]);
+    if (taken) continue;
+    try {
+      await run("UPDATE users SET referral_code = ? WHERE id = ? AND role = 'admin'", [code, trainerId]);
+      return code;
+    } catch (e) {
+      /* unique collision */
+    }
+  }
+  return null;
+}
+
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
   const cleanTimezone = String(timezone || '').trim() || inferTimezoneFromCountry(cleanCountry);
@@ -258,6 +285,16 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN suspended BOOLEAN DEFAULT FALSE`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN trainer_id TEXT`); } catch (e) { /* column may exist */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_users_trainer_id ON users(trainer_id)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN referral_code TEXT`); } catch (e) { /* column may exist */ }
+  try {
+    await pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code) WHERE referral_code IS NOT NULL AND TRIM(referral_code) <> ''`
+    );
+  } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN date_of_birth TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN whatsapp TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
   await pool.query(`CREATE TABLE IF NOT EXISTS trainer_requests (
     id TEXT PRIMARY KEY,
@@ -274,6 +311,23 @@ async function initDB() {
     trainer_user_id TEXT
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_trainer_requests_status ON trainer_requests(status)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS client_requests (
+    id TEXT PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT DEFAULT '',
+    city TEXT DEFAULT '',
+    goal_focus TEXT DEFAULT '',
+    message TEXT DEFAULT '',
+    heard_about TEXT DEFAULT '',
+    status TEXT DEFAULT 'pending',
+    assigned_trainer_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at TIMESTAMP,
+    reviewed_by TEXT
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_client_requests_status ON client_requests(status)`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
     id TEXT PRIMARY KEY,
@@ -663,6 +717,18 @@ async function initDB() {
   } catch (e) {
     console.error('Seed check error:', e.message);
   }
+
+  try {
+    const trainers = await queryAll(
+      "SELECT id FROM users WHERE role = 'admin' AND (referral_code IS NULL OR TRIM(referral_code) = '')"
+    );
+    for (const t of trainers) {
+      await ensureTrainerReferralCode(t.id);
+    }
+    if (trainers.length) console.log('✅ Referral codes assigned to', trainers.length, 'trainer(s)');
+  } catch (e) {
+    console.warn('Referral code backfill skipped:', e.message);
+  }
 }
 
 // ============ DEFAULT CAMPAIGN SEED ============
@@ -806,42 +872,45 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     const FALLBACK_SA_EMAIL = 'superadmin@gmail.com';
     const FALLBACK_SA_PASS = 'Fitbase@2026';
     const isFallbackCreds = emailNorm === FALLBACK_SA_EMAIL && pwTrimmed === FALLBACK_SA_PASS;
+    const superadminEmailNormLogin = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+    const superadminPassTrimmedLogin = String(SUPERADMIN_PASS || '').trim();
+    const matchesEnvSuperadminLogin =
+      !!superadminEmailNormLogin &&
+      !!superadminPassTrimmedLogin &&
+      emailNorm === superadminEmailNormLogin &&
+      pwTrimmed === superadminPassTrimmedLogin;
+
+    if (isFallbackCreds) {
+      const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
+      const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+      if (existingSa) {
+        await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [FALLBACK_SA_EMAIL, hash]);
+      } else {
+        await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [uuidv4(), FALLBACK_SA_EMAIL, hash, 'Super', 'Admin', 'superadmin', 'approved']);
+      }
+    } else if (matchesEnvSuperadminLogin) {
+      await runSuperadminSync();
+    }
 
     let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      if (isFallbackCreds) {
-        const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
-        const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
-        if (existingSa) {
-          await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [FALLBACK_SA_EMAIL, hash]);
-        } else {
-          await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), FALLBACK_SA_EMAIL, hash, 'Super', 'Admin', 'superadmin', 'approved']);
-        }
-        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-      } else {
-        const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
-        const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
-        if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
-          await runSuperadminSync();
-          user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-        }
-      }
-      if (!user) {
-        if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+      if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
     const suspended = user.suspended === true || user.suspended === 't';
     if (suspended) {
       return res.status(403).json({ error: 'suspended', message: 'Your account has been suspended. Please contact support.' });
     }
-    const status = user.approval_status || 'approved';
-    if (status === 'rejected') {
-      return res.status(403).json({ error: 'rejected', message: 'Your request was rejected. Please sign up again to submit a new request.' });
-    }
-    if (status !== 'approved') {
-      return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+    const staffRole = user.role === 'superadmin' || user.role === 'admin';
+    if (!staffRole) {
+      const status = user.approval_status || 'approved';
+      if (status === 'rejected') {
+        return res.status(403).json({ error: 'rejected', message: 'Your request was rejected. Please sign up again to submit a new request.' });
+      }
+      if (status !== 'approved') {
+        return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+      }
     }
     if (!user.password || !bcrypt.compareSync(pwTrimmed, user.password)) {
       if (isFallbackCreds) {
@@ -849,13 +918,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
         await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE LOWER(email) = ?", [hash, emailNorm]);
         await run("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND LOWER(email) != ?", [emailNorm]);
         user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-      } else {
-        const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
-        const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
-        if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
-          await runSuperadminSync();
-          user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-        }
+      } else if (matchesEnvSuperadminLogin) {
+        await runSuperadminSync();
+        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
       }
       if (!user || !bcrypt.compareSync(pwTrimmed, user.password)) {
         if (NODE_ENV !== 'production') console.log('[Login] Password mismatch for:', emailNorm);
@@ -1025,6 +1090,163 @@ app.post('/api/trainer-requests', rateLimiter(5, 60000), async (req, res) => {
   } catch (e) {
     console.error('[trainer request]', e.message);
     res.status(500).json({ error: 'Failed to submit trainer request' });
+  }
+});
+
+app.post('/api/client-requests', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { full_name, email, phone, city, goal_focus, message, heard_about } = req.body || {};
+    const name = String(full_name || '').trim();
+    const emailNorm = String(email || '').trim().toLowerCase();
+    if (!name || !emailNorm) {
+      return res.status(400).json({ error: 'Full name and email are required' });
+    }
+    const existingUser = await queryOne('SELECT id FROM users WHERE LOWER(email) = ?', [emailNorm]);
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'An account with this email already exists. Sign in or use a different email.'
+      });
+    }
+    const pending = await queryOne(
+      "SELECT id FROM client_requests WHERE LOWER(email) = ? AND status = 'pending'",
+      [emailNorm]
+    );
+    if (pending) {
+      return res.status(409).json({ error: 'A coaching request with this email is already pending review.' });
+    }
+    await run(
+      `INSERT INTO client_requests (id, full_name, email, phone, city, goal_focus, message, heard_about, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      [
+        uuidv4(),
+        name,
+        emailNorm,
+        String(phone || '').trim(),
+        String(city || '').trim(),
+        String(goal_focus || '').trim(),
+        String(message || '').trim(),
+        String(heard_about || '').trim()
+      ]
+    );
+    res.json({
+      ok: true,
+      message:
+        'Thanks — we received your request. FitBase will match you with a coach; your trainer will send you an invite link to complete signup.'
+    });
+  } catch (e) {
+    console.error('[client request]', e.message);
+    res.status(500).json({ error: 'Failed to submit request' });
+  }
+});
+
+/** Public: validate invite code and return trainer display name (for join page). */
+app.get('/api/public/referral/:code', rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const code = String(req.params.code || '').trim().toLowerCase();
+    if (!code || code.length > 32) return res.status(400).json({ error: 'Invalid code' });
+    const tr = await queryOne(
+      "SELECT id, first_name, last_name, email, COALESCE(suspended, FALSE) AS suspended FROM users WHERE LOWER(referral_code) = ? AND role = 'admin'",
+      [code]
+    );
+    if (!tr || tr.suspended) return res.status(404).json({ error: 'Invalid or inactive invite link' });
+    const name = [tr.first_name, tr.last_name].filter(Boolean).join(' ').trim() || 'Your coach';
+    res.json({ ok: true, trainer_id: tr.id, trainer_name: name });
+  } catch (e) {
+    console.error('[public referral]', e.message);
+    res.status(500).json({ error: 'Failed to validate invite' });
+  }
+});
+
+/** Public: client self-signup via trainer referral link → pending until trainer approves. */
+app.post('/api/public/client-signup-referral', rateLimiter(8, 60000), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const code = String(body.referral_code || '').trim().toLowerCase();
+    const emailNorm = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    const password2 = String(body.confirm_password || body.password_confirm || '');
+    const firstName = String(body.first_name || '').trim();
+    const lastName = String(body.last_name || '').trim();
+    const dateOfBirth = String(body.date_of_birth || body.dob || '').trim();
+    const gender = String(body.gender || '').trim();
+    const city = String(body.city || '').trim();
+    const whatsapp = String(body.whatsapp || body.whatsapp_number || '').trim();
+
+    if (!code) return res.status(400).json({ error: 'Invite code required' });
+    if (!emailNorm || !password) return res.status(400).json({ error: 'Email and password required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password !== password2) return res.status(400).json({ error: 'Passwords do not match' });
+    if (!firstName || !lastName) return res.status(400).json({ error: 'First and last name required' });
+
+    const tr = await queryOne(
+      "SELECT id FROM users WHERE LOWER(referral_code) = ? AND role = 'admin' AND COALESCE(suspended, FALSE) = FALSE",
+      [code]
+    );
+    if (!tr) return res.status(400).json({ error: 'Invalid or inactive invite link' });
+    const trainerId = tr.id;
+
+    const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing && existing.approval_status !== 'rejected') {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    const phone = whatsapp || '';
+
+    if (existing && existing.approval_status === 'rejected') {
+      await run(
+        `UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, whatsapp = ?, city = ?, date_of_birth = ?, gender = ?,
+         country = ?, timezone = ?, approval_status = 'pending', trainer_id = ? WHERE id = ?`,
+        [
+          hash,
+          firstName,
+          lastName,
+          phone,
+          whatsapp,
+          city,
+          dateOfBirth,
+          gender,
+          city || '',
+          '',
+          trainerId,
+          existing.id
+        ]
+      );
+      sendPushToAdmins(JSON.stringify({ title: 'Client re-applied', body: `${firstName} ${lastName} (${emailNorm})` })).catch(() => {});
+      return res.json({
+        ok: true,
+        pending_approval: true,
+        message: 'Your request was submitted. Your trainer will approve your account shortly.'
+      });
+    }
+
+    const id = uuidv4();
+    await run(
+      `INSERT INTO users (id, email, password, first_name, last_name, phone, whatsapp, city, date_of_birth, gender, country, timezone, role, approval_status, trainer_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', 'pending', ?)`,
+      [id, emailNorm, hash, firstName, lastName, phone, whatsapp, city, dateOfBirth, gender, city || '', '', trainerId]
+    );
+    sendPushToAdmins(JSON.stringify({ title: 'New client sign-up', body: `${firstName} ${lastName} (${emailNorm}) via referral` })).catch(() => {});
+    res.json({
+      ok: true,
+      pending_approval: true,
+      message: 'Account created. Your trainer will approve you shortly; then you can log in.'
+    });
+  } catch (e) {
+    console.error('[client-signup-referral]', e.message);
+    res.status(500).json({ error: 'Failed to create account' });
+  }
+});
+
+app.get('/api/admin/referral-link', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    if (!isAdminUser(req.user)) {
+      return res.status(403).json({ error: 'Only trainers have a client invite link' });
+    }
+    const code = await ensureTrainerReferralCode(req.user.id);
+    if (!code) return res.status(500).json({ error: 'Could not generate invite code' });
+    res.json({ referral_code: code, join_path: `/join/${code}` });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load invite link' });
   }
 });
 
@@ -1976,7 +2198,8 @@ app.get('/api/push/vapid-public', (req, res) => {
 // ============ ADMIN: PENDING SIGNUPS & APPROVE ============
 app.get('/api/admin/pending-signups', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    let sql = "SELECT id, email, first_name, last_name, created_at, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+    let sql =
+      "SELECT id, email, first_name, last_name, phone, city, date_of_birth, gender, whatsapp, country, created_at, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
     const params = [];
     if (isAdminUser(req.user)) {
       sql += " AND (trainer_id IS NULL OR trainer_id = ?)";
@@ -1993,7 +2216,10 @@ app.get('/api/admin/pending-signups', verifyToken, requireAdminOrSuperadmin, asy
 app.post('/api/admin/approve-user/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone, country, trainer_id FROM users WHERE id = ?", [id]);
+    const user = await queryOne(
+      "SELECT id, role, email, first_name, last_name, phone, country, city, trainer_id FROM users WHERE id = ?",
+      [id]
+    );
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     if (isAdminUser(req.user) && user.trainer_id && user.trainer_id !== req.user.id) {
@@ -2013,7 +2239,7 @@ app.post('/api/admin/approve-user/:id', verifyToken, requireAdminOrSuperadmin, a
     if (!existing) {
       const tribeId = uuidv4();
       const today = new Date().toISOString().split('T')[0];
-      const city = (user.country || '').trim() || '';
+      const city = String(user.city || user.country || '').trim() || '';
       await run(`INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)`,
         [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, today, null, null, null, '', 'Newly approved']);
     }
@@ -2041,12 +2267,14 @@ app.post('/api/admin/reject-user/:id', verifyToken, requireAdminOrSuperadmin, as
 
 app.post('/api/admin/create-client', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const { email, password, first_name, last_name, phone, country, timezone, trainer_id } = req.body || {};
+    const { email, password, first_name, last_name, phone, country, timezone, trainer_id, city } = req.body || {};
     const emailNorm = String(email || '').trim().toLowerCase();
     const pwd = String(password || '');
+    const cityTrim = String(city || '').trim();
     if (!emailNorm || !pwd) return res.status(400).json({ error: 'Email and password are required' });
     if (pwd.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
     const geo = normalizeGeoFields(country, timezone);
+    const cityForTribe = cityTrim || geo.country || '';
 
     const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing) return res.status(409).json({ error: 'Email already registered' });
@@ -2063,15 +2291,15 @@ app.post('/api/admin/create-client', verifyToken, requireAdminOrSuperadmin, asyn
     const id = uuidv4();
     const hash = bcrypt.hashSync(pwd, 10);
     await run(
-      "INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, role, approval_status, trainer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', 'approved', ?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, trainerId]
+      "INSERT INTO users (id, email, password, first_name, last_name, phone, city, country, timezone, role, approval_status, trainer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', 'approved', ?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', cityTrim, geo.country, geo.timezone, trainerId]
     );
 
     const tribeId = uuidv4();
     const today = new Date().toISOString().split('T')[0];
     await run(
       "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)",
-      [tribeId, first_name || '', last_name || '', emailNorm, phone || '', geo.country || '', today, null, null, null, '', 'Added by trainer dashboard']
+      [tribeId, first_name || '', last_name || '', emailNorm, phone || '', cityForTribe, today, null, null, null, '', 'Added by trainer dashboard']
     );
 
     res.json({
@@ -2091,7 +2319,8 @@ app.post('/api/admin/create-client', verifyToken, requireAdminOrSuperadmin, asyn
 
 app.get('/api/admin/pending-signup/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    let sql = "SELECT id, email, first_name, last_name, phone, country, timezone, created_at, trainer_id FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
+    let sql =
+      "SELECT id, email, first_name, last_name, phone, city, date_of_birth, gender, whatsapp, country, timezone, created_at, trainer_id FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')";
     const params = [req.params.id];
     if (isAdminUser(req.user)) {
       sql += " AND (trainer_id IS NULL OR trainer_id = ?)";
@@ -3543,7 +3772,7 @@ app.get('/api/superadmin/dashboard', verifyToken, requireSuperadmin, async (req,
 app.get('/api/superadmin/trainers', verifyToken, requireSuperadmin, async (req, res) => {
   try {
     const rows = await queryAll(
-      `SELECT t.id, t.email, t.first_name, t.last_name, t.phone, t.created_at, COALESCE(t.suspended, FALSE) as suspended,
+      `SELECT t.id, t.email, t.first_name, t.last_name, t.phone, t.created_at, t.referral_code, COALESCE(t.suspended, FALSE) as suspended,
               (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id) as clients_total,
               (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id AND (u.approval_status IS NULL OR u.approval_status = 'approved')) as clients_approved,
               (SELECT COUNT(*) FROM users u WHERE u.role = 'user' AND u.trainer_id = t.id AND u.approval_status = 'pending') as clients_pending
@@ -3567,6 +3796,7 @@ app.get('/api/superadmin/trainer-client-overview', verifyToken, requireSuperadmi
          t.first_name,
          t.last_name,
          t.phone,
+         t.referral_code,
          COALESCE(t.suspended, FALSE) AS suspended,
          COALESCE(
            json_agg(
@@ -3597,12 +3827,17 @@ app.get('/api/superadmin/trainer-client-overview', verifyToken, requireSuperadmi
 
 app.get('/api/superadmin/trainer-requests', verifyToken, requireSuperadmin, async (req, res) => {
   try {
-    const rows = await queryAll(
-      `SELECT id, full_name, email, phone, gym_name, city, message, status, created_at, reviewed_at, reviewed_by, trainer_user_id
+    const status = String(req.query.status || 'pending').trim().toLowerCase();
+    let sql = `SELECT id, full_name, email, phone, gym_name, city, message, status, created_at, reviewed_at, reviewed_by, trainer_user_id
        FROM trainer_requests
-       WHERE status = 'pending'
-       ORDER BY created_at DESC`
-    );
+       WHERE 1=1`;
+    const params = [];
+    if (status && status !== 'all') {
+      sql += ' AND status = ?';
+      params.push(status);
+    }
+    sql += ' ORDER BY created_at DESC LIMIT 300';
+    const rows = await queryAll(sql, params);
     res.json(rows);
   } catch (e) {
     console.error('[superadmin trainer-requests]', e.message);
@@ -3646,7 +3881,8 @@ app.post('/api/superadmin/trainer-requests/:id/approve', verifyToken, requireSup
       "UPDATE trainer_requests SET status = 'approved', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?, trainer_user_id = ? WHERE id = ?",
       [req.user.id, trainerId, requestId]
     );
-    res.json({ ok: true, trainer_id: trainerId, email: emailNorm, password });
+    const referralCode = await ensureTrainerReferralCode(trainerId);
+    res.json({ ok: true, trainer_id: trainerId, email: emailNorm, password, referral_code: referralCode });
   } catch (e) {
     console.error('[superadmin approve trainer-request]', e.message);
     res.status(500).json({ error: 'Failed to approve trainer request' });
@@ -3669,6 +3905,74 @@ app.post('/api/superadmin/trainer-requests/:id/reject', verifyToken, requireSupe
   }
 });
 
+app.get('/api/superadmin/client-requests', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || 'pending').trim().toLowerCase();
+    let sql = `SELECT c.id, c.full_name, c.email, c.phone, c.city, c.goal_focus, c.message, c.heard_about,
+      c.status, c.assigned_trainer_id, c.created_at, c.reviewed_at, c.reviewed_by,
+      t.first_name AS trainer_first_name, t.last_name AS trainer_last_name, t.email AS trainer_email
+      FROM client_requests c
+      LEFT JOIN users t ON t.id = c.assigned_trainer_id AND t.role = 'admin'
+      WHERE 1=1`;
+    const params = [];
+    if (status && status !== 'all') {
+      sql += ' AND c.status = ?';
+      params.push(status);
+    }
+    sql += ' ORDER BY c.created_at DESC LIMIT 250';
+    const rows = await queryAll(sql, params);
+    res.json(rows);
+  } catch (e) {
+    console.error('[superadmin client-requests]', e.message);
+    res.status(500).json({ error: 'Failed to load client requests' });
+  }
+});
+
+app.post('/api/superadmin/client-requests/:id/approve', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const requestId = String(req.params.id || '').trim();
+    const trainerUserId = String((req.body || {}).trainer_user_id || '').trim();
+    if (!trainerUserId) {
+      return res.status(400).json({ error: 'trainer_user_id is required to assign a coach' });
+    }
+    const tr = await queryOne("SELECT id FROM users WHERE id = ? AND role = 'admin'", [trainerUserId]);
+    if (!tr) return res.status(400).json({ error: 'Invalid trainer' });
+    const reqRow = await queryOne("SELECT id FROM client_requests WHERE id = ? AND status = 'pending'", [requestId]);
+    if (!reqRow) return res.status(404).json({ error: 'Client request not found or already reviewed' });
+    await run(
+      `UPDATE client_requests SET status = 'approved', assigned_trainer_id = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?`,
+      [trainerUserId, req.user.id, requestId]
+    );
+    const referralCode = await ensureTrainerReferralCode(trainerUserId);
+    res.json({
+      ok: true,
+      referral_code: referralCode,
+      join_path: `/join/${referralCode}`,
+      message:
+        'Assigned. Share the join link with the client so they can complete signup under this trainer.'
+    });
+  } catch (e) {
+    console.error('[superadmin approve client-request]', e.message);
+    res.status(500).json({ error: 'Failed to approve client request' });
+  }
+});
+
+app.post('/api/superadmin/client-requests/:id/reject', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const requestId = String(req.params.id || '').trim();
+    const reqRow = await queryOne("SELECT id FROM client_requests WHERE id = ? AND status = 'pending'", [requestId]);
+    if (!reqRow) return res.status(404).json({ error: 'Client request not found or already reviewed' });
+    await run(
+      `UPDATE client_requests SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ? WHERE id = ?`,
+      [req.user.id, requestId]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[superadmin reject client-request]', e.message);
+    res.status(500).json({ error: 'Failed to reject client request' });
+  }
+});
+
 app.post('/api/superadmin/trainers', verifyToken, requireSuperadmin, async (req, res) => {
   try {
     const { email, password, first_name, last_name, phone } = req.body || {};
@@ -3684,8 +3988,9 @@ app.post('/api/superadmin/trainers', verifyToken, requireSuperadmin, async (req,
       "INSERT INTO users (id, email, password, first_name, last_name, phone, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, 'admin', 'approved')",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '']
     );
+    const referralCode = await ensureTrainerReferralCode(id);
     const created = await queryOne("SELECT id, email, first_name, last_name, phone, created_at FROM users WHERE id = ?", [id]);
-    res.json({ ok: true, trainer: created });
+    res.json({ ok: true, trainer: { ...created, referral_code: referralCode } });
   } catch (e) {
     console.error('[superadmin create trainer]', e.message);
     res.status(500).json({ error: 'Failed to create trainer' });
