@@ -37,7 +37,7 @@ export class ClientRequestsController {
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS heard_about text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS assigned_trainer_id text`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
-    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_by uuid`);
+    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
   }
 
   @Post("client-requests")

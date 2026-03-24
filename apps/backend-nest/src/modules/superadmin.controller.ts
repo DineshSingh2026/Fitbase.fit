@@ -77,6 +77,38 @@ export class SuperadminController {
     }
   }
 
+  /** Base table comes from TrainerRequestsController; superadmin queries need extra columns for review flow. */
+  private async ensureTrainerRequestsSchema() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS trainer_requests (
+        id uuid PRIMARY KEY,
+        full_name text NOT NULL,
+        email text NOT NULL,
+        phone text,
+        gym_name text,
+        city text,
+        message text,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS trainer_requests_email_idx ON trainer_requests (LOWER(email))`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS trainer_requests_status_idx ON trainer_requests (status)`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS phone text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS gym_name text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS city text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS message text`);
+    await this.pool.query(
+      `ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`
+    );
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
+    await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS trainer_user_id text`);
+  }
+
   private async safeRows(sql: string, params: any[] = []) {
     if (!this.pool) return [];
     try {
@@ -325,6 +357,7 @@ export class SuperadminController {
   async trainerRequests(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Failed to load trainer requests" });
     try {
+      await this.ensureTrainerRequestsSchema();
       const status = String(req.query?.status || "pending").trim().toLowerCase();
       let sql = `SELECT id, full_name, email, phone, gym_name, city, message, status, created_at, reviewed_at, reviewed_by, trainer_user_id
          FROM trainer_requests
@@ -351,6 +384,7 @@ export class SuperadminController {
   ) {
     if (!this.pool) return res.status(500).json({ error: "Failed to approve trainer request" });
     try {
+      await this.ensureTrainerRequestsSchema();
       const requestId = String(id || "").trim();
       const password = String(body?.password || "").trim();
       if (!password || password.length < 6) {
@@ -416,6 +450,7 @@ export class SuperadminController {
   async rejectTrainerRequest(@Param("id") id: string, @Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Failed to reject trainer request" });
     try {
+      await this.ensureTrainerRequestsSchema();
       const requestId = String(id || "").trim();
       const reqRes = await this.pool.query(
         "SELECT id FROM trainer_requests WHERE id = $1 AND status = 'pending' LIMIT 1",
@@ -463,7 +498,7 @@ export class SuperadminController {
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS goal_focus text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS message text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS heard_about text DEFAULT ''`);
-    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS assigned_trainer_id uuid`);
+    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS assigned_trainer_id text`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
   }
@@ -478,7 +513,10 @@ export class SuperadminController {
           c.status, c.assigned_trainer_id, c.created_at, c.reviewed_at, c.reviewed_by,
           t.first_name AS trainer_first_name, t.last_name AS trainer_last_name, t.email AS trainer_email
         FROM client_requests c
-        LEFT JOIN users t ON t.id = c.assigned_trainer_id AND t.role = 'admin'
+        LEFT JOIN users t ON t.role = 'admin'
+          AND c.assigned_trainer_id IS NOT NULL
+          AND TRIM(c.assigned_trainer_id) <> ''
+          AND t.id::text = TRIM(c.assigned_trainer_id)
         WHERE 1=1`;
       const params: string[] = [];
       if (status && status !== "all") {
