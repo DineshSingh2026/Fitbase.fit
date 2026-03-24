@@ -61,7 +61,7 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 14 }}>
-          <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 56, width: "auto", objectFit: "contain" }} />
+          <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 76, width: "auto", objectFit: "contain" }} />
         </div>
         <h1 style={{ margin: "0 0 12px", fontFamily: "sans-serif", fontSize: 20, color: "var(--text-primary)" }}>Login</h1>
         <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Email</label>

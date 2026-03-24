@@ -110,7 +110,7 @@ export default function FitBaseLandingPage() {
           transition: "all .25s ease"
         }}
       >
-        <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 46, width: "auto", objectFit: "contain" }} />
+        <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 60, width: "auto", objectFit: "contain" }} />
         <div className="hide-mobile" style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 13 }}>
           <a href="#problem" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Problem</a>
           <a href="#how" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>How it works</a>
@@ -192,14 +192,28 @@ export default function FitBaseLandingPage() {
       <section id="problem" className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
         <div style={sectionBase}>
           <div className="reveal" data-reveal>
-            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>The problem</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>You didn't become a trainer to fight admin</h2>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, letterSpacing: 1.2 }}>THE PROBLEM</div>
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>
+              You didn&apos;t build a coaching practice to manage chaos.
+            </h2>
           </div>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
             {[
-              ["📊", "Spreadsheet Hell", "Client data everywhere, no single source of truth."],
-              ["👻", "Zero Accountability", "Check-ins disappear and progress stalls without consistency."],
-              ["🔧", "The Franken-Stack", "Too many tools, no clean workflow between them."]
+              [
+                "📊",
+                "Fragmented Data",
+                "Client intelligence scattered across spreadsheets, notes, and conversations—no single source of truth, no clarity, no control."
+              ],
+              [
+                "👻",
+                "Eroded Accountability",
+                "Check-ins fade, compliance drops, and progress becomes inconsistent without a system enforcing discipline."
+              ],
+              [
+                "🔧",
+                "Operational Noise",
+                "A stack of disconnected tools pretending to be a workflow—inefficient, distracting, and impossible to scale."
+              ]
             ].map(([icon, title, body]) => (
               <div key={title} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
                 <div style={{ fontSize: 24 }}>{icon}</div>
@@ -209,7 +223,7 @@ export default function FitBaseLandingPage() {
             ))}
           </div>
           <blockquote className="reveal" data-reveal style={{ margin: "20px 0 0", borderLeft: "4px solid var(--accent)", padding: "8px 0 8px 14px", color: "var(--text-primary)", fontStyle: "italic" }}>
-            "You did not become a trainer to spend your evenings buried in spreadsheets..."
+            &ldquo;You didn&rsquo;t choose this profession to operate like an administrator&mdash;you chose it to deliver outcomes.&rdquo;
           </blockquote>
         </div>
       </section>
@@ -568,7 +582,7 @@ export default function FitBaseLandingPage() {
       {/* 13. FOOTER */}
       <footer className="pad" style={{ padding: "30px 36px", background: "var(--bg-surface)", borderTop: "1px solid var(--border)" }}>
         <div style={{ ...sectionBase, display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "var(--accent)", fontSize: 28 }}>FITBASE</div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "var(--accent)", fontSize: 36 }}>FITBASE</div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {["Problem", "How it works", "Dashboard", "Client Portal", "Pricing", "Login"].map((label) => (
               <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "var(--text-secondary)", textDecoration: "none", fontSize: 13 }}>{label}</a>

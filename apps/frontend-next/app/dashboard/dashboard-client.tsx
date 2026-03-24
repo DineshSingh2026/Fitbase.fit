@@ -1153,7 +1153,7 @@ export default function DashboardPage() {
           backdropFilter: "blur(8px)"
         }}
       >
-        <img src={`${API_SITE_BASE}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 36, width: "auto", objectFit: "contain" }} />
+        <img src={`${API_SITE_BASE}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button className="bb-header-btn" aria-label="Notifications">
             🔔
