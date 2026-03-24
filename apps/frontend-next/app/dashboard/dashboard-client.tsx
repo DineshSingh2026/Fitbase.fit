@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { API_SITE_BASE } from "../../lib/site-url";
+import { getApiSiteBase } from "../../lib/site-url";
 import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
 
 type DashboardTab = "home" | "clients" | "forms" | "messages" | "ai" | "programs" | "contact" | "profile" | "progress";
@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const role = String(session?.user?.role || "")
     .trim()
     .toLowerCase();
+  const apiBase = useMemo(() => getApiSiteBase(), []);
   const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [threads, setThreads] = useState<any[]>([]);
@@ -216,8 +217,8 @@ export default function DashboardPage() {
     if (!session?.token || role !== "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     Promise.all([
-      fetch(`${API_SITE_BASE}/api/today`, { headers }).then((r) => r.json()).catch(() => null),
-      fetch(`${API_SITE_BASE}/api/daily-checkin/streak`, { headers }).then((r) => r.json()).catch(() => null)
+      fetch(`${apiBase}/api/today`, { headers }).then((r) => r.json()).catch(() => null),
+      fetch(`${apiBase}/api/daily-checkin/streak`, { headers }).then((r) => r.json()).catch(() => null)
     ]).then(([todayData, streakData]) => {
       if (todayData && !todayData.error) setUserToday(todayData);
       if (streakData && !streakData.error) setUserStreak(streakData);
@@ -258,7 +259,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!session?.token || role !== "user" || activeTab !== "programs") return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    fetch(`${API_SITE_BASE}/api/me/programs`, { headers })
+    fetch(`${apiBase}/api/me/programs`, { headers })
       .then((r) => r.json())
       .then((rows) => setUserPrograms(Array.isArray(rows) ? rows : []))
       .catch(() => setUserPrograms([]));
@@ -268,7 +269,7 @@ export default function DashboardPage() {
     if (!session?.token || role !== "user") return;
     if (activeTab !== "progress" && !(activeTab === "forms" && userCheckinView === "progress")) return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    fetch(`${API_SITE_BASE}/api/progress`, { headers })
+    fetch(`${apiBase}/api/progress`, { headers })
       .then((r) => r.json())
       .then((d) => setUserProgressLogs(Array.isArray(d?.logs) ? d.logs : []))
       .catch(() => setUserProgressLogs([]));
@@ -303,14 +304,14 @@ export default function DashboardPage() {
     const headers = { Authorization: `Bearer ${session.token}` };
     if (role === "superadmin") {
       Promise.all([
-        fetch(`${API_SITE_BASE}/api/superadmin/dashboard`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
+        fetch(`${apiBase}/api/superadmin/dashboard`, { headers }).then((r) => r.json()).catch(() => null),
+        fetch(`${apiBase}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
       ])
         .then(([s, reqs, clientReqs, overview, trainersList, t, sun, p2]) => {
           if (s?.error) setError(s.error);
@@ -343,11 +344,11 @@ export default function DashboardPage() {
     if (role === "user") {
       const userId = String(session?.user?.id || "");
       Promise.all([
-        fetch(`${API_SITE_BASE}/api/workouts/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/meetings/user/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${API_SITE_BASE}/api/today`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${API_SITE_BASE}/api/daily-checkin/streak`, { headers }).then((r) => r.json()).catch(() => null)
+        fetch(`${apiBase}/api/workouts/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/meetings/user/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
+        fetch(`${apiBase}/api/today`, { headers }).then((r) => r.json()).catch(() => null),
+        fetch(`${apiBase}/api/daily-checkin/streak`, { headers }).then((r) => r.json()).catch(() => null)
       ])
         .then(([w, m, t, todayData, streakData]) => {
           setStats({
@@ -371,16 +372,16 @@ export default function DashboardPage() {
     }
 
     Promise.all([
-      fetch(`${API_SITE_BASE}/api/stats`, { headers }).then((r) => r.json()).catch(() => null),
-      fetch(`${API_SITE_BASE}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/users`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/audit-requests`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/daily-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/workouts`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/pending-signups`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
+      fetch(`${apiBase}/api/stats`, { headers }).then((r) => r.json()).catch(() => null),
+      fetch(`${apiBase}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/users`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/audit-requests`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/daily-checkins`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/workouts`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/pending-signups`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
     ])
       .then(([s, a, t, u, f, d, w, p, sun, p2]) => {
         if (s?.error) setError(s.error);
@@ -404,7 +405,7 @@ export default function DashboardPage() {
       return;
     }
     const headers = { Authorization: `Bearer ${session.token}` };
-    fetch(`${API_SITE_BASE}/api/admin/referral-link`, { headers })
+    fetch(`${apiBase}/api/admin/referral-link`, { headers })
       .then((r) => r.json())
       .then((d) => {
         if (d?.referral_code) {
@@ -420,7 +421,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!session?.token || !selectedThreadId) return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    fetch(`${API_SITE_BASE}/api/threads/${encodeURIComponent(selectedThreadId)}/messages`, { headers })
+    fetch(`${apiBase}/api/threads/${encodeURIComponent(selectedThreadId)}/messages`, { headers })
       .then((r) => r.json())
       .then((data) => setThreadMessages(Array.isArray(data) ? data : []))
       .catch(() => setThreadMessages([]));
@@ -437,7 +438,7 @@ export default function DashboardPage() {
     if (!session?.token || staffOverlay !== "insights" || !isStaff) return;
     const headers = { Authorization: `Bearer ${session.token}` };
     setPerfInsightsLoading(true);
-    fetch(`${API_SITE_BASE}/api/admin/performance-insights`, { headers })
+    fetch(`${apiBase}/api/admin/performance-insights`, { headers })
       .then((r) => r.json())
       .then((d) => {
         if (d?.error) setPerfInsights(null);
@@ -450,7 +451,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!session?.token || staffOverlay !== "programs" || !isStaff) return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    fetch(`${API_SITE_BASE}/api/admin/program-catalog`, { headers })
+    fetch(`${apiBase}/api/admin/program-catalog`, { headers })
       .then((r) => r.json())
       .then((rows) => setProgramCatalog(Array.isArray(rows) ? rows : []))
       .catch(() => setProgramCatalog([]));
@@ -462,7 +463,7 @@ export default function DashboardPage() {
     setIsAiLoading(true);
     setAiReply("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/admin/ai-assist`, {
+      const r = await fetch(`${apiBase}/api/admin/ai-assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ message: text })
@@ -487,7 +488,7 @@ export default function DashboardPage() {
     try {
       let tid = selectedThreadId;
       if (!tid && role === "user") {
-        const cr = await fetch(`${API_SITE_BASE}/api/threads`, {
+        const cr = await fetch(`${apiBase}/api/threads`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
           body: JSON.stringify({ first_message: text })
@@ -498,20 +499,20 @@ export default function DashboardPage() {
         setSelectedThreadId(tid);
         setThreads([thread]);
         setReplyText("");
-        const initial = await fetch(`${API_SITE_BASE}/api/threads/${encodeURIComponent(tid)}/messages`, {
+        const initial = await fetch(`${apiBase}/api/threads/${encodeURIComponent(tid)}/messages`, {
           headers: { Authorization: `Bearer ${session.token}` }
         }).then((r) => r.json()).catch(() => []);
         setThreadMessages(Array.isArray(initial) ? initial : []);
         return;
       }
       if (!tid) return;
-      await fetch(`${API_SITE_BASE}/api/threads/${encodeURIComponent(tid)}/messages`, {
+      await fetch(`${apiBase}/api/threads/${encodeURIComponent(tid)}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ body: text })
       });
       setReplyText("");
-      const data = await fetch(`${API_SITE_BASE}/api/threads/${encodeURIComponent(tid)}/messages`, {
+      const data = await fetch(`${apiBase}/api/threads/${encodeURIComponent(tid)}/messages`, {
         headers: { Authorization: `Bearer ${session.token}` }
       }).then((r) => r.json()).catch(() => []);
       setThreadMessages(Array.isArray(data) ? data : []);
@@ -526,8 +527,8 @@ export default function DashboardPage() {
     try {
       const endpoint =
         action === "approve"
-          ? `${API_SITE_BASE}/api/admin/approve-user/${encodeURIComponent(userId)}`
-          : `${API_SITE_BASE}/api/admin/reject-user/${encodeURIComponent(userId)}`;
+          ? `${apiBase}/api/admin/approve-user/${encodeURIComponent(userId)}`
+          : `${apiBase}/api/admin/reject-user/${encodeURIComponent(userId)}`;
       const r = await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: `Bearer ${session.token}` }
@@ -550,8 +551,8 @@ export default function DashboardPage() {
     const headers = { Authorization: `Bearer ${session.token}` };
     try {
       const [progress, linkData] = await Promise.all([
-        fetch(`${API_SITE_BASE}/api/admin/user-progress/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${API_SITE_BASE}/api/admin/progress-report-link/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null)
+        fetch(`${apiBase}/api/admin/user-progress/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null),
+        fetch(`${apiBase}/api/admin/progress-report-link/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null)
       ]);
       setClientProgress(progress || null);
       setClientProgressLink(String(linkData?.link || ""));
@@ -565,7 +566,7 @@ export default function DashboardPage() {
     setSelectedCheckin(checkin || null);
     if (!session?.token || !checkin?.id || role === "user" || role === "superadmin") return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    const data = await fetch(`${API_SITE_BASE}/api/admin/daily-checkins/${encodeURIComponent(String(checkin.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    const data = await fetch(`${apiBase}/api/admin/daily-checkins/${encodeURIComponent(String(checkin.id))}`, { headers }).then((r) => r.json()).catch(() => null);
     if (data && !data.error) setSelectedCheckin(data);
   }
 
@@ -573,7 +574,7 @@ export default function DashboardPage() {
     setSelectedWorkout(workout || null);
     if (!session?.token || !workout?.id || role === "user" || role === "superadmin") return;
     const headers = { Authorization: `Bearer ${session.token}` };
-    const data = await fetch(`${API_SITE_BASE}/api/admin/workouts/${encodeURIComponent(String(workout.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    const data = await fetch(`${apiBase}/api/admin/workouts/${encodeURIComponent(String(workout.id))}`, { headers }).then((r) => r.json()).catch(() => null);
     if (data && !data.error) setSelectedWorkout(data);
   }
 
@@ -588,7 +589,7 @@ export default function DashboardPage() {
     setIsCreatingClient(true);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/admin/create-client`, {
+      const r = await fetch(`${apiBase}/api/admin/create-client`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({
@@ -619,7 +620,7 @@ export default function DashboardPage() {
     setIsAssigningProgram(true);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/programs/assign`, {
+      const r = await fetch(`${apiBase}/api/programs/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ user_id: assignUserId, program_id: assignProgramId })
@@ -638,7 +639,7 @@ export default function DashboardPage() {
     if (!session?.token || !selectedMeeting?.id) return;
     setIsMeetingUpdating(true);
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/meetings/${encodeURIComponent(String(selectedMeeting.id))}`, {
+      const r = await fetch(`${apiBase}/api/meetings/${encodeURIComponent(String(selectedMeeting.id))}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ status })
@@ -662,7 +663,7 @@ export default function DashboardPage() {
     setMicroSaving(true);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/daily-checkin`, {
+      const r = await fetch(`${apiBase}/api/daily-checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({
@@ -694,7 +695,7 @@ export default function DashboardPage() {
     setWkSubmitting(true);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/workouts`, {
+      const r = await fetch(`${apiBase}/api/workouts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -710,7 +711,7 @@ export default function DashboardPage() {
       setWkFeedback("");
       setTimerSeconds(0);
       setTimerRunning(false);
-      const rows = await fetch(`${API_SITE_BASE}/api/workouts/${encodeURIComponent(String(uid))}`).then((x) => x.json()).catch(() => []);
+      const rows = await fetch(`${apiBase}/api/workouts/${encodeURIComponent(String(uid))}`).then((x) => x.json()).catch(() => []);
       setWorkouts(Array.isArray(rows) ? rows : []);
       refreshUserTodayAndStreak();
     } catch (e2: any) {
@@ -731,7 +732,7 @@ export default function DashboardPage() {
     setError("");
     try {
       const u = session.user;
-      const r = await fetch(`${API_SITE_BASE}/api/meetings`, {
+      const r = await fetch(`${apiBase}/api/meetings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -747,7 +748,7 @@ export default function DashboardPage() {
       if (!r.ok || data?.error) throw new Error(data?.error || "Failed to schedule.");
       setMeetingDate("");
       setMeetingTime("");
-      const rows = await fetch(`${API_SITE_BASE}/api/meetings/user/${encodeURIComponent(String(uid))}`, {
+      const rows = await fetch(`${apiBase}/api/meetings/user/${encodeURIComponent(String(uid))}`, {
         headers: { Authorization: `Bearer ${session.token}` }
       })
         .then((x) => x.json())
@@ -773,7 +774,7 @@ export default function DashboardPage() {
     setSundaySubmitting(true);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/sunday-checkin`, {
+      const r = await fetch(`${apiBase}/api/sunday-checkin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -817,7 +818,7 @@ export default function DashboardPage() {
     setProgressSuccess(false);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/progress`, {
+      const r = await fetch(`${apiBase}/api/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({
@@ -838,7 +839,7 @@ export default function DashboardPage() {
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data?.error || "Failed to save progress.");
       setProgressSuccess(true);
-      const logsRes = await fetch(`${API_SITE_BASE}/api/progress`, {
+      const logsRes = await fetch(`${apiBase}/api/progress`, {
         headers: { Authorization: `Bearer ${session.token}` }
       }).then((x) => x.json()).catch(() => null);
       setUserProgressLogs(Array.isArray(logsRes?.logs) ? logsRes.logs : []);
@@ -853,10 +854,10 @@ export default function DashboardPage() {
     if (!session?.token) return;
     const headers = { Authorization: `Bearer ${session.token}` };
     const [reqs, clientReqs, overview, trainersList] = await Promise.all([
-      fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${API_SITE_BASE}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => [])
+      fetch(`${apiBase}/api/superadmin/trainer-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/superadmin/client-requests?status=all`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/superadmin/trainer-client-overview`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/superadmin/trainers`, { headers }).then((r) => r.json()).catch(() => [])
     ]);
     setTrainerRequests(Array.isArray(reqs) ? reqs : []);
     setClientLeadRequests(Array.isArray(clientReqs) ? clientReqs : []);
@@ -875,7 +876,7 @@ export default function DashboardPage() {
     setSuperadminQueueBusy(`${requestId}-ta`);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/approve`, {
+      const r = await fetch(`${apiBase}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ password: pwd })
@@ -900,7 +901,7 @@ export default function DashboardPage() {
     setSuperadminQueueBusy(`${requestId}-tr`);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/reject`, {
+      const r = await fetch(`${apiBase}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/reject`, {
         method: "POST",
         headers: { Authorization: `Bearer ${session.token}` }
       });
@@ -923,7 +924,7 @@ export default function DashboardPage() {
     setSuperadminQueueBusy(`${requestId}-ca`);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/approve`, {
+      const r = await fetch(`${apiBase}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
         body: JSON.stringify({ trainer_user_id: trainerId })
@@ -955,7 +956,7 @@ export default function DashboardPage() {
     setSuperadminQueueBusy(`${requestId}-cr`);
     setError("");
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/reject`, {
+      const r = await fetch(`${apiBase}/api/superadmin/client-requests/${encodeURIComponent(requestId)}/reject`, {
         method: "POST",
         headers: { Authorization: `Bearer ${session.token}` }
       });
@@ -1329,7 +1330,7 @@ export default function DashboardPage() {
           backdropFilter: "blur(8px)"
         }}
       >
-        <img src={`${API_SITE_BASE}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
+        <img src={`${apiBase}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button className="bb-header-btn" aria-label="Notifications">
             🔔
@@ -3110,7 +3111,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="prog-actions">
                       {p.pdf_url ? (
-                        <a href={p.pdf_url.startsWith("http") ? p.pdf_url : `${API_SITE_BASE}${p.pdf_url}`} target="_blank" rel="noreferrer">
+                        <a href={p.pdf_url.startsWith("http") ? p.pdf_url : `${apiBase}${p.pdf_url}`} target="_blank" rel="noreferrer">
                           Open PDF
                         </a>
                       ) : null}

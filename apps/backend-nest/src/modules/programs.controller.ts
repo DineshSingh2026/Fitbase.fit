@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Inject, Param, Post, Req, Res, UseGuards } from "@nestjs/common";
 import type { Response } from "express";
 import { Pool } from "pg";
+import { normalizeRoleString } from "./auth-role.util";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { Roles } from "./roles.decorator";
 import { RolesGuard } from "./roles.guard";
@@ -10,16 +11,54 @@ import { createReadStream, existsSync, statSync } from "fs";
 import { join } from "path";
 
 function isAdmin(user: any): boolean {
-  return user?.role === "admin";
+  return normalizeRoleString(user?.role) === "admin";
 }
 
 function isSuperadmin(user: any): boolean {
-  return user?.role === "superadmin";
+  return normalizeRoleString(user?.role) === "superadmin";
 }
 
 @Controller("api")
 export class ProgramsController {
   constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
+
+  /** Postgres on Render often has no programs tables until first use (Express SQLite had its own bootstrap). */
+  private async ensureProgramsSchema(): Promise<void> {
+    if (!this.pool) return;
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS programs (
+        id text PRIMARY KEY,
+        name text NOT NULL,
+        pdf_url text NOT NULL DEFAULT '',
+        image_url text,
+        youtube_url text DEFAULT '',
+        sort_order int DEFAULT 0,
+        created_at timestamptz DEFAULT now()
+      )
+    `);
+    await this.pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS image_url text`);
+    await this.pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS youtube_url text`);
+    await this.pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS sort_order int DEFAULT 0`);
+    await this.pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
+    await this.pool.query(`
+      CREATE TABLE IF NOT EXISTS user_program_assignments (
+        id uuid PRIMARY KEY,
+        user_id text NOT NULL,
+        program_id text NOT NULL,
+        assigned_by text,
+        assigned_at timestamptz DEFAULT now(),
+        removed_at timestamptz,
+        seen_at timestamptz
+      )
+    `);
+    await this.pool.query(`ALTER TABLE user_program_assignments ADD COLUMN IF NOT EXISTS seen_at timestamptz`);
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_user_program_assignments_user ON user_program_assignments(user_id)`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_user_program_assignments_program ON user_program_assignments(program_id)`
+    );
+  }
 
   private get jwtSecret(): string {
     return process.env.JWT_SECRET || "fitbase-progress-secret-change-in-production";
@@ -73,12 +112,15 @@ export class ProgramsController {
   async programsLegacy(@Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Database unavailable" });
     try {
+      await this.ensureProgramsSchema();
       const rows = await this.pool.query(
         "SELECT id, name, pdf_url, image_url, youtube_url, sort_order FROM programs ORDER BY sort_order, name"
       );
       return res.json(rows.rows);
     } catch (e: any) {
-      return res.status(500).json({ error: e?.message || "Failed" });
+      if (e?.code === "42P01" || e?.code === "42703") return res.json([]);
+      console.error("[programs-legacy]", e?.code, e?.message);
+      return res.json([]);
     }
   }
 
@@ -88,10 +130,13 @@ export class ProgramsController {
   async programCatalog(@Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Database unavailable" });
     try {
+      await this.ensureProgramsSchema();
       const rows = await this.pool.query("SELECT id, name, pdf_url FROM programs ORDER BY name");
       return res.json(rows.rows);
     } catch (e: any) {
-      return res.status(500).json({ error: e?.message || "Failed" });
+      if (e?.code === "42P01" || e?.code === "42703") return res.json([]);
+      console.error("[program-catalog]", e?.code, e?.message);
+      return res.json([]);
     }
   }
 
@@ -101,6 +146,7 @@ export class ProgramsController {
   async programsByUser(@Param("userId") userId: string, @Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Database unavailable" });
     try {
+      await this.ensureProgramsSchema();
       if (!(await this.trainerCanAccessClient(req.user, userId))) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -149,6 +195,7 @@ export class ProgramsController {
   ) {
     if (!this.pool) return res.status(500).json({ error: "Database unavailable" });
     try {
+      await this.ensureProgramsSchema();
       const userId = String(body?.user_id || "");
       const programId = String(body?.program_id || "");
       if (!userId || !programId) return res.status(400).json({ error: "user_id and program_id required" });

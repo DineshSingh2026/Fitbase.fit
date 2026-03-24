@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { API_SITE_BASE } from "../lib/site-url";
+import { getApiSiteBase } from "../lib/site-url";
 
 type FaqItem = { q: string; a: string };
 type Plan = { name: string; price: string; featured?: boolean; badge?: string; features: string[] };
@@ -711,7 +711,7 @@ export default function FitBaseLandingPage() {
                 setClientError("");
                 setClientSubmitting(true);
                 try {
-                  const r = await fetch(`${API_SITE_BASE}/api/client-requests`, {
+                  const r = await fetch(`${getApiSiteBase()}/api/client-requests`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -851,7 +851,7 @@ export default function FitBaseLandingPage() {
                 setApplyError("");
                 setApplySubmitting(true);
                 try {
-                  const r = await fetch(`${API_SITE_BASE}/api/trainer-requests`, {
+                  const r = await fetch(`${getApiSiteBase()}/api/trainer-requests`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

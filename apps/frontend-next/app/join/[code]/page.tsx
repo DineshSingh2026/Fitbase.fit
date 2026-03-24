@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { API_SITE_BASE } from "../../../lib/site-url";
+import { getApiSiteBase } from "../../../lib/site-url";
 
 export default function JoinTrainerPage() {
   const params = useParams();
@@ -38,7 +38,7 @@ export default function JoinTrainerPage() {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch(`${API_SITE_BASE}/api/public/referral/${encodeURIComponent(code)}`);
+        const r = await fetch(`${getApiSiteBase()}/api/public/referral/${encodeURIComponent(code)}`);
         const data = await r.json().catch(() => ({}));
         if (cancelled) return;
         if (!r.ok || !data?.ok) {
@@ -67,7 +67,7 @@ export default function JoinTrainerPage() {
     }
     setBusy(true);
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/public/client-signup-referral`, {
+      const r = await fetch(`${getApiSiteBase()}/api/public/client-signup-referral`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

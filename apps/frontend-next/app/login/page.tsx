@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { persistNormalizedSession } from "../../lib/fitbase-session";
-import { API_SITE_BASE } from "../../lib/site-url";
+import { getApiSiteBase } from "../../lib/site-url";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,7 @@ export default function LoginPage() {
     setMsg("");
     setBusy(true);
     try {
-      const r = await fetch(`${API_SITE_BASE}/api/auth/login`, {
+      const r = await fetch(`${getApiSiteBase()}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password })
