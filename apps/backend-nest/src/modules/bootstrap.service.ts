@@ -126,6 +126,47 @@ export class BootstrapService implements OnModuleInit {
     await this.pool.query(
       `CREATE INDEX IF NOT EXISTS thread_messages_thread_idx ON thread_messages (thread_id, created_at ASC)`
     );
+
+    await this.ensureTribeMembersTable();
+  }
+
+  /** Matches Express server.js / trainer dashboard; required for approve-user and /api/tribe. */
+  private async ensureTribeMembersTable() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS tribe_members (
+        id text PRIMARY KEY,
+        first_name text NOT NULL DEFAULT '',
+        last_name text DEFAULT '',
+        email text DEFAULT '',
+        phone text DEFAULT '',
+        city text DEFAULT '',
+        phase integer DEFAULT 1,
+        start_date text,
+        activity_per_week integer DEFAULT 0,
+        starting_weight double precision,
+        current_weight double precision,
+        target_weight double precision,
+        next_checkin text DEFAULT '',
+        notes text DEFAULT '',
+        status text DEFAULT 'active',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS last_name text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS email text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS phone text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS city text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS phase integer DEFAULT 1`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS start_date text`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS activity_per_week integer DEFAULT 0`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS starting_weight double precision`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS current_weight double precision`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS target_weight double precision`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS next_checkin text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS notes text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS status text DEFAULT 'active'`);
+    await this.pool.query(`ALTER TABLE tribe_members ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
   }
 
   private async updateSuperadmin(email: string, passwordHash: string) {

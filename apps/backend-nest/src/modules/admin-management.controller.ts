@@ -6,13 +6,14 @@ import { RolesGuard } from "./roles.guard";
 import { Roles } from "./roles.decorator";
 import { randomUUID } from "crypto";
 import * as bcrypt from "bcryptjs";
+import { normalizeRoleString } from "./auth-role.util";
 
 function isAdmin(user: any): boolean {
-  return user?.role === "admin";
+  return normalizeRoleString(user?.role) === "admin";
 }
 
 function isSuperadmin(user: any): boolean {
-  return user?.role === "superadmin";
+  return normalizeRoleString(user?.role) === "superadmin";
 }
 
 @Controller("api/admin")
@@ -134,7 +135,7 @@ export class AdminManagementController {
         const today = new Date().toISOString().split("T")[0];
         const city = String(user.city || user.country || "").trim();
         await this.pool.query(
-          "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12)",
+          "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes, status) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12,$13)",
           [
             tribeId,
             user.first_name || "",
@@ -147,12 +148,14 @@ export class AdminManagementController {
             null,
             null,
             "",
-            "Newly approved"
+            "Newly approved",
+            "active"
           ]
         );
       }
       return res.json({ message: "User approved" });
-    } catch {
+    } catch (e: any) {
+      console.error("[admin approve-user]", e?.message || e);
       return res.status(500).json({ error: "Failed to approve user" });
     }
   }
@@ -265,7 +268,7 @@ export class AdminManagementController {
       const today = new Date().toISOString().split("T")[0];
       try {
         await this.pool.query(
-          "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12)",
+          "INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes, status) VALUES ($1,$2,$3,$4,$5,$6,1,$7,0,$8,$9,$10,$11,$12,$13)",
           [
             tribeId,
             body?.first_name || "",
@@ -278,7 +281,8 @@ export class AdminManagementController {
             null,
             null,
             "",
-            "Added by trainer dashboard"
+            "Added by trainer dashboard",
+            "active"
           ]
         );
       } catch (e: any) {
