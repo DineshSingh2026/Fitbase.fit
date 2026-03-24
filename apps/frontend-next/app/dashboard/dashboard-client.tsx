@@ -1192,8 +1192,6 @@ export default function DashboardPage() {
     );
   }
 
-  const hideTrainerHubWelcome = isStaff && (activeTab === "clients" || activeTab === "forms" || activeTab === "messages");
-
   const timerHr = String(Math.floor(timerSeconds / 3600)).padStart(2, "0");
   const timerMin = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2, "0");
   const timerSec = String(timerSeconds % 60).padStart(2, "0");
@@ -1327,6 +1325,12 @@ export default function DashboardPage() {
         }
         @media(max-width:520px){
           #usec-home .welcome-cards{grid-template-columns:1fr}
+          .bb-client-home-title{text-align:center;width:100%}
+          #usec-home .user-welcome{text-align:center;display:flex;flex-direction:column;align-items:center}
+          #usec-home .user-welcome-avatar,#usec-home .user-welcome-avatar-placeholder{margin-left:auto;margin-right:auto}
+          #usec-home .user-welcome h1{text-align:center;width:100%}
+          #usec-home .user-welcome .user-welcome-tag{width:100%;text-align:center}
+          #usec-home .today-card{text-align:center}
         }
         .user-welcome{text-align:center;padding:56px 24px 64px;position:relative}
         .user-welcome::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(480px,95%);height:320px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(45,212,191,0.08) 0%,transparent 70%);pointer-events:none}
@@ -1418,10 +1422,11 @@ export default function DashboardPage() {
         .ud-form-submit:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(45,212,191,0.3)}
         .ud-form-divider{height:1px;background:var(--border);margin:24px 0}
         .ud-form-hint-sm{font-size:11px;color:var(--text-secondary);margin-top:4px;display:block}
-        .timer-display{text-align:center;margin:28px 0}
-        .timer-digits{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:6px;color:var(--text-primary)}
-        .timer-digits span{display:inline-block;min-width:70px;padding:8px 12px;background:var(--bg-card);border-radius:8px;margin:0 4px}
-        .timer-sep{color:var(--accent);font-size:48px;vertical-align:middle}
+        .timer-display{text-align:center;margin:28px 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+        .timer-digits{font-family:'Bebas Neue',sans-serif;font-size:clamp(30px,9vw,64px);letter-spacing:2px;color:var(--text-primary);display:inline-flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:clamp(4px,1.5vw,8px);max-width:100%;box-sizing:border-box}
+        .timer-digits span{display:inline-flex;align-items:center;justify-content:center;min-width:2.2ch;padding:clamp(4px,1.2vw,8px) clamp(6px,2vw,12px);background:var(--bg-card);border-radius:8px;box-sizing:border-box;flex:0 0 auto}
+        .timer-digits .timer-sep{min-width:auto;padding:clamp(2px,0.8vw,6px) clamp(2px,1vw,6px);font-size:0.65em;line-height:1;color:var(--accent);background:transparent}
+        .timer-sep{color:var(--accent);vertical-align:middle}
         .timer-btn{display:block;margin:16px auto;padding:14px 60px;border:1.5px solid var(--accent);border-radius:10px;background:rgba(45,212,191,0.05);color:var(--accent);font-size:28px;cursor:pointer;transition:all .3s;box-shadow:0 0 20px rgba(45,212,191,0.1);font-family:inherit}
         .timer-btn:hover{background:rgba(45,212,191,0.15);box-shadow:0 0 30px rgba(45,212,191,0.2)}
         .timer-reset{display:block;margin:8px auto;padding:8px 20px;border:none;background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;font-family:'Outfit',sans-serif}
@@ -1520,7 +1525,11 @@ export default function DashboardPage() {
       </header>
 
       <section className="bb-dash-main">
-        <h1 className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}`}>
+        <h1
+          className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
+            role === "user" && activeTab === "home" ? " bb-client-home-title" : ""
+          }`}
+        >
           {role === "user"
             ? userPageTitle[activeTab]
             : activeTab === "home"
@@ -1531,24 +1540,6 @@ export default function DashboardPage() {
                 ? "FORMS"
                 : activeTab.toUpperCase()}
         </h1>
-        {activeTab !== "home" && !hideTrainerHubWelcome ? (
-          <div className="bb-admin-welcome-card" style={{ marginBottom: 14 }}>
-            <h2 className="bb-admin-welcome-title" style={{ marginBottom: 4 }}>
-              {role === "superadmin" ? (
-                <>
-                  Welcome back <span className="bb-admin-welcome-role">super admin</span>
-                </>
-              ) : (
-                <>
-                  Welcome back <span className="bb-admin-welcome-role">{displayName}</span>
-                </>
-              )}
-            </h2>
-            <p className="bb-admin-welcome-date" suppressHydrationWarning>
-              {todayLabel || "\u00a0"}
-            </p>
-          </div>
-        ) : null}
 
         {error ? <p style={{ color: "var(--red)", marginTop: 12 }}>{error}</p> : null}
 
@@ -2306,15 +2297,7 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
-                <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
-                  <h2 className="bb-admin-welcome-title">
-                    Welcome back <span className="bb-admin-welcome-role">{displayName}</span>
-                  </h2>
-                  <p className="bb-admin-welcome-date" suppressHydrationWarning>
-                    {todayLabel || "\u00a0"}
-                  </p>
-                </div>
-                <div className="bb-admin-summary-cards">
+                <div className="bb-admin-summary-cards" style={{ marginTop: 12 }}>
                   <button
                     type="button"
                     className="bb-admin-summary-card"
