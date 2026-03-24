@@ -376,7 +376,7 @@ export class AdminManagementController {
         where.push(`date(dc.checkin_date) <= date($${params.length})`);
       }
       let sql =
-        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id";
+        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id::text = dc.user_id::text";
       if (where.length) sql += " WHERE " + where.join(" AND ");
       sql += " ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 400";
       let rows = await this.safeRows(sql, params);
@@ -394,7 +394,7 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Not found" });
     try {
       const rows = await this.safeRows(
-        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE dc.id = $1 LIMIT 1",
+        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id::text = dc.user_id::text WHERE dc.id = $1 LIMIT 1",
         [id]
       );
       const row = rows[0];
@@ -425,7 +425,7 @@ export class AdminManagementController {
         where.push(`date(w.created_at) <= date($${params.length})`);
       }
       let sql =
-        "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id";
+        "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text";
       if (where.length) sql += " WHERE " + where.join(" AND ");
       sql += " ORDER BY w.created_at DESC LIMIT 400";
       let rows = await this.safeRows(sql, params);
@@ -443,7 +443,7 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Not found" });
     try {
       const rows = await this.safeRows(
-        "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id WHERE w.id = $1 LIMIT 1",
+        "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text WHERE w.id = $1 LIMIT 1",
         [id]
       );
       const row = rows[0];
@@ -555,7 +555,7 @@ export class AdminManagementController {
       const sc = await this.pool.query(
         `SELECT s.full_name, s.created_at
          FROM sunday_checkins s
-         LEFT JOIN users u ON u.id = s.user_id
+         LEFT JOIN users u ON u.id::text = s.user_id::text
          WHERE ($1::text IS NULL OR u.trainer_id = $2)
          ORDER BY s.created_at DESC LIMIT $3`,
         [trainerId, trainerId, limit]
@@ -571,7 +571,7 @@ export class AdminManagementController {
 
       const wl = await this.pool.query(
         `SELECT u.first_name, u.last_name, w.created_at
-         FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id
+         FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text
          WHERE ($1::text IS NULL OR u.trainer_id = $2)
          ORDER BY w.created_at DESC LIMIT $3`,
         [trainerId, trainerId, limit]
@@ -588,7 +588,7 @@ export class AdminManagementController {
       const cm = await this.pool.query(
         `SELECT c.name, c.created_at
          FROM contact_messages c
-         LEFT JOIN users u ON u.id = c.user_id
+         LEFT JOIN users u ON u.id::text = c.user_id::text
          WHERE ($1::text IS NULL OR u.trainer_id = $2)
          ORDER BY c.created_at DESC LIMIT $3`,
         [trainerId, trainerId, limit]
@@ -652,7 +652,7 @@ export class AdminManagementController {
       summary.pending_requests = pendingAudit.rows[0]?.c || 0;
 
       const dailyCheckins = await this.pool.query(
-        "SELECT COUNT(*)::int as c FROM daily_checkins d LEFT JOIN users u ON u.id = d.user_id WHERE ($1::text IS NULL OR u.trainer_id = $2)",
+        "SELECT COUNT(*)::int as c FROM daily_checkins d LEFT JOIN users u ON u.id::text = d.user_id::text WHERE ($1::text IS NULL OR u.trainer_id = $2)",
         [trainerId, trainerId]
       );
       summary.daily_checkins = dailyCheckins.rows[0]?.c || 0;
@@ -695,7 +695,7 @@ export class AdminManagementController {
       if (source === "all" || source === "overview") {
         const limit = 80;
         const w = await this.pool.query(
-          "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200"
+          "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text ORDER BY w.created_at DESC LIMIT 200"
         );
         const sc = await this.pool.query(
           "SELECT id, user_id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200"
@@ -754,7 +754,7 @@ export class AdminManagementController {
 
         if (source === "workouts") {
           sql =
-            "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id";
+            "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text";
           const where = addDateUserFilters("w.created_at", "w.user_id");
           if (where.length) sql += " WHERE " + where.join(" AND ");
           sql += ` ORDER BY w.created_at DESC LIMIT ${limit}`;

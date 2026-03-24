@@ -49,7 +49,7 @@ export class NotificationsController {
           `SELECT m.id, m.thread_id, m.body, m.created_at, u.first_name, u.last_name, u.email
            FROM thread_messages m
            JOIN message_threads t ON t.id = m.thread_id
-           LEFT JOIN users u ON u.id = t.user_id
+           LEFT JOIN users u ON u.id::text = t.user_id::text
            WHERE m.sender_role = 'user'
            ORDER BY m.created_at DESC LIMIT 50`
         );
@@ -84,7 +84,7 @@ export class NotificationsController {
         });
 
         const workouts = await this.pool.query(
-          "SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 20"
+          "SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text ORDER BY w.created_at DESC LIMIT 20"
         );
         workouts.rows.forEach((w: any) => {
           const mins = Math.floor((Number(w.duration_seconds) || 0) / 60);
@@ -144,7 +144,7 @@ export class NotificationsController {
           const sundayRows = await this.pool.query(
             `SELECT s.id, s.full_name, s.reply_email, s.created_at, u.first_name, u.last_name
              FROM sunday_checkins s
-             LEFT JOIN users u ON u.id = s.user_id
+             LEFT JOIN users u ON u.id::text = s.user_id::text
              ORDER BY s.created_at DESC LIMIT 25`
           );
           sundayRows.rows.forEach((s: any) => {
@@ -169,7 +169,7 @@ export class NotificationsController {
             `SELECT d.id, d.checkin_date, d.created_at, d.steps, d.water_ml, d.protein_g, d.sleep_hours,
                     u.first_name, u.last_name, u.email
              FROM daily_checkins d
-             LEFT JOIN users u ON u.id = d.user_id
+             LEFT JOIN users u ON u.id::text = d.user_id::text
              ORDER BY d.created_at DESC LIMIT 30`
           );
           dailyRows.rows.forEach((d: any) => {
@@ -194,7 +194,7 @@ export class NotificationsController {
           const wlogs = await this.pool.query(
             `SELECT w.id, w.weight_kg, w.created_at, u.first_name, u.last_name
              FROM weight_logs w
-             LEFT JOIN users u ON w.user_id = u.id
+             LEFT JOIN users u ON u.id::text = w.user_id::text
              ORDER BY w.created_at DESC LIMIT 20`
           );
           wlogs.rows.forEach((w: any) => {
@@ -214,7 +214,7 @@ export class NotificationsController {
           const prog = await this.pool.query(
             `SELECT p.id, p.weight, p.body_fat, p.created_at, u.first_name, u.last_name
              FROM progress_logs p
-             LEFT JOIN users u ON p.user_id = u.id
+             LEFT JOIN users u ON u.id::text = p.user_id::text
              ORDER BY p.created_at DESC LIMIT 25`
           );
           prog.rows.forEach((p: any) => {
@@ -237,7 +237,7 @@ export class NotificationsController {
           const hyd = await this.pool.query(
             `SELECT h.id, h.amount_ml, h.glasses, h.created_at, u.first_name, u.last_name
              FROM hydration_logs h
-             LEFT JOIN users u ON h.user_id = u.id
+             LEFT JOIN users u ON u.id::text = h.user_id::text
              ORDER BY h.created_at DESC LIMIT 15`
           );
           hyd.rows.forEach((h: any) => {

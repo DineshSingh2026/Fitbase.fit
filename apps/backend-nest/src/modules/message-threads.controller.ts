@@ -65,7 +65,7 @@ export class MessageThreadsController {
                u.first_name, u.last_name, u.email,
                (SELECT body FROM thread_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) AS last_message
              FROM message_threads t
-             LEFT JOIN users u ON u.id = t.user_id
+             LEFT JOIN users u ON u.id::text = t.user_id::text
              WHERE ($1::text IS NULL OR u.trainer_id = $2)
              ORDER BY t.user_id, t.updated_at DESC
            ) sub

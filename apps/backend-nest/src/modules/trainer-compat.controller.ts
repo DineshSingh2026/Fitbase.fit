@@ -140,7 +140,7 @@ export class TrainerCompatController {
     await this.ensureMeetingsTable();
     const trainerId = req.user?.role === "admin" ? String(req.user.id) : null;
     const rows = await this.safeRows(
-      "SELECT m.*, u.trainer_id FROM meetings m LEFT JOIN users u ON u.id = m.user_id WHERE m.status='scheduled' ORDER BY m.meeting_date ASC, m.time_slot ASC"
+      "SELECT m.*, u.trainer_id FROM meetings m LEFT JOIN users u ON u.id::text = m.user_id::text WHERE m.status='scheduled' ORDER BY m.meeting_date ASC, m.time_slot ASC"
     );
     const filtered =
       trainerId == null ? rows : rows.filter((r: any) => String(r.trainer_id || "") === trainerId);

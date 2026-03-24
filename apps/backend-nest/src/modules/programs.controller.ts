@@ -160,7 +160,7 @@ export class ProgramsController {
         [userId]
       );
       const users = await this.pool.query(
-        "SELECT id, first_name, last_name, email FROM users WHERE id IN (SELECT DISTINCT assigned_by FROM user_program_assignments WHERE assigned_by IS NOT NULL)"
+        "SELECT id, first_name, last_name, email FROM users WHERE id::text IN (SELECT DISTINCT assigned_by FROM user_program_assignments WHERE assigned_by IS NOT NULL)"
       );
       const userMap: Record<string, string> = {};
       users.rows.forEach((u: any) => {
@@ -236,7 +236,7 @@ export class ProgramsController {
       const assignment = await this.pool.query(
         `SELECT a.id, a.user_id, u.trainer_id
          FROM user_program_assignments a
-         LEFT JOIN users u ON u.id = a.user_id
+         LEFT JOIN users u ON u.id::text = a.user_id::text
          WHERE a.id = $1`,
         [id]
       );

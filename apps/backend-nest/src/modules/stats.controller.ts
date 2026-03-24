@@ -39,11 +39,11 @@ export class StatsController {
         [trainerId, trainerId]
       );
       const dailyCheckins = await this.safeCount(
-        "SELECT COUNT(*)::int AS c FROM daily_checkins d LEFT JOIN users u ON u.id = d.user_id WHERE ($1::text IS NULL OR u.trainer_id = $2)",
+        "SELECT COUNT(*)::int AS c FROM daily_checkins d LEFT JOIN users u ON u.id::text = d.user_id::text WHERE ($1::text IS NULL OR u.trainer_id = $2)",
         [trainerId, trainerId]
       );
       const messages = await this.safeCount(
-        "SELECT COUNT(*)::int AS c FROM contact_messages c LEFT JOIN users u ON u.id = c.user_id WHERE ($1::text IS NULL OR u.trainer_id = $2)",
+        "SELECT COUNT(*)::int AS c FROM contact_messages c LEFT JOIN users u ON u.id::text = c.user_id::text WHERE ($1::text IS NULL OR u.trainer_id = $2)",
         [trainerId, trainerId]
       );
       const pendingRequests = await this.safeCount("SELECT COUNT(*)::int AS c FROM audit_requests WHERE status='pending'");
