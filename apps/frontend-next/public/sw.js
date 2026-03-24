@@ -1,4 +1,4 @@
-/* FitBase: push notifications only. No fetch caching (avoids stale HTML/assets after deploy). */
+/* FitBase Next.js: push only. No fetch caching (avoids stale UI after deploy). */
 
 self.addEventListener("install", (e) => {
   self.skipWaiting();
@@ -35,7 +35,7 @@ self.addEventListener("notificationclick", (e) => {
   const url = (e.notification.data && e.notification.data.url) || "/";
   e.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
+      for (let i = 0; i < clientList.length; i++) {
         if (clientList[i].url && clientList[i].focus) {
           clientList[i].navigate(url);
           return clientList[i].focus();
@@ -46,10 +46,11 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
+/* Clear Cache Storage from previous service worker versions. */
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).then(() => self.clients.claim())
   );
 });
 
-/* No fetch handler: browser uses normal HTTP caching only. */
+/* No fetch handler: normal browser + server Cache-Control only. */

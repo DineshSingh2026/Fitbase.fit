@@ -62,23 +62,27 @@ export default function FitBaseLandingPage() {
   const sectionBase: React.CSSProperties = { maxWidth: 1180, margin: "0 auto" };
 
   return (
-    <main style={{ background: "#faf6ef", color: "#2c2416" }}>
+    <main style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box}
-        html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth}
+        html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth;background:var(--bg-primary);color:var(--text-primary)}
+        #apply input,#apply textarea{color:var(--text-primary)}
+        #apply input::placeholder,#apply textarea::placeholder{color:var(--text-muted)}
+        #apply input:focus,#apply textarea:focus{border-color:var(--accent)!important;outline:none}
+        a[href="#dashboard"]:hover{border-color:var(--accent)!important}
         .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
         .reveal.is-visible{opacity:1;transform:translateY(0)}
         .float-card{animation:floatY 4s ease-in-out infinite}
-        .pulse-dot{animation:pulseDot 2s ease-in-out infinite}
+        .pulse-dot{animation:pulseDot 2s ease-in-out infinite;background:var(--accent)!important}
         @keyframes floatY{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
-        @keyframes pulseDot{0%{opacity:1}50%{opacity:.3}100%{opacity:1}}
+        @keyframes pulseDot{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
         @media (max-width:860px){
           .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
           .hide-mobile{display:none !important}
           .mobile-login{display:inline-flex !important}
-          .pad{padding-left:20px !important;padding-right:20px !important}
-          .hero{padding-top:120px !important}
+          .pad{padding-left:max(20px, env(safe-area-inset-left, 0px)) !important;padding-right:max(20px, env(safe-area-inset-right, 0px)) !important}
+          .hero{padding-top:max(120px, calc(96px + env(safe-area-inset-top, 0px))) !important}
         }
         @media (min-width:861px){
           .mobile-login{display:none !important}
@@ -93,28 +97,31 @@ export default function FitBaseLandingPage() {
           left: 0,
           right: 0,
           zIndex: 200,
-          padding: "14px 36px",
+          paddingTop: "max(14px, env(safe-area-inset-top, 0px))",
+          paddingBottom: 14,
+          paddingLeft: "max(36px, env(safe-area-inset-left, 0px))",
+          paddingRight: "max(36px, env(safe-area-inset-right, 0px))",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          borderBottom: `1px solid ${scrolled ? "#e8e2d6" : "transparent"}`,
-          background: scrolled ? "rgba(250,246,239,.86)" : "rgba(250,246,239,.55)",
+          borderBottom: `1px solid ${scrolled ? "var(--border)" : "transparent"}`,
+          background: scrolled ? "color-mix(in srgb, var(--bg-surface) 92%, transparent)" : "color-mix(in srgb, var(--bg-primary) 78%, transparent)",
           backdropFilter: "blur(12px)",
           transition: "all .25s ease"
         }}
       >
         <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 46, width: "auto", objectFit: "contain" }} />
         <div className="hide-mobile" style={{ display: "flex", gap: 20, alignItems: "center", fontSize: 13 }}>
-          <a href="#problem" style={{ color: "#9a8f7e", textDecoration: "none" }}>Problem</a>
-          <a href="#how" style={{ color: "#9a8f7e", textDecoration: "none" }}>How it works</a>
-          <a href="#dashboard" style={{ color: "#9a8f7e", textDecoration: "none" }}>Dashboard</a>
-          <a href="#client-portal" style={{ color: "#9a8f7e", textDecoration: "none" }}>Client Portal</a>
-          <a href="#pricing" style={{ color: "#9a8f7e", textDecoration: "none" }}>Pricing</a>
-          <a href={loginHref} style={{ color: "#9a8f7e", textDecoration: "none" }}>Login</a>
+          <a href="#problem" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Problem</a>
+          <a href="#how" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>How it works</a>
+          <a href="#dashboard" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Dashboard</a>
+          <a href="#client-portal" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Client Portal</a>
+          <a href="#pricing" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Pricing</a>
+          <a href={loginHref} style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Login</a>
           <button
             type="button"
             onClick={() => applyRef.current?.scrollIntoView({ behavior: "smooth" })}
-            style={{ border: "none", background: "#c9a84c", color: "#fff", padding: "10px 16px", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}
+            style={{ border: "none", background: "var(--accent)", color: "#0f0f0f", padding: "10px 16px", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}
           >
             Get Access
           </button>
@@ -125,8 +132,8 @@ export default function FitBaseLandingPage() {
           style={{
             display: "none",
             textDecoration: "none",
-            background: "#c9a84c",
-            color: "#fff",
+            background: "var(--accent)",
+            color: "#0f0f0f",
             padding: "9px 14px",
             borderRadius: 8,
             fontWeight: 600,
@@ -138,43 +145,43 @@ export default function FitBaseLandingPage() {
       </nav>
 
       {/* 2. HERO */}
-      <section className="pad hero" style={{ padding: "110px 36px 80px", background: "#faf6ef" }}>
+      <section className="pad hero" style={{ padding: "110px 36px 80px", background: "var(--bg-primary)" }}>
         <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, alignItems: "center" }}>
           <div className="reveal" data-reveal>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "#fff", border: "1px solid #e8e2d6", marginBottom: 16 }}>
-              <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "#c9a84c", display: "inline-block" }} />
-              <span style={{ fontSize: 12, color: "#9a8f7e" }}>Now in Early Access</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "var(--bg-card)", border: "1px solid var(--border)", marginBottom: 16 }}>
+              <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Now in Early Access</span>
             </div>
             <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(52px,7vw,96px)", margin: 0, letterSpacing: 1, lineHeight: 0.95 }}>
               THE PLATFORM THAT POWERS{" "}
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "#c9a84c" }}>Modern Trainers</span>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "var(--accent)" }}>Modern Trainers</span>
             </h1>
-            <p style={{ margin: "18px 0 24px", color: "#9a8f7e", maxWidth: 560, lineHeight: 1.7 }}>
+            <p style={{ margin: "18px 0 24px", color: "var(--text-secondary)", maxWidth: 560, lineHeight: 1.7 }}>
               Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="#apply" style={{ textDecoration: "none", background: "#c9a84c", color: "#fff", padding: "12px 16px", borderRadius: 8, fontWeight: 600 }}>Request Trainer Access</a>
-              <a href="#dashboard" style={{ textDecoration: "none", background: "transparent", color: "#2c2416", padding: "12px 16px", borderRadius: 8, border: "1px solid #e8e2d6", fontWeight: 600 }}>See the Dashboard</a>
+              <a href="#apply" style={{ textDecoration: "none", background: "var(--accent)", color: "#0f0f0f", padding: "12px 16px", borderRadius: 8, fontWeight: 600 }}>Request Trainer Access</a>
+              <a href="#dashboard" style={{ textDecoration: "none", background: "transparent", color: "var(--text-primary)", padding: "12px 16px", borderRadius: 8, border: "1px solid var(--border)", fontWeight: 600 }}>See the Dashboard</a>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 24 }}>
               {["500+ Active Trainers", "12K+ Clients Managed", "4.9/5 Platform Rating"].map((t) => (
-                <div key={t} style={{ padding: "12px", background: "#fff", border: "1px solid #e8e2d6", borderRadius: 10, fontSize: 13 }}>{t}</div>
+                <div key={t} style={{ padding: "12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13 }}>{t}</div>
               ))}
             </div>
           </div>
           <div className="reveal" data-reveal style={{ position: "relative" }}>
-            <div style={{ border: "1px solid #e8e2d6", borderRadius: 18, background: "#fff", overflow: "hidden", boxShadow: "0 20px 50px rgba(44,36,22,.10)" }}>
-              <div style={{ display: "flex", gap: 8, padding: "12px", borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+            <div style={{ border: "1px solid var(--border)", borderRadius: 18, background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,.35)" }}>
+              <div style={{ display: "flex", gap: 8, padding: "12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
               </div>
               <img src="/img/dashboard.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
             </div>
-            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "0 8px 24px rgba(44,36,22,.12)" }}>
+            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
               Client check-in logged ✓<br />94% weekly compliance
             </div>
-            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "0 8px 24px rgba(44,36,22,.12)" }}>
+            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
               3× Revenue growth
             </div>
           </div>
@@ -182,10 +189,10 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 3. PROBLEM */}
-      <section id="problem" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+      <section id="problem" className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
         <div style={sectionBase}>
           <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>The problem</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>The problem</div>
             <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>You didn't become a trainer to fight admin</h2>
           </div>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
@@ -194,24 +201,24 @@ export default function FitBaseLandingPage() {
               ["👻", "Zero Accountability", "Check-ins disappear and progress stalls without consistency."],
               ["🔧", "The Franken-Stack", "Too many tools, no clean workflow between them."]
             ].map(([icon, title, body]) => (
-              <div key={title} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 18 }}>
+              <div key={title} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
                 <div style={{ fontSize: 24 }}>{icon}</div>
                 <div style={{ fontWeight: 600, marginTop: 8 }}>{title}</div>
-                <p style={{ margin: "8px 0 0", color: "#9a8f7e", lineHeight: 1.6 }}>{body}</p>
+                <p style={{ margin: "8px 0 0", color: "var(--text-secondary)", lineHeight: 1.6 }}>{body}</p>
               </div>
             ))}
           </div>
-          <blockquote className="reveal" data-reveal style={{ margin: "20px 0 0", borderLeft: "4px solid #c9a84c", padding: "8px 0 8px 14px", color: "#2c2416", fontStyle: "italic" }}>
+          <blockquote className="reveal" data-reveal style={{ margin: "20px 0 0", borderLeft: "4px solid var(--accent)", padding: "8px 0 8px 14px", color: "var(--text-primary)", fontStyle: "italic" }}>
             "You did not become a trainer to spend your evenings buried in spreadsheets..."
           </blockquote>
         </div>
       </section>
 
       {/* 4. HOW IT WORKS */}
-      <section id="how" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+      <section id="how" className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={sectionBase}>
           <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>How it works</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>How it works</div>
             <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 20px" }}>From application to transformation</h2>
           </div>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }}>
@@ -220,29 +227,29 @@ export default function FitBaseLandingPage() {
               ["02", "Onboard", "Set up forms, client structure, and coaching workflow."],
               ["03", "Grow", "Scale client outcomes and business revenue with confidence."]
             ].map(([n, t, d]) => (
-              <div key={t} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 18 }}>
-                <div style={{ color: "#c9a84c", fontFamily: "'Bebas Neue',sans-serif", fontSize: 38 }}>{n}</div>
+              <div key={t} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 18 }}>
+                <div style={{ color: "var(--accent)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 38 }}>{n}</div>
                 <div style={{ fontWeight: 600 }}>{t}</div>
-                <div style={{ color: "#9a8f7e", marginTop: 6 }}>{d}</div>
+                <div style={{ color: "var(--text-secondary)", marginTop: 6 }}>{d}</div>
               </div>
             ))}
           </div>
           <div className="stack-2-tight reveal" data-reveal style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 10 }}>
             {["3× Faster onboarding", "94% Check-in rate", "40% More clients retained", "10h Saved weekly"].map((m) => (
-              <div key={m} style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 10, padding: 12, textAlign: "center", fontSize: 13 }}>{m}</div>
+              <div key={m} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: 12, textAlign: "center", fontSize: 13 }}>{m}</div>
             ))}
           </div>
         </div>
       </section>
 
       {/* 5. DASHBOARD */}
-      <section id="dashboard" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+      <section id="dashboard" className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
         <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "center" }}>
           <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Dashboard</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Dashboard</div>
             <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>Your coaching command center</h2>
             {["📋 Client Sign-ups & Onboarding", "✅ Daily & Weekly Check-Ins", "💬 Integrated Messaging", "📊 Analytics & Progress Tracking"].map((f) => (
-              <div key={f} style={{ padding: "12px 0", borderBottom: "1px solid #e8e2d6" }}>{f}</div>
+              <div key={f} style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>{f}</div>
             ))}
           </div>
           <div className="stack-2 reveal" data-reveal style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -250,14 +257,14 @@ export default function FitBaseLandingPage() {
               ["/img/dashboard.png", "Dashboard view"],
               ["/img/forms.png", "Forms view"]
             ].map(([src, label]) => (
-              <div key={label} style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 14, overflow: "hidden" }}>
-                <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+              <div key={label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+                <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
                 </div>
                 <img src={src} alt={label} style={{ width: "100%", display: "block" }} />
-                <div style={{ fontSize: 12, color: "#9a8f7e", padding: 10 }}>{label}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", padding: 10 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -270,7 +277,7 @@ export default function FitBaseLandingPage() {
         className="pad"
         style={{
           padding: "88px 36px",
-          background: "radial-gradient(circle at 8% 12%, rgba(201,168,76,.12), transparent 44%), #faf6ef"
+          background: "radial-gradient(circle at 8% 12%, var(--accent-dim), transparent 44%), var(--bg-primary)"
         }}
       >
         <div
@@ -281,42 +288,42 @@ export default function FitBaseLandingPage() {
             gridTemplateColumns: "1fr 1fr",
             gap: 30,
             alignItems: "center",
-            background: "linear-gradient(165deg, rgba(255,255,255,.86), rgba(255,255,255,.62))",
-            border: "1px solid rgba(201,168,76,.28)",
+            background: "linear-gradient(165deg, color-mix(in srgb, var(--bg-card) 94%, transparent), color-mix(in srgb, var(--bg-surface) 88%, transparent))",
+            border: "1px solid var(--accent-border)",
             borderRadius: 24,
             padding: "24px",
-            boxShadow: "0 26px 70px rgba(44,36,22,.10)"
+            boxShadow: "0 26px 70px rgba(0,0,0,.35)"
           }}
         >
           <div
             className="reveal"
             data-reveal
             style={{
-              background: "#fff",
-              border: "1px solid #e8e2d6",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
               borderRadius: 18,
               overflow: "hidden",
-              boxShadow: "0 18px 42px rgba(44,36,22,.14)"
+              boxShadow: "0 18px 42px rgba(0,0,0,.4)"
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: "1px solid #e8e2d6", background: "#ede7d9" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f57" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#febc2e" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#28c840" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
+                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
               </div>
-              <div style={{ fontSize: 11, color: "#9a8f7e", letterSpacing: ".08em", textTransform: "uppercase" }}>Client Portal</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: ".08em", textTransform: "uppercase" }}>Client Portal</div>
             </div>
             <img src="/img/checkin.png" alt="Client Portal" style={{ width: "100%", display: "block" }} />
           </div>
           <div className="reveal" data-reveal style={{ position: "relative" }}>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
             <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(46px,5.6vw,84px)", margin: "0 0 8px", lineHeight: .95, letterSpacing: .4 }}>
               What your clients
               <br />
               actually see
             </h2>
-            <p style={{ color: "#9a8f7e", fontSize: 16, lineHeight: 1.7, maxWidth: 470, marginBottom: 20 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.7, maxWidth: 470, marginBottom: 20 }}>
               Every client touchpoint feels premium and simple. Clean flows improve adherence, clarity, and trust in your coaching process.
             </p>
             {[
@@ -334,14 +341,14 @@ export default function FitBaseLandingPage() {
                   marginBottom: 10,
                   padding: "10px 12px",
                   borderRadius: 12,
-                  border: "1px solid rgba(201,168,76,.22)",
-                  background: "linear-gradient(180deg,#fff,#fdfbf7)"
+                  border: "1px solid var(--accent-border)",
+                  background: "linear-gradient(180deg, var(--bg-card), var(--bg-surface))"
                 }}
               >
-                <span style={{ color: "#4caf7d", fontWeight: 700, marginTop: 1 }}>✓</span>
+                <span style={{ color: "var(--green)", fontWeight: 700, marginTop: 1 }}>✓</span>
                 <div>
                   <div style={{ fontWeight: 600 }}>{title}</div>
-                  <div style={{ color: "#9a8f7e", fontSize: 13 }}>{desc}</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>{desc}</div>
                 </div>
               </div>
             ))}
@@ -354,7 +361,7 @@ export default function FitBaseLandingPage() {
         className="pad"
         style={{
           padding: "90px 36px",
-          background: "linear-gradient(180deg,#f4efe4,#eee7d8)"
+          background: "linear-gradient(180deg, var(--bg-surface), var(--bg-primary))"
         }}
       >
         <div
@@ -366,20 +373,20 @@ export default function FitBaseLandingPage() {
             gap: 22,
             padding: 22,
             borderRadius: 22,
-            border: "1px solid #c9a84c",
+            border: "1px solid var(--accent)",
             background:
-              "radial-gradient(circle at top right, rgba(201,168,76,.10), transparent 45%), linear-gradient(180deg, #fff, #fbf8f1)",
-            boxShadow: "0 24px 64px rgba(44,36,22,.13)"
+              "radial-gradient(circle at top right, var(--accent-dim), transparent 45%), linear-gradient(180deg, var(--bg-card), var(--bg-surface))",
+            boxShadow: "0 24px 64px rgba(0,0,0,.4)"
           }}
         >
           <div className="reveal" data-reveal>
-            <div style={{ color: "#9a8f7e", fontSize: 12, textTransform: "uppercase", letterSpacing: 2 }}>Trainer AI</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 2 }}>Trainer AI</div>
             <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(50px,6vw,88px)", margin: "8px 0 10px", lineHeight: .9 }}>
               Your AI coaching
               <br />
               co-pilot
             </h2>
-            <p style={{ color: "#9a8f7e", fontSize: 18, lineHeight: 1.65, marginBottom: 16 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: 18, lineHeight: 1.65, marginBottom: 16 }}>
               FitBase AI is built exclusively for trainers — not for clients.
             </p>
             {[
@@ -394,8 +401,8 @@ export default function FitBaseLandingPage() {
                   marginTop: 8,
                   padding: "10px 12px",
                   borderRadius: 12,
-                  border: "1px solid rgba(201,168,76,.22)",
-                  background: "#fff"
+                  border: "1px solid var(--accent-border)",
+                  background: "var(--bg-card)"
                 }}
               >
                 {f}
@@ -406,21 +413,21 @@ export default function FitBaseLandingPage() {
             className="reveal"
             data-reveal
             style={{
-              background: "linear-gradient(180deg,#fff,#fbfaf7)",
-              border: "1px solid #e8e2d6",
+              background: "linear-gradient(180deg, var(--bg-card), var(--bg-surface))",
+              border: "1px solid var(--border)",
               borderRadius: 14,
               padding: 14,
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,.7)"
+              boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--text-primary) 8%, transparent)"
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>
               <strong>FitBase AI</strong>
-              <span style={{ color: "#4caf7d", fontSize: 12 }}>● Trainer only</span>
+              <span style={{ color: "var(--green)", fontSize: 12 }}>● Trainer only</span>
             </div>
-            <div style={{ background: "#f4efe4", padding: 10, borderRadius: 10, marginBottom: 8, fontSize: 14, border: "1px solid #e8e2d6" }}>
+            <div style={{ background: "var(--bg-surface)", padding: 10, borderRadius: 10, marginBottom: 8, fontSize: 14, border: "1px solid var(--border)" }}>
               Trainer: "Client is plateauing for 2 weeks. What should I adjust?"
             </div>
-            <div style={{ background: "#faf6ef", border: "1px solid #e8e2d6", padding: 10, borderRadius: 10, fontSize: 14, lineHeight: 1.45 }}>
+            <div style={{ background: "var(--bg-primary)", border: "1px solid var(--border)", padding: 10, borderRadius: 10, fontSize: 14, lineHeight: 1.45 }}>
               AI: "Reduce calories by 150, increase steps by 2k, keep protein stable, and switch two sessions to higher volume lower load."
             </div>
           </div>
@@ -428,7 +435,7 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 8. TESTIMONIALS */}
-      <section id="testimonials" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+      <section id="testimonials" className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={sectionBase}>
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Results that speak</h2>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14, marginTop: 16 }}>
@@ -437,12 +444,12 @@ export default function FitBaseLandingPage() {
               ["P", "Priya Nair", "Online Coach · Bangalore", "My check-in consistency and client retention jumped fast."],
               ["A", "Arjun Mehta", "Gym Owner · Delhi", "This is the first platform my whole team actually sticks to."]
             ].map(([i, n, m, q]) => (
-              <div key={n} className="reveal" data-reveal style={{ background: "#fff", border: "1px solid #e8e2d6", borderRadius: 12, padding: 16 }}>
-                <div style={{ color: "#c9a84c", marginBottom: 8 }}>★★★★★</div>
+              <div key={n} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
+                <div style={{ color: "var(--accent)", marginBottom: 8 }}>★★★★★</div>
                 <p style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", marginTop: 0 }}>{q}</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#ede7d9", display: "grid", placeItems: "center" }}>{i}</div>
-                  <div><strong>{n}</strong><div style={{ fontSize: 12, color: "#9a8f7e" }}>{m}</div></div>
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--bg-surface)", display: "grid", placeItems: "center" }}>{i}</div>
+                  <div><strong>{n}</strong><div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{m}</div></div>
                 </div>
               </div>
             ))}
@@ -451,15 +458,15 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 9. COMPARISON TABLE */}
-      <section className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+      <section className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
         <div style={sectionBase}>
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>How we compare</h2>
-          <div className="reveal" data-reveal style={{ overflowX: "auto", marginTop: 14, border: "1px solid #e8e2d6", borderRadius: 12 }}>
-            <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", background: "#fff" }}>
+          <div className="reveal" data-reveal style={{ overflowX: "auto", marginTop: 14, border: "1px solid var(--border)", borderRadius: 12 }}>
+            <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", background: "var(--bg-card)" }}>
               <thead>
                 <tr>
                   {["Feature", "FitBase", "Trainerize", "TrueCoach", "PT Distinction"].map((h) => (
-                    <th key={h} style={{ padding: 12, borderBottom: "1px solid #e8e2d6", textAlign: h === "Feature" ? "left" : "center", background: h === "FitBase" ? "#ede7d9" : "#faf6ef", color: h === "FitBase" ? "#c9a84c" : "#9a8f7e" }}>{h}</th>
+                    <th key={h} style={{ padding: 12, borderBottom: "1px solid var(--border)", textAlign: h === "Feature" ? "left" : "center", background: h === "FitBase" ? "var(--bg-surface)" : "var(--bg-primary)", color: h === "FitBase" ? "var(--accent)" : "var(--text-secondary)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -474,10 +481,10 @@ export default function FitBaseLandingPage() {
                   ["Dedicated superadmin support", "✓", "✗", "✗", "Paid"]
                 ].map((r) => (
                   <tr key={r[0]}>
-                    <td style={{ padding: 12, borderBottom: "1px solid #e8e2d6" }}>{r[0]}</td>
+                    <td style={{ padding: 12, borderBottom: "1px solid var(--border)" }}>{r[0]}</td>
                     {[1, 2, 3, 4].map((idx) => {
                       const val = r[idx] as CompareValue;
-                      return <td key={idx} style={{ padding: 12, borderBottom: "1px solid #e8e2d6", textAlign: "center" }}>{val}</td>;
+                      return <td key={idx} style={{ padding: 12, borderBottom: "1px solid var(--border)", textAlign: "center" }}>{val}</td>;
                     })}
                   </tr>
                 ))}
@@ -488,17 +495,17 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 10. FAQ */}
-      <section id="faq" className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+      <section id="faq" className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={sectionBase}>
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Questions answered</h2>
           <div className="stack-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 16 }}>
             {faqs.map((item, idx) => (
-              <div key={item.q} className="reveal" data-reveal style={{ background: "#fff", border: `1px solid ${activeFaq === idx ? "#c9a84c" : "#e8e2d6"}`, borderRadius: 10, overflow: "hidden" }}>
-                <button type="button" onClick={() => setActiveFaq(activeFaq === idx ? null : idx)} style={{ width: "100%", textAlign: "left", border: "none", background: "transparent", padding: 12, fontWeight: 600, cursor: "pointer" }}>
+              <div key={item.q} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: `1px solid ${activeFaq === idx ? "var(--accent)" : "var(--border)"}`, borderRadius: 10, overflow: "hidden" }}>
+                <button type="button" onClick={() => setActiveFaq(activeFaq === idx ? null : idx)} style={{ width: "100%", textAlign: "left", border: "none", background: "transparent", padding: 12, fontWeight: 600, cursor: "pointer", color: "var(--text-primary)" }}>
                   {item.q}
                 </button>
                 <div style={{ maxHeight: activeFaq === idx ? 180 : 0, overflow: "hidden", transition: "max-height .35s ease" }}>
-                  <p style={{ margin: 0, padding: "0 12px 12px", color: "#9a8f7e", lineHeight: 1.6 }}>{item.a}</p>
+                  <p style={{ margin: 0, padding: "0 12px 12px", color: "var(--text-secondary)", lineHeight: 1.6 }}>{item.a}</p>
                 </div>
               </div>
             ))}
@@ -507,19 +514,19 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 11. PRICING */}
-      <section id="pricing" className="pad" style={{ padding: "76px 36px", background: "#f4efe4" }}>
+      <section id="pricing" className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
         <div style={sectionBase}>
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Invest in your growth</h2>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 16 }}>
             {plans.map((p) => (
-              <div key={p.name} className="reveal" data-reveal style={{ background: "#fff", border: `1px solid ${p.featured ? "#c9a84c" : "#e8e2d6"}`, borderRadius: 12, padding: 16 }}>
-                {p.badge ? <div style={{ display: "inline-block", background: "#c9a84c", color: "#fff", borderRadius: 999, fontSize: 11, padding: "4px 8px", marginBottom: 8 }}>{p.badge}</div> : null}
+              <div key={p.name} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: `1px solid ${p.featured ? "var(--accent)" : "var(--border)"}`, borderRadius: 12, padding: 16 }}>
+                {p.badge ? <div style={{ display: "inline-block", background: "var(--accent)", color: "#0f0f0f", borderRadius: 999, fontSize: 11, padding: "4px 8px", marginBottom: 8 }}>{p.badge}</div> : null}
                 <h3 style={{ margin: "0 0 4px" }}>{p.name}</h3>
-                <div style={{ color: "#c9a84c", fontFamily: "'Bebas Neue',sans-serif", fontSize: 40 }}>{p.price}</div>
-                <ul style={{ paddingLeft: 18, margin: "10px 0", color: "#9a8f7e" }}>
+                <div style={{ color: "var(--accent)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 40 }}>{p.price}</div>
+                <ul style={{ paddingLeft: 18, margin: "10px 0", color: "var(--text-secondary)" }}>
                   {p.features.map((f) => <li key={f} style={{ marginBottom: 6 }}>{f}</li>)}
                 </ul>
-                <a href="#apply" style={{ display: "block", textAlign: "center", textDecoration: "none", background: "#c9a84c", color: "#fff", padding: "10px 12px", borderRadius: 8, fontWeight: 600 }}>Get Access</a>
+                <a href="#apply" style={{ display: "block", textAlign: "center", textDecoration: "none", background: "var(--accent)", color: "#0f0f0f", padding: "10px 12px", borderRadius: 8, fontWeight: 600 }}>Get Access</a>
               </div>
             ))}
           </div>
@@ -527,7 +534,7 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 12. APPLY FORM */}
-      <section id="apply" ref={applyRef} className="pad" style={{ padding: "76px 36px", background: "#faf6ef" }}>
+      <section id="apply" ref={applyRef} className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Ready to run a serious coaching business?</h2>
           {!submitted ? (
@@ -542,16 +549,16 @@ export default function FitBaseLandingPage() {
               style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
             >
               {["Full Name", "Email", "Phone", "Gym/Brand", "City", "Approx Clients"].map((label) => (
-                <input key={label} required placeholder={label} style={{ border: "1px solid #e8e2d6", borderRadius: 8, padding: 12, background: "#fff" }} />
+                <input key={label} required placeholder={label} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }} />
               ))}
-              <textarea placeholder="Message" style={{ gridColumn: "1 / -1", border: "1px solid #e8e2d6", borderRadius: 8, padding: 12, minHeight: 120, background: "#fff" }} />
-              <button type="submit" style={{ gridColumn: "1 / -1", border: "none", borderRadius: 8, background: "#c9a84c", color: "#fff", padding: 12, fontWeight: 600, cursor: "pointer" }}>
+              <textarea placeholder="Message" style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 120, background: "var(--bg-card)", color: "var(--text-primary)" }} />
+              <button type="submit" style={{ gridColumn: "1 / -1", border: "none", borderRadius: 8, background: "var(--accent)", color: "#0f0f0f", padding: 12, fontWeight: 600, cursor: "pointer" }}>
                 Submit Application →
               </button>
             </form>
           ) : (
-            <div className="reveal" data-reveal style={{ marginTop: 14, background: "#fff", border: "1px solid #4caf7d", borderRadius: 12, padding: 20, color: "#2c2416" }}>
-              <div style={{ color: "#4caf7d", fontSize: 24 }}>✓</div>
+            <div className="reveal" data-reveal style={{ marginTop: 14, background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 20, color: "var(--text-primary)" }}>
+              <div style={{ color: "var(--green)", fontSize: 24 }}>✓</div>
               <strong>Application received!</strong>
             </div>
           )}
@@ -559,15 +566,15 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 13. FOOTER */}
-      <footer className="pad" style={{ padding: "30px 36px", background: "#ede7d9", borderTop: "1px solid #e8e2d6" }}>
+      <footer className="pad" style={{ padding: "30px 36px", background: "var(--bg-surface)", borderTop: "1px solid var(--border)" }}>
         <div style={{ ...sectionBase, display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
-          <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "#c9a84c", fontSize: 28 }}>FITBASE</div>
+          <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "var(--accent)", fontSize: 28 }}>FITBASE</div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
             {["Problem", "How it works", "Dashboard", "Client Portal", "Pricing", "Login"].map((label) => (
-              <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "#9a8f7e", textDecoration: "none", fontSize: 13 }}>{label}</a>
+              <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "var(--text-secondary)", textDecoration: "none", fontSize: 13 }}>{label}</a>
             ))}
           </div>
-          <div style={{ color: "#9a8f7e", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>
+          <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>
         </div>
       </footer>
     </main>

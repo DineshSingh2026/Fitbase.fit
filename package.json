@@ -6,11 +6,14 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "dev:local": "concurrently -k -n api,web -c blue,magenta \"npm run dev\" \"npm --prefix apps/frontend-next run dev:stack\"",
     "dev:frontend-next": "npm --prefix apps/frontend-next run dev",
     "dev:backend-nest": "npm --prefix apps/backend-nest run dev",
     "setup:google": "node scripts/setup-google-signin.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
     "test": "node scripts/ensure-password-resets-table.js && node tests/e2e-flow.js",
+    "test:e2e:connect": "node tests/e2e-connectivity.js",
+    "test:e2e:playwright": "playwright test",
     "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js"
   },
@@ -32,6 +35,8 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "concurrently": "^9.1.2",
     "sharp": "^0.34.5",
     "sql.js": "^1.14.0"
   }

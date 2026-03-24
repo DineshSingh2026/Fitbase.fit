@@ -1,12 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { API_SITE_BASE } from "../../lib/site-url";
 
-const APP_SITE_URL =
-  process.env.NEXT_PUBLIC_APP_SITE_URL ||
-  process.env.NEXT_PUBLIC_LEGACY_SITE_URL ||
-  "https://www.fitbase.fit";
-const APP_SITE_BASE = APP_SITE_URL.replace(/\/+$/, "");
 const SESSION_KEY = "fitbase_session";
 
 export default function LoginPage() {
@@ -20,7 +16,7 @@ export default function LoginPage() {
     setMsg("");
     setBusy(true);
     try {
-      const r = await fetch(`${APP_SITE_BASE}/api/auth/login`, {
+      const r = await fetch(`${API_SITE_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password })
@@ -44,26 +40,31 @@ export default function LoginPage() {
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
-        background: "#faf6ef",
-        padding: 20
+        background: "var(--bg-primary)",
+        padding: 20,
+        paddingTop: "max(20px, env(safe-area-inset-top, 0px))",
+        paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "max(20px, env(safe-area-inset-left, 0px))",
+        paddingRight: "max(20px, env(safe-area-inset-right, 0px))"
       }}
     >
       <form
+        className="fb-login-form"
         onSubmit={submit}
         style={{
           width: "min(100%, 420px)",
-          background: "#fff",
-          border: "1px solid #e8e2d6",
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
           borderRadius: 14,
           padding: 20,
-          boxShadow: "0 20px 45px rgba(44,36,22,.10)"
+          boxShadow: "0 20px 45px rgba(0,0,0,.45)"
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <img src="/img/Fitbase_logo2.png" alt="FitBase" style={{ height: 56, width: "auto", objectFit: "contain" }} />
         </div>
-        <h1 style={{ margin: "0 0 12px", fontFamily: "sans-serif", fontSize: 20, color: "#2c2416" }}>Login</h1>
-        <label style={{ fontSize: 12, color: "#9a8f7e" }}>Email</label>
+        <h1 style={{ margin: "0 0 12px", fontFamily: "sans-serif", fontSize: 20, color: "var(--text-primary)" }}>Login</h1>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Email</label>
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -73,13 +74,15 @@ export default function LoginPage() {
             width: "100%",
             marginTop: 6,
             marginBottom: 12,
-            border: "1px solid #e8e2d6",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             padding: "11px 12px",
-            font: "inherit"
+            font: "inherit",
+            background: "var(--bg-card)",
+            color: "var(--text-primary)"
           }}
         />
-        <label style={{ fontSize: 12, color: "#9a8f7e" }}>Password</label>
+        <label style={{ fontSize: 12, color: "var(--text-secondary)" }}>Password</label>
         <input
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -89,10 +92,12 @@ export default function LoginPage() {
             width: "100%",
             marginTop: 6,
             marginBottom: 16,
-            border: "1px solid #e8e2d6",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             padding: "11px 12px",
-            font: "inherit"
+            font: "inherit",
+            background: "var(--bg-card)",
+            color: "var(--text-primary)"
           }}
         />
         <button
@@ -102,8 +107,8 @@ export default function LoginPage() {
             width: "100%",
             border: "none",
             borderRadius: 8,
-            background: "#c9a84c",
-            color: "#fff",
+            background: "var(--accent)",
+            color: "#0f0f0f",
             fontWeight: 700,
             padding: "11px 12px",
             cursor: "pointer"
@@ -111,7 +116,7 @@ export default function LoginPage() {
         >
           {busy ? "Signing in..." : "Login"}
         </button>
-        {msg ? <p style={{ color: "#b04747", fontSize: 13, marginTop: 10 }}>{msg}</p> : null}
+        {msg ? <p style={{ color: "var(--red)", fontSize: 13, marginTop: 10 }}>{msg}</p> : null}
       </form>
     </main>
   );

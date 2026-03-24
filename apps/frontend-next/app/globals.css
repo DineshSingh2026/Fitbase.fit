@@ -1,22 +1,69 @@
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-surface: #181818;
+  --bg-card: #222222;
+  --bg-card-hover: #2a2a2a;
+  --border: #2e2e2e;
+  --border-hover: #3e3e3e;
+
+  --accent: #2dd4bf;
+  --accent-light: #5eead4;
+  --accent-dim: rgba(45, 212, 191, 0.12);
+  --accent-border: rgba(45, 212, 191, 0.3);
+
+  --text-primary: #f2ece4;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+
+  --green: #52c87a;
+  --green-dim: rgba(82, 200, 122, 0.1);
+  --red: #e05252;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100%;
+  min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
-  background: #f5f2eb;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 * {
   box-sizing: border-box;
 }
 
-.legacy-frame {
-  width: 100vw;
-  height: 100vh;
-  border: 0;
-  display: block;
-  background: #f5f2eb;
+/* iOS Safari / Chrome on Android: avoid auto-zoom on focus (keep ≥16px on small screens). */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Touch devices: calmer tap feedback; does not block scrolling. */
+@media (hover: none) and (pointer: coarse) {
+  a,
+  button {
+    -webkit-tap-highlight-color: var(--accent-dim);
+  }
+}
+
+.fb-login-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.fb-login-form input:focus {
+  border-color: var(--accent) !important;
+  outline: none;
 }

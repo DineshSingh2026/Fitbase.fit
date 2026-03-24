@@ -3787,11 +3787,15 @@ app.get('/api/superadmin/shared', async (req, res) => {
 // ============ SERVE FRONTEND ============
 // PWA: serve service worker and manifest with no-cache so updates apply quickly
 app.get('/sw.js', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 app.get('/manifest.json', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
 // ============ CAMPAIGN API ============
@@ -3934,24 +3938,11 @@ app.get('/fitbase', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
 });
 
-const USE_FITBASE_ROOT = process.env.USE_FITBASE_ROOT === 'true' || process.env.USE_FITBASE_ROOT === '1';
-
-// Serve index.html with no-cache so users get latest UI after deploys
-if (USE_FITBASE_ROOT) {
-  app.get('/', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
-  });
-  app.get('/index.html', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
-} else {
-  app.get(['/', '/index.html'], (req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
-}
+// Always serve the FitBase landing at root and block legacy index shell
+app.get(['/', '/index.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
+});
 
 // Server-rendered reset password page — token validated on server, no client-side URL parsing
 app.get('/reset-password', async (req, res) => {
@@ -3992,14 +3983,14 @@ a:hover{text-decoration:underline}
 .ok{color:#50c878;font-weight:600;margin-top:12px}
 </style></head><body><div class="box">`;
   if (!valid) {
-    return base + `<h1>Invalid or Expired Link</h1><p class="err">${(errorMsg || 'This reset link is invalid or has expired.').replace(/</g, '&lt;')}</p><a href="/index.html">← Back to Home</a></div></body></html>`;
+    return base + `<h1>Invalid or Expired Link</h1><p class="err">${(errorMsg || 'This reset link is invalid or has expired.').replace(/</g, '&lt;')}</p><a href="/fitbase.html">← Back to Home</a></div></body></html>`;
   }
   return base + `<h1>Set New Password</h1><p>Enter your new password below.</p>
 <form id="f" onsubmit="return false;"><input type="hidden" name="token" value="${token.replace(/"/g, '&quot;')}">
 <div class="pw-wrap"><input type="password" name="new_password" id="rpNew" placeholder="New password (min 6 characters)" minlength="6" required><button type="button" class="pw-toggle" onclick="var i=document.getElementById('rpNew');i.type=i.type==='password'?'text':'password'" title="Show password">&#128065;</button></div>
 <div class="pw-wrap"><input type="password" name="confirm" id="rpConfirm" placeholder="Confirm password" minlength="6" required><button type="button" class="pw-toggle" onclick="var i=document.getElementById('rpConfirm');i.type=i.type==='password'?'text':'password'" title="Show password">&#128065;</button></div>
 <button type="submit">Update Password</button></form>
-<p id="msg"></p><a href="/index.html">← Back to Home</a></div>
+<p id="msg"></p><a href="/fitbase.html">← Back to Home</a></div>
 <script>
 document.getElementById('f').onsubmit=async function(e){
   if(e){e.preventDefault();e.stopPropagation();}
@@ -4021,7 +4012,7 @@ document.getElementById('f').onsubmit=async function(e){
       }catch(_){}
       document.getElementById('msg').innerHTML='<span class="ok">Password updated successfully. Taking you to your dashboard...</span>';
       this.style.display='none';
-      window.location.replace('/index.html');
+      window.location.replace('/fitbase.html');
       return;
     }
   }catch(e){
@@ -4032,8 +4023,11 @@ document.getElementById('f').onsubmit=async function(e){
 };
 </script></body></html>`;
 }
+/* maxAge: 0 — avoid week-long browser cache of legacy HTML/JS in /public after deploys. */
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '7d' : 0
+  maxAge: 0,
+  etag: true,
+  lastModified: true
 }));
 
 // Public programs list (used by Admin "Assign Program" tab)
@@ -4050,7 +4044,7 @@ app.get('/api/programs', async (req, res) => {
 app.use((req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'fitbase.html'));
   } else {
     res.status(404).json({ error: 'Not found' });
   }

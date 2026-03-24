@@ -1,6 +1,7 @@
-﻿/**
+/**
  * End-to-end test: Sign up → Admin approve → Login → User actions → Admin dashboard & DB check.
- * Run: node tests/e2e-flow.js (server must be running on port 3000)
+ * Run: node tests/e2e-flow.js (Express API on port 3000, DATABASE_URL set).
+ * If public signup is disabled (default in server.js), uses POST /api/admin/create-client instead.
  */
 require('dotenv').config();
 const http = require('http');
@@ -20,6 +21,8 @@ const TEST_PROFILE_PICTURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEA
 
 let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, contactId: null, checkinId: null, dailyCheckinId: null };
 let failures = [];
+/** When true, user was created approved via admin create-client (no pending signup / approve steps). */
+let usedAdminCreateClient = false;
 
 function request(method, path, body = null, opts = {}) {
   return new Promise((resolve, reject) => {
@@ -70,7 +73,17 @@ async function queryDb(sql, params = []) {
 }
 
 async function runTests() {
-  console.log('=== E2E: Sign up ===');
+  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
+  const superadminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
+
+  console.log('=== E2E: Trainer/Admin login (JWT for protected admin routes) ===');
+  const adminLoginFirst = await request('POST', '/api/auth/login', { email: superadminEmail, password: superadminPass });
+  assert(adminLoginFirst.status === 200 && adminLoginFirst.body?.token, `Admin login failed: ${adminLoginFirst.status} ${JSON.stringify(adminLoginFirst.body)}`);
+  const adminToken = adminLoginFirst.body.token;
+  const isSuperadmin = adminLoginFirst.body?.role === 'superadmin';
+  console.log(adminLoginFirst.status === 200 ? '  OK' : '  FAIL', adminLoginFirst.body?.email, adminLoginFirst.body?.role);
+
+  console.log('=== E2E: Sign up (or admin create-client if public signup disabled) ===');
   const signup = await request('POST', '/api/auth/signup', {
     email: testUser.email,
     password: testUser.password,
@@ -78,27 +91,51 @@ async function runTests() {
     last_name: testUser.last_name,
     phone: testUser.phone
   });
-  assert(signup.status === 200, `Signup status ${signup.status}: ${JSON.stringify(signup.body)}`);
-  assert(signup.body && signup.body.pending_approval === true, 'Signup should return pending_approval');
-  createdIds.userId = signup.body?.id || null;
-  console.log(signup.status === 200 ? '  OK' : '  FAIL', signup.body);
+  if (signup.status === 200 && signup.body?.pending_approval === true) {
+    createdIds.userId = signup.body?.id || null;
+    assert(!!createdIds.userId, 'Signup should return user id');
+    console.log('  OK (pending approval)', signup.body?.email);
+  } else if (signup.status === 403 && signup.body?.error === 'signup_disabled') {
+    const create = await request('POST', '/api/admin/create-client', {
+      email: testUser.email,
+      password: testUser.password,
+      first_name: testUser.first_name,
+      last_name: testUser.last_name,
+      phone: testUser.phone
+    }, { auth: { token: adminToken } });
+    assert(create.status === 200 && create.body?.id, `create-client failed ${create.status}: ${JSON.stringify(create.body)}`);
+    createdIds.userId = create.body.id;
+    usedAdminCreateClient = true;
+    console.log('  OK (create-client, pre-approved)', create.body?.email);
+  } else {
+    assert(false, `Unexpected signup response ${signup.status}: ${JSON.stringify(signup.body)}`);
+  }
 
-  console.log('=== E2E: Login before approve (should be pending) ===');
-  const loginPending = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
-  assert(loginPending.status === 403 && loginPending.body?.error === 'pending_approval', 'Login before approve should be 403 pending_approval');
-  console.log(loginPending.status === 403 ? '  OK' : '  FAIL');
+  if (!usedAdminCreateClient) {
+    console.log('=== E2E: Login before approve (should be pending) ===');
+    const loginPending = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
+    assert(loginPending.status === 403 && loginPending.body?.error === 'pending_approval', 'Login before approve should be 403 pending_approval');
+    console.log(loginPending.status === 403 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Admin – pending signups ===');
-  const pending = await request('GET', '/api/admin/pending-signups');
-  assert(pending.status === 200 && Array.isArray(pending.body), 'Pending signups should be array');
-  const found = pending.body?.find(u => u.email === testUser.email);
-  assert(!!found, 'New user should appear in pending signups');
-  console.log(found ? '  OK' : '  FAIL');
+    console.log('=== E2E: Admin – pending signups ===');
+    const pending = await request('GET', '/api/admin/pending-signups', null, { auth: { token: adminToken } });
+    assert(pending.status === 200 && Array.isArray(pending.body), 'Pending signups should be array');
+    const found = pending.body?.find(u => u.email === testUser.email);
+    assert(!!found, 'New user should appear in pending signups');
+    console.log(found ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Admin – approve user ===');
-  const approve = await request('POST', `/api/admin/approve-user/${createdIds.userId}`);
-  assert(approve.status === 200, `Approve status ${approve.status}`);
-  console.log(approve.status === 200 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Admin – approve user ===');
+    const approve = await request('POST', `/api/admin/approve-user/${createdIds.userId}`, {}, { auth: { token: adminToken } });
+    assert(approve.status === 200, `Approve status ${approve.status}`);
+    console.log(approve.status === 200 ? '  OK' : '  FAIL');
+  } else {
+    console.log('=== E2E: Login before approve (should be pending) ===');
+    console.log('  SKIP (user created approved via admin create-client)');
+    console.log('=== E2E: Admin – pending signups ===');
+    console.log('  SKIP');
+    console.log('=== E2E: Admin – approve user ===');
+    console.log('  SKIP');
+  }
 
   console.log('=== E2E: Login after approve ===');
   const login = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
@@ -218,6 +255,11 @@ async function runTests() {
   console.log(checkin.status === 200 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Daily check-in ===');
+  try {
+    await queryDb('DELETE FROM daily_checkins WHERE user_id = ? AND checkin_date = CURRENT_DATE', [userId]);
+  } catch (_) {
+    /* allow first run or DB variance */
+  }
   const dailyCheckin = await request('POST', '/api/daily-checkin', {
     steps: 10000,
     water_ml: 2500,
@@ -257,14 +299,8 @@ async function runTests() {
   assert(stats.status === 200 && stats.body && Number.isFinite(Number(stats.body.pending_requests)), 'Stats');
   console.log(stats.status === 200 ? '  OK' : '  FAIL');
 
-  /* Admin/superadmin login for auth-required endpoints (e.g. notifications) */
-  const adminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
-  const adminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
-  const adminLogin = await request('POST', '/api/auth/login', { email: adminEmail, password: adminPass });
-  const adminToken = adminLogin.body?.token || null;
-
   console.log('=== E2E: Admin – notifications ===');
-  const notif = await request('GET', '/api/notifications', null, adminToken ? { auth: { token: adminToken } } : {});
+  const notif = await request('GET', '/api/notifications', null, { auth: { token: adminToken } });
   assert(notif.status === 200 && Array.isArray(notif.body), 'Notifications');
   console.log(notif.status === 200 ? '  OK' : '  FAIL');
 
@@ -325,8 +361,30 @@ async function runTests() {
   assert(workoutsByUser.status === 200 && workoutsByUser.body?.some(w => w.id === createdIds.workoutId), 'GET /api/workouts/:userId');
   console.log('  OK');
 
+  console.log('=== E2E: User dashboard APIs (member JWT) ===');
+  const todayApi = await request('GET', '/api/today', null, { auth: { token: userTokenAfterReset } });
+  assert(todayApi.status === 200 && todayApi.body && typeof todayApi.body === 'object', 'GET /api/today');
+  const streakApi = await request('GET', '/api/daily-checkin/streak', null, { auth: { token: userTokenAfterReset } });
+  assert(streakApi.status === 200 && streakApi.body && Number.isFinite(Number(streakApi.body.streak)), 'GET /api/daily-checkin/streak');
+  const meProgramsApi = await request('GET', '/api/me/programs', null, { auth: { token: userTokenAfterReset } });
+  assert(meProgramsApi.status === 200 && Array.isArray(meProgramsApi.body), 'GET /api/me/programs');
+  const threadsMember = await request('GET', '/api/threads', null, { auth: { token: userTokenAfterReset } });
+  assert(threadsMember.status === 200 && Array.isArray(threadsMember.body), 'User GET /api/threads');
+  const meetingsUser = await request('GET', `/api/meetings/user/${encodeURIComponent(userId)}`, null, { auth: { token: userTokenAfterReset } });
+  assert(meetingsUser.status === 200 && Array.isArray(meetingsUser.body), 'GET /api/meetings/user/:id (auth)');
+  console.log('  OK');
+
+  console.log('=== E2E: Trainer dashboard APIs (admin JWT) ===');
+  const adminUsersList = await request('GET', '/api/admin/users', null, { auth: { token: adminToken } });
+  assert(adminUsersList.status === 200 && Array.isArray(adminUsersList.body), 'GET /api/admin/users');
+  const recentActivity = await request('GET', '/api/admin/recent-activity', null, { auth: { token: adminToken } });
+  assert(recentActivity.status === 200 && Array.isArray(recentActivity.body), 'GET /api/admin/recent-activity');
+  const adminThreads = await request('GET', '/api/threads', null, { auth: { token: adminToken } });
+  assert(adminThreads.status === 200 && Array.isArray(adminThreads.body), 'Trainer GET /api/threads');
+  console.log('  OK');
+
   console.log('=== E2E: Admin – performance insights ===');
-  const perf = await request('GET', '/api/admin/performance-insights');
+  const perf = await request('GET', '/api/admin/performance-insights', null, { auth: { token: adminToken } });
   assert(perf.status === 200 && perf.body?.summary != null && Array.isArray(perf.body?.data), 'Performance insights');
   console.log(perf.status === 200 ? '  OK' : '  FAIL');
 
@@ -356,56 +414,60 @@ async function runTests() {
   assert(tribePut.status === 200, 'Tribe PUT');
   console.log('  OK');
 
-  console.log('=== E2E: Superadmin – login ===');
-  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@fitbase.fit';
-  const superadminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
-  const saLogin = await request('POST', '/api/auth/login', { email: superadminEmail, password: superadminPass });
-  assert(saLogin.status === 200 && saLogin.body?.role === 'superadmin' && saLogin.body?.token, 'Superadmin login');
-  const saToken = saLogin.body?.token;
-  console.log(saLogin.status === 200 ? '  OK' : '  FAIL', saLogin.body?.email);
+  console.log('=== E2E: Superadmin-only routes (dashboard / share-link) ===');
+  if (!isSuperadmin) {
+    console.log('  SKIP – SUPERADMIN_EMAIL is not role=superadmin. Trainer admin flows above still validated.');
+  } else {
+    const saToken = adminToken;
+    console.log('  OK', superadminEmail);
 
-  console.log('=== E2E: Superadmin – dashboard ===');
-  const saDashboard = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken } });
-  assert(saDashboard.status === 200 && saDashboard.body?.stats != null && Array.isArray(saDashboard.body?.audit), 'Superadmin dashboard');
-  console.log(saDashboard.status === 200 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Superadmin – dashboard ===');
+    const saDashboard = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken } });
+    assert(saDashboard.status === 200 && saDashboard.body?.stats != null && Array.isArray(saDashboard.body?.audit), 'Superadmin dashboard');
+    console.log(saDashboard.status === 200 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Superadmin – dashboard with filters ===');
-  const saFiltered = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken }, qs: { from: '2025-01-01', to: '2026-12-31' } });
-  assert(saFiltered.status === 200 && saFiltered.body?.stats != null, 'Superadmin dashboard filtered');
-  console.log(saFiltered.status === 200 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Superadmin – dashboard with filters ===');
+    const saFiltered = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken }, qs: { from: '2025-01-01', to: '2026-12-31' } });
+    assert(saFiltered.status === 200 && saFiltered.body?.stats != null, 'Superadmin dashboard filtered');
+    console.log(saFiltered.status === 200 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Superadmin – share link ===');
-  const saShare = await request('POST', '/api/superadmin/share-link', { from: '2025-01-01', to: '2026-12-31' }, { auth: { token: saToken } });
-  assert(saShare.status === 200 && saShare.body?.url && saShare.body?.token, 'Superadmin share link');
-  const shareToken = saShare.body?.token;
-  console.log(saShare.status === 200 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Superadmin – share link ===');
+    const saShare = await request('POST', '/api/superadmin/share-link', { from: '2025-01-01', to: '2026-12-31' }, { auth: { token: saToken } });
+    assert(saShare.status === 200 && saShare.body?.url && saShare.body?.token, 'Superadmin share link');
+    const shareToken = saShare.body?.token;
+    console.log(saShare.status === 200 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Superadmin – shared view (no auth) ===');
-  const saShared = await request('GET', '/api/superadmin/shared', null, { qs: { t: shareToken } });
-  assert(saShared.status === 200 && saShared.body?.stats != null && Array.isArray(saShared.body?.part2), 'Superadmin shared view');
-  console.log(saShared.status === 200 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Superadmin – shared view (no auth) ===');
+    const saShared = await request('GET', '/api/superadmin/shared', null, { qs: { t: shareToken } });
+    assert(saShared.status === 200 && saShared.body?.stats != null && Array.isArray(saShared.body?.part2), 'Superadmin shared view');
+    console.log(saShared.status === 200 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Superadmin – shared invalid token ===');
-  const saSharedBad = await request('GET', '/api/superadmin/shared', null, { qs: { t: 'invalid-token' } });
-  assert(saSharedBad.status === 401 && saSharedBad.body?.error, 'Shared view rejects invalid token');
-  console.log(saSharedBad.status === 401 ? '  OK' : '  FAIL');
+    console.log('=== E2E: Superadmin – shared invalid token ===');
+    const saSharedBad = await request('GET', '/api/superadmin/shared', null, { qs: { t: 'invalid-token' } });
+    assert(saSharedBad.status === 401 && saSharedBad.body?.error, 'Shared view rejects invalid token');
+    console.log(saSharedBad.status === 401 ? '  OK' : '  FAIL');
+  }
 
   console.log('=== E2E: Rejected user can re-signup ===');
-  const reject = await request('POST', `/api/admin/reject-user/${userId}`);
-  assert(reject.status === 200, 'Admin reject user');
-  const signupAgain = await request('POST', '/api/auth/signup', {
-    email: testUser.email,
-    password: 'NewPass456!',
-    first_name: 'E2E',
-    last_name: 'ReSignup',
-    phone: testUser.phone
-  });
-  assert(signupAgain.status === 200 && signupAgain.body?.pending_approval === true, 'Re-signup after reject');
-  const reApprove = await request('POST', `/api/admin/approve-user/${userId}`);
-  assert(reApprove.status === 200, 'Re-approve');
-  const loginAgain = await request('POST', '/api/auth/login', { email: testUser.email, password: 'NewPass456!' });
-  assert(loginAgain.status === 200, 'Login after re-signup');
-  console.log('  OK');
+  if (usedAdminCreateClient) {
+    console.log('  SKIP (public signup disabled; reject/re-signup flow requires POST /api/auth/signup)');
+  } else {
+    const reject = await request('POST', `/api/admin/reject-user/${userId}`, {}, { auth: { token: adminToken } });
+    assert(reject.status === 200, 'Admin reject user');
+    const signupAgain = await request('POST', '/api/auth/signup', {
+      email: testUser.email,
+      password: 'NewPass456!',
+      first_name: 'E2E',
+      last_name: 'ReSignup',
+      phone: testUser.phone
+    });
+    assert(signupAgain.status === 200 && signupAgain.body?.pending_approval === true, 'Re-signup after reject');
+    const reApprove = await request('POST', `/api/admin/approve-user/${userId}`, {}, { auth: { token: adminToken } });
+    assert(reApprove.status === 200, 'Re-approve');
+    const loginAgain = await request('POST', '/api/auth/login', { email: testUser.email, password: 'NewPass456!' });
+    assert(loginAgain.status === 200, 'Login after re-signup');
+    console.log('  OK');
+  }
 
   if (failures.length > 0) {
     console.log('\n--- FAILURES ---');

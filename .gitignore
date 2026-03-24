@@ -3,5 +3,16 @@ data/*.db
 data/*.bat
 data/*.txt
 .env
+.env.local
+.env*.local
 *.log
 .vscode/
+
+# Next.js / Nest build outputs (rebuild with npm run build)
+apps/frontend-next/.next/
+apps/backend-nest/dist/
+*.tsbuildinfo
+
+# Playwright / local test output
+test-results/
+playwright-report/
