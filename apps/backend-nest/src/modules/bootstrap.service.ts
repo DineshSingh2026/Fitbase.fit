@@ -128,6 +128,80 @@ export class BootstrapService implements OnModuleInit {
     );
 
     await this.ensureTribeMembersTable();
+    await this.ensureClientActivityTables();
+  }
+
+  /** workout_logs, daily_checkins, progress_logs, sunday_checkins — used by client dashboard APIs. */
+  private async ensureClientActivityTables() {
+    if (!this.pool) return;
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS workout_logs (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        workout_name text NOT NULL,
+        duration_seconds integer DEFAULT 0,
+        feedback text DEFAULT '',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS daily_checkins (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        checkin_date date NOT NULL,
+        steps integer,
+        water_ml integer,
+        protein_g integer,
+        sleep_hours double precision,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins (user_id, checkin_date)`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS progress_logs (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        weight numeric(5,2),
+        body_fat numeric(5,2),
+        calories_intake integer,
+        protein_intake integer,
+        workout_completed boolean DEFAULT false,
+        workout_type varchar(100),
+        strength_bench numeric(6,2),
+        strength_squat numeric(6,2),
+        strength_deadlift numeric(6,2),
+        sleep_hours numeric(3,1),
+        water_intake numeric(4,1),
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_progress_logs_user_id ON progress_logs (user_id)`);
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS sunday_checkins (
+        id text PRIMARY KEY,
+        user_id text,
+        full_name text NOT NULL,
+        reply_email text NOT NULL DEFAULT '',
+        plan text DEFAULT '',
+        current_weight_waist_week text DEFAULT '',
+        last_week_weight_waist text DEFAULT '',
+        total_weight_loss text DEFAULT '',
+        training_go text DEFAULT '',
+        nutrition_go text DEFAULT '',
+        sleep text DEFAULT '',
+        occupation_stress text DEFAULT '',
+        other_stress text DEFAULT '',
+        differences_felt text DEFAULT '',
+        achievements text DEFAULT '',
+        improve_next_week text DEFAULT '',
+        questions text DEFAULT '',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS user_id text`);
+    await this.pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS reply_email text DEFAULT ''`);
   }
 
   /** Matches Express server.js / trainer dashboard; required for approve-user and /api/tribe. */

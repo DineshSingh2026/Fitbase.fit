@@ -19,6 +19,7 @@ import { StatsController } from "./stats.controller";
 import { TrainerCompatController } from "./trainer-compat.controller";
 import { PushController } from "./push.controller";
 import { MessageThreadsController } from "./message-threads.controller";
+import { ClientActivityController } from "./client-activity.controller";
 
 @Module({
   imports: [
@@ -42,7 +43,8 @@ import { MessageThreadsController } from "./message-threads.controller";
     StatsController,
     TrainerCompatController,
     PushController,
-    MessageThreadsController
+    MessageThreadsController,
+    ClientActivityController
   ],
   providers: [AuthService, RolesGuard, BootstrapService]
 })

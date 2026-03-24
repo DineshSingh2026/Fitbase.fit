@@ -156,6 +156,9 @@ export class TrainerCompatController {
       if (!body?.user_id || !body?.meeting_date || !body?.time_slot) {
         return res.status(400).json({ error: "User, date and time slot required" });
       }
+      if (req.user?.role === "user" && String(req.user.id) !== String(body.user_id)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       if (req.user?.role === "admin") {
         const ok = await this.assertTrainerCanAccessClient(req.user, String(body.user_id));
         if (!ok) return res.status(403).json({ error: "Access denied" });

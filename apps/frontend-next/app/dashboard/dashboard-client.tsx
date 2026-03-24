@@ -809,7 +809,10 @@ export default function DashboardPage() {
     try {
       const r = await fetch(`${apiBase}/api/workouts`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
         body: JSON.stringify({
           user_id: uid,
           workout_name: name,
@@ -846,7 +849,10 @@ export default function DashboardPage() {
       const u = session.user;
       const r = await fetch(`${apiBase}/api/meetings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
         body: JSON.stringify({
           user_id: uid,
           user_name: [u?.first_name, u?.last_name].filter(Boolean).join(" "),
@@ -888,7 +894,10 @@ export default function DashboardPage() {
     try {
       const r = await fetch(`${apiBase}/api/sunday-checkin`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
         body: JSON.stringify({
           user_id: uid,
           full_name,
