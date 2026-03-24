@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { persistNormalizedSession } from "../../lib/fitbase-session";
 import { API_SITE_BASE } from "../../lib/site-url";
-
-const SESSION_KEY = "fitbase_session";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -25,7 +24,10 @@ export default function LoginPage() {
       if (!r.ok || data?.error || !data?.token) {
         throw new Error(data?.message || data?.error || "Login failed.");
       }
-      localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      const session = persistNormalizedSession(data);
+      if (!session?.token) {
+        throw new Error("Invalid session from server.");
+      }
       window.location.replace("/dashboard");
     } catch (err: unknown) {
       const text = err instanceof Error ? err.message : "Network error. Please try again.";

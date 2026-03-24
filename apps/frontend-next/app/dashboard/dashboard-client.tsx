@@ -2,16 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { API_SITE_BASE } from "../../lib/site-url";
+import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
 
 type DashboardTab = "home" | "clients" | "forms" | "messages" | "ai" | "programs" | "contact" | "profile" | "progress";
 
-type Session = { token: string; user?: { id?: string; role?: string; first_name?: string; last_name?: string; email?: string } };
+type Session = FitbaseSession;
 
 function getSession(): Session | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem("fitbase_session");
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const raw = localStorage.getItem(FITBASE_SESSION_KEY);
+    const s = parseFitbaseSessionFromStorage(raw);
+    if (!s) return null;
+    const normalized = JSON.stringify(s);
+    if (normalized !== raw) {
+      try {
+        localStorage.setItem(FITBASE_SESSION_KEY, normalized);
+      } catch {
+        /* ignore */
+      }
+    }
+    return s;
   } catch {
     return null;
   }
@@ -19,7 +30,9 @@ function getSession(): Session | null {
 
 export default function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
-  const role = String(session?.user?.role || "");
+  const role = String(session?.user?.role || "")
+    .trim()
+    .toLowerCase();
   const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
   const [threads, setThreads] = useState<any[]>([]);
@@ -1327,7 +1340,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem("fitbase_session");
+              localStorage.removeItem(FITBASE_SESSION_KEY);
               window.location.replace("/login");
             }}
             style={{
