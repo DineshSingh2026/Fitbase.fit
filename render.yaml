@@ -11,9 +11,14 @@ services:
         value: production
       - key: PORT
         value: 3200
+      # Required: link Render Postgres or paste External/Internal URL (must match the DB your data lives in).
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
+        sync: false
+      - key: SUPERADMIN_EMAIL
+        sync: false
+      - key: SUPERADMIN_PASS
         sync: false
 
   - type: web

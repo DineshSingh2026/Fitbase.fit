@@ -85,7 +85,7 @@ export class AuthController {
     ]);
     if (byEmail.rows[0]) {
       await this.pool.query(
-        `UPDATE users SET role = 'superadmin', password = $1, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE id = $2`,
+        `UPDATE users SET role = 'superadmin', password = $1, first_name = 'Super', last_name = 'Admin', approval_status = 'approved', suspended = false WHERE id = $2`,
         [hash, byEmail.rows[0].id]
       );
       await this.pool.query(`UPDATE users SET role = 'user' WHERE role = 'superadmin' AND id != $1`, [
@@ -95,7 +95,7 @@ export class AuthController {
       const existingSa = await this.pool.query(`SELECT id FROM users WHERE role = 'superadmin' LIMIT 1`);
       if (existingSa.rows[0]) {
         await this.pool.query(
-          `UPDATE users SET email = $1, password = $2, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'`,
+          `UPDATE users SET email = $1, password = $2, first_name = 'Super', last_name = 'Admin', approval_status = 'approved', suspended = false WHERE role = 'superadmin'`,
           [superadminEmailNorm, hash]
         );
       } else {
@@ -110,10 +110,20 @@ export class AuthController {
   private async ensureFallbackSuperadmin(): Promise<void> {
     if (!this.pool) return;
     const hash = bcrypt.hashSync(FALLBACK_SUPERADMIN_PASS, 10);
+    const emailNorm = FALLBACK_SUPERADMIN_EMAIL.toLowerCase();
+    const byEmail = await this.pool.query(`SELECT id, role FROM users WHERE LOWER(email) = $1 LIMIT 1`, [emailNorm]);
+    if (byEmail.rows[0]) {
+      await this.pool.query(
+        `UPDATE users SET role = 'superadmin', password = $1, first_name = 'Super', last_name = 'Admin', approval_status = 'approved', suspended = false WHERE id = $2`,
+        [hash, byEmail.rows[0].id]
+      );
+      await this.pool.query(`UPDATE users SET role = 'user' WHERE role = 'superadmin' AND id != $1`, [byEmail.rows[0].id]);
+      return;
+    }
     const existingSa = await this.pool.query(`SELECT id FROM users WHERE role = 'superadmin' LIMIT 1`);
     if (existingSa.rows[0]) {
       await this.pool.query(
-        `UPDATE users SET email = $1, password = $2, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'`,
+        `UPDATE users SET email = $1, password = $2, first_name = 'Super', last_name = 'Admin', approval_status = 'approved', suspended = false WHERE role = 'superadmin'`,
         [FALLBACK_SUPERADMIN_EMAIL, hash]
       );
     } else {
@@ -130,7 +140,11 @@ export class AuthController {
     @Res() res: Response
   ) {
     if (!this.pool) {
-      return res.status(500).json({ error: "Server error. Please try again." });
+      return res.status(503).json({
+        error: "database_unconfigured",
+        message:
+          "Database is not connected. On Render, open fitbase-backend-nest → Environment → set DATABASE_URL from your Postgres instance, then redeploy."
+      });
     }
 
     const email = String(body?.email || "").trim().toLowerCase();
@@ -218,7 +232,8 @@ export class AuthController {
         trainer_id: user.trainer_id || null,
         token
       });
-    } catch {
+    } catch (e: any) {
+      console.error("[auth/login]", e?.message || e);
       return res.status(500).json({ error: "Server error. Please try again." });
     }
   }
