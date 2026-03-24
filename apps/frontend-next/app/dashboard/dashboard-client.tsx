@@ -65,6 +65,7 @@ export default function DashboardPage() {
   const [trainerRequests, setTrainerRequests] = useState<any[]>([]);
   const [clientLeadRequests, setClientLeadRequests] = useState<any[]>([]);
   const [trainerClientOverview, setTrainerClientOverview] = useState<any[]>([]);
+  const [superadminSnapshot, setSuperadminSnapshot] = useState<any | null>(null);
   const [superadminTrainers, setSuperadminTrainers] = useState<any[]>([]);
   const [superadminQueueBusy, setSuperadminQueueBusy] = useState("");
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
@@ -300,6 +301,7 @@ export default function DashboardPage() {
       ])
         .then(([s, reqs, clientReqs, overview, trainersList, t, sun, p2]) => {
           if (s?.error) setError(s.error);
+          setSuperadminSnapshot(s && !s.error ? s : null);
           const statObj = s?.stats || {};
           setStats({
             active_members: Number(statObj.approved_users || 0),
@@ -1348,7 +1350,9 @@ export default function DashboardPage() {
           {role === "user"
             ? userPageTitle[activeTab]
             : activeTab === "home"
-              ? "DASHBOARD"
+              ? role === "superadmin"
+                ? "SUPER ADMIN"
+                : "DASHBOARD"
               : activeTab === "forms"
                 ? "FORMS"
                 : activeTab.toUpperCase()}
@@ -1614,12 +1618,13 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : role === "superadmin" ? (
               <>
                 <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
                   <h2 className="bb-admin-welcome-title">
-                    Welcome back <span className="bb-admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span>
+                    Super admin · <span className="bb-admin-welcome-role">&ldquo;{displayName}&rdquo;</span>
                   </h2>
+                  <p className="bb-admin-welcome-date">Platform overview — trainers, clients, and requests</p>
                   <p className="bb-admin-welcome-date" suppressHydrationWarning>
                     {todayLabel || "\u00a0"}
                   </p>
@@ -1634,18 +1639,9 @@ export default function DashboardPage() {
                     }}
                   >
                     <span className="bb-admin-summary-lbl">MEMBERS</span>
-                    <span className="bb-admin-summary-num num-gold">{Number(stats?.active_members ?? 0)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      goTab("forms");
-                      setTrainerFormsView("daily");
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">DAILY CHECK-IN</span>
-                    <span className="bb-admin-summary-num num-green">{Number(stats?.daily_checkins ?? 0)}</span>
+                    <span className="bb-admin-summary-num num-gold">
+                      {Number(superadminSnapshot?.stats?.approved_users ?? stats?.active_members ?? 0)}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -1655,8 +1651,33 @@ export default function DashboardPage() {
                       setTrainerClientsView("pending");
                     }}
                   >
-                    <span className="bb-admin-summary-lbl">PENDING</span>
+                    <span className="bb-admin-summary-lbl">PENDING SIGN-UPS</span>
                     <span className="bb-admin-summary-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
+                  </button>
+                  <button type="button" className="bb-admin-summary-card" onClick={() => goTab("home")}>
+                    <span className="bb-admin-summary-lbl">TRAINER APPS</span>
+                    <span className="bb-admin-summary-num num-green">
+                      {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
+                    </span>
+                  </button>
+                  <button type="button" className="bb-admin-summary-card" onClick={() => goTab("home")}>
+                    <span className="bb-admin-summary-lbl">CLIENT REQUESTS</span>
+                    <span className="bb-admin-summary-num num-green">
+                      {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      goTab("forms");
+                      setTrainerFormsView("audits");
+                    }}
+                  >
+                    <span className="bb-admin-summary-lbl">AUDITS PENDING</span>
+                    <span className="bb-admin-summary-num num-gold">
+                      {Number(superadminSnapshot?.stats?.pending_requests ?? 0)}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -1670,8 +1691,6 @@ export default function DashboardPage() {
                     <span className="bb-admin-summary-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
                   </button>
                 </div>
-                {role === "superadmin" ? (
-                  <>
                     <h3 className="bb-admin-qa-title" style={{ marginTop: 4 }}>
                       TRAINER ACCESS REQUESTS ·{" "}
                       <strong style={{ color: "var(--accent)" }}>
@@ -1954,8 +1973,143 @@ export default function DashboardPage() {
                         <p className="bb-live-empty">No trainers yet. Approve trainer requests to build your roster.</p>
                       )}
                     </div>
-                  </>
-                ) : null}
+                <h3 className="bb-admin-qa-title">QUICK ACCESS</h3>
+                <div className="bb-admin-qa-grid">
+                  {[
+                    {
+                      label: "Sign-ups",
+                      icon: String.fromCodePoint(0x1f464),
+                      onClick: () => {
+                        goTab("clients");
+                        setTrainerClientsView("pending");
+                      }
+                    },
+                    {
+                      label: "Check-Ins",
+                      icon: String.fromCodePoint(0x1f4c5),
+                      onClick: () => {
+                        goTab("forms");
+                        setTrainerFormsView("sunday");
+                      }
+                    },
+                    {
+                      label: "Workouts",
+                      icon: String.fromCodePoint(0x1f3c3),
+                      onClick: () => {
+                        goTab("home");
+                        setStaffOverlay("workouts");
+                      }
+                    },
+                    {
+                      label: "Audits",
+                      icon: String.fromCodePoint(0x1f4d1),
+                      onClick: () => {
+                        goTab("forms");
+                        setTrainerFormsView("audits");
+                      }
+                    },
+                    {
+                      label: "Programs",
+                      icon: String.fromCodePoint(0x1f3af),
+                      onClick: () => {
+                        goTab("home");
+                        setStaffOverlay("programs");
+                      }
+                    },
+                    {
+                      label: "Analytics",
+                      icon: String.fromCodePoint(0x1f4ca),
+                      onClick: () => {
+                        goTab("home");
+                        setStaffOverlay("analytics");
+                      }
+                    }
+                  ].map((x) => (
+                    <button key={x.label} type="button" className="bb-admin-qa-btn" onClick={x.onClick}>
+                      <span className="bb-admin-qa-ic">{x.icon}</span>
+                      <span>{x.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <h3 className="bb-admin-la-title">LIVE ACTIVITY</h3>
+                <div className="bb-admin-la-list-wrap">
+                  {activity.length ? (
+                    <ul className="bb-live-list">
+                      {activity.slice(0, 6).map((a, i) => {
+                        const type = String(a?.type || "").toLowerCase();
+                        const status = type.includes("workout") ? "DONE" : type.includes("check") ? "NEW" : "LIVE";
+                        const text = `${a?.name || a?.user_name || "User"} — ${a?.type || "Update"}`;
+                        return (
+                          <li key={i} className="bb-live-row" style={{ borderBottom: i === 5 ? "none" : undefined }}>
+                            <span className="bb-live-dot" />
+                            <span>{text}</span>
+                            <span className="bb-live-pill">{status}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="bb-live-empty">No recent activity</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
+                  <h2 className="bb-admin-welcome-title">
+                    Welcome back <span className="bb-admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span>
+                  </h2>
+                  <p className="bb-admin-welcome-date" suppressHydrationWarning>
+                    {todayLabel || "\u00a0"}
+                  </p>
+                </div>
+                <div className="bb-admin-summary-cards">
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      goTab("clients");
+                      setTrainerClientsView("progress");
+                    }}
+                  >
+                    <span className="bb-admin-summary-lbl">MEMBERS</span>
+                    <span className="bb-admin-summary-num num-gold">{Number(stats?.active_members ?? 0)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      goTab("forms");
+                      setTrainerFormsView("daily");
+                    }}
+                  >
+                    <span className="bb-admin-summary-lbl">DAILY CHECK-IN</span>
+                    <span className="bb-admin-summary-num num-green">{Number(stats?.daily_checkins ?? 0)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      goTab("clients");
+                      setTrainerClientsView("pending");
+                    }}
+                  >
+                    <span className="bb-admin-summary-lbl">PENDING</span>
+                    <span className="bb-admin-summary-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      goTab("messages");
+                      setTrainerMessagesView("threads");
+                    }}
+                  >
+                    <span className="bb-admin-summary-lbl">MESSAGES</span>
+                    <span className="bb-admin-summary-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
+                  </button>
+                </div>
                 <h3 className="bb-admin-qa-title">QUICK ACCESS</h3>
                 <div className="bb-admin-qa-grid">
                   {[
