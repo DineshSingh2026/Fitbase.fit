@@ -72,13 +72,49 @@ export function parseFitbaseSessionFromStorage(rawJson: string | null): FitbaseS
 
 export const FITBASE_SESSION_KEY = "fitbase_session";
 
-export function persistNormalizedSession(rawLoginBody: unknown): FitbaseSession | null {
-  const s = normalizeFitbaseSession(rawLoginBody);
-  if (typeof window === "undefined" || !s) return s;
+/** Read persisted session JSON (localStorage first, then sessionStorage mirror). */
+export function readFitbaseSessionString(): string | null {
+  if (typeof window === "undefined") return null;
   try {
-    localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(s));
+    return localStorage.getItem(FITBASE_SESSION_KEY) || sessionStorage.getItem(FITBASE_SESSION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function loadFitbaseSessionFromBrowser(): FitbaseSession | null {
+  return parseFitbaseSessionFromStorage(readFitbaseSessionString());
+}
+
+/**
+ * Persist session to localStorage + sessionStorage and verify localStorage read-back.
+ * Dual write helps some mobile browsers / PWA restores; verification catches private mode / quota failures.
+ */
+export function writeFitbaseSessionObject(session: FitbaseSession): boolean {
+  if (typeof window === "undefined") return false;
+  const str = JSON.stringify(session);
+  try {
+    localStorage.setItem(FITBASE_SESSION_KEY, str);
+    sessionStorage.setItem(FITBASE_SESSION_KEY, str);
+    return localStorage.getItem(FITBASE_SESSION_KEY) === str;
+  } catch {
+    return false;
+  }
+}
+
+export function clearFitbaseSessionStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(FITBASE_SESSION_KEY);
+    sessionStorage.removeItem(FITBASE_SESSION_KEY);
   } catch {
     /* ignore */
   }
+}
+
+export function persistNormalizedSession(rawLoginBody: unknown): FitbaseSession | null {
+  const s = normalizeFitbaseSession(rawLoginBody);
+  if (typeof window === "undefined" || !s) return s;
+  if (!writeFitbaseSessionObject(s)) return null;
   return s;
 }

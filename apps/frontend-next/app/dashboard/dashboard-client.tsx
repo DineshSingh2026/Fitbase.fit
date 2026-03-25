@@ -13,9 +13,11 @@ import {
 } from "react";
 import { getApiSiteBase } from "../../lib/site-url";
 import {
-  FITBASE_SESSION_KEY,
+  clearFitbaseSessionStorage,
+  loadFitbaseSessionFromBrowser,
   normalizeFitbaseSession,
-  parseFitbaseSessionFromStorage,
+  readFitbaseSessionString,
+  writeFitbaseSessionObject,
   type FitbaseSession
 } from "../../lib/fitbase-session";
 import { clearPwaAppBadge, subscribeFitbasePush, syncPwaAppBadge } from "../../lib/pwa-push";
@@ -308,16 +310,12 @@ function downloadCsvFile(filename: string, columns: { key: string; header: strin
 function getSession(): Session | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(FITBASE_SESSION_KEY);
-    const s = parseFitbaseSessionFromStorage(raw);
+    const s = loadFitbaseSessionFromBrowser();
     if (!s) return null;
     const normalized = JSON.stringify(s);
+    const raw = readFitbaseSessionString();
     if (normalized !== raw) {
-      try {
-        localStorage.setItem(FITBASE_SESSION_KEY, normalized);
-      } catch {
-        /* ignore */
-      }
+      writeFitbaseSessionObject(s);
     }
     return s;
   } catch {
@@ -1268,6 +1266,24 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    const resync = () => {
+      const s = getSession();
+      if (s?.token) setSession(s);
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") resync();
+    };
+    window.addEventListener("pageshow", resync);
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("storage", resync);
+    return () => {
+      window.removeEventListener("pageshow", resync);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("storage", resync);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || !session?.token) return;
     const userRole = String(session.user.role || "").toLowerCase();
     if (userRole !== "admin") return;
@@ -1298,11 +1314,7 @@ export default function DashboardPage() {
             must_change_password: true
           });
           if (upd) {
-            try {
-              localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(upd));
-            } catch {
-              /* ignore */
-            }
+            writeFitbaseSessionObject(upd);
           }
           window.location.replace("/change-password");
         }
@@ -2016,11 +2028,7 @@ export default function DashboardPage() {
             ...(pic ? { profile_picture: String(pic) } : {})
           }
         };
-        try {
-          localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore */
-        }
+        writeFitbaseSessionObject(next);
         return next;
       });
       setRemoteProfile((p) => ({ ...(p || {}), ...body, profile_picture: String(pic || p?.profile_picture || "") }));
@@ -2076,11 +2084,7 @@ export default function DashboardPage() {
             ...(pic ? { profile_picture: String(pic) } : {})
           }
         };
-        try {
-          localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore */
-        }
+        writeFitbaseSessionObject(next);
         return next;
       });
       setRemoteProfile((p) => ({
@@ -3981,7 +3985,7 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               clearPwaAppBadge();
-              localStorage.removeItem(FITBASE_SESSION_KEY);
+              clearFitbaseSessionStorage();
               window.location.replace("/login");
             }}
             style={{

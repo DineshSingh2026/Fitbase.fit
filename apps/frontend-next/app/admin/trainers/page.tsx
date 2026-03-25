@@ -1,10 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import {
-  FITBASE_SESSION_KEY,
-  parseFitbaseSessionFromStorage
-} from "../../../lib/fitbase-session";
+import { loadFitbaseSessionFromBrowser } from "../../../lib/fitbase-session";
 import { getApiSiteBase } from "../../../lib/site-url";
 
 type Tab = "pending" | "approved" | "rejected";
@@ -71,7 +68,7 @@ export default function AdminTrainersPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const s = parseFitbaseSessionFromStorage(localStorage.getItem(FITBASE_SESSION_KEY));
+    const s = loadFitbaseSessionFromBrowser();
     if (!s?.token) {
       window.location.replace("/login");
       return;

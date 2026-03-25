@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, persistNormalizedSession } from "../../lib/fitbase-session";
+import {
+  clearFitbaseSessionStorage,
+  loadFitbaseSessionFromBrowser,
+  persistNormalizedSession
+} from "../../lib/fitbase-session";
 import { getApiSiteBase } from "../../lib/site-url";
 
 function passwordStrength(pw: string): "weak" | "good" | "strong" {
@@ -22,8 +26,7 @@ export default function ChangePasswordPage() {
   const strength = passwordStrength(pw);
 
   useEffect(() => {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(FITBASE_SESSION_KEY) : null;
-    const session = parseFitbaseSessionFromStorage(raw);
+    const session = loadFitbaseSessionFromBrowser();
     if (!session?.token) {
       window.location.replace("/login");
       return;
@@ -42,6 +45,7 @@ export default function ChangePasswordPage() {
         const d = await r.json();
         if (cancelled) return;
         if (!d || d.error) {
+          clearFitbaseSessionStorage();
           window.location.replace("/login");
           return;
         }
@@ -78,8 +82,7 @@ export default function ChangePasswordPage() {
       setMsg("Passwords do not match.");
       return;
     }
-    const raw = localStorage.getItem(FITBASE_SESSION_KEY);
-    const prev = parseFitbaseSessionFromStorage(raw);
+    const prev = loadFitbaseSessionFromBrowser();
     if (!prev?.token) {
       window.location.replace("/login");
       return;
