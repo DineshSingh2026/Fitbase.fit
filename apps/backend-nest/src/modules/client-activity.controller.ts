@@ -65,6 +65,7 @@ export class ClientActivityController {
              FROM thread_messages tm
              JOIN message_threads mt ON mt.id = tm.thread_id
              WHERE mt.user_id = $1::uuid
+             AND (mt.thread_kind = 'client' OR mt.thread_kind IS NULL)
              ORDER BY tm.created_at DESC LIMIT 1`,
             [userId]
           )

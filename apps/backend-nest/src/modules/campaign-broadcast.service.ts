@@ -1,12 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import { Pool } from "pg";
+import { PushNotificationService } from "./push-notification.service";
 
 @Injectable()
 export class CampaignBroadcastService {
-  constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
+  constructor(
+    @Inject("PG_POOL") private readonly pool: Pool | null,
+    private readonly push: PushNotificationService
+  ) {}
 
-  /** Inbox + chat to all approved, non-suspended users. Push is a no-op here (VAPID not wired in Nest). */
+  /** Inbox + chat to all approved, non-suspended users; optional web push when VAPID is set. */
   async broadcastToAllActiveUsers(message: string): Promise<number> {
     if (!this.pool) return 0;
     const trimmed = String(message).trim();
@@ -57,20 +61,29 @@ export class CampaignBroadcastService {
         console.warn(`[Campaign] Inbox insert failed for user ${uid}:`, e?.message || e);
       }
 
+      void this.push.sendToUser(uid, {
+        title: "FitBase",
+        body: trimmed.slice(0, 160),
+        url: "/dashboard",
+        tag: "fitbase-campaign",
+        badgeCount: 1
+      });
+
       if (lifestyleManagerId) {
         try {
           const threads = await this.pool.query(
-            `SELECT id FROM message_threads WHERE user_id = $1::uuid ORDER BY updated_at DESC LIMIT 1`,
+            `SELECT id FROM message_threads
+             WHERE user_id = $1::uuid AND (thread_kind = 'client' OR thread_kind IS NULL)
+             ORDER BY updated_at DESC LIMIT 1`,
             [uid]
           );
           let threadId: string | null = threads.rows[0]?.id ? String(threads.rows[0].id) : null;
           if (!threadId) {
             threadId = randomUUID();
-            await this.pool.query(`INSERT INTO message_threads (id, user_id, subject) VALUES ($1, $2::uuid, $3)`, [
-              threadId,
-              uid,
-              ""
-            ]);
+            await this.pool.query(
+              `INSERT INTO message_threads (id, user_id, subject, thread_kind) VALUES ($1, $2::uuid, $3, 'client')`,
+              [threadId, uid, ""]
+            );
           }
           const msgId = randomUUID();
           await this.pool.query(

@@ -9,6 +9,7 @@ import { randomUUID } from "crypto";
 import * as jwt from "jsonwebtoken";
 import { createReadStream, existsSync, statSync } from "fs";
 import { join } from "path";
+import { PushNotificationService } from "./push-notification.service";
 
 function isAdmin(user: any): boolean {
   return normalizeRoleString(user?.role) === "admin";
@@ -20,7 +21,10 @@ function isSuperadmin(user: any): boolean {
 
 @Controller("api")
 export class ProgramsController {
-  constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
+  constructor(
+    @Inject("PG_POOL") private readonly pool: Pool | null,
+    private readonly push: PushNotificationService
+  ) {}
 
   /** Postgres on Render often has no programs tables until first use (Express SQLite had its own bootstrap). */
   private async ensureProgramsSchema(): Promise<void> {
@@ -221,6 +225,15 @@ export class ProgramsController {
         "INSERT INTO user_program_assignments (id, user_id, program_id, assigned_by) VALUES ($1, $2, $3, $4)",
         [id, userId, programId, req.user.id]
       );
+      const pn = await this.pool.query("SELECT name FROM programs WHERE id = $1 LIMIT 1", [programId]);
+      const pname = String(pn.rows[0]?.name || "Program");
+      void this.push.sendToUser(userId, {
+        title: "Program assigned",
+        body: `Your coach assigned "${pname.slice(0, 80)}"`,
+        url: "/dashboard",
+        tag: `program-${id}`,
+        badgeCount: 1
+      });
       return res.json({ id });
     } catch (e: any) {
       return res.status(500).json({ error: e?.message || "Failed" });

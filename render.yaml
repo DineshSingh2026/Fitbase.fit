@@ -16,6 +16,14 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # Optional override; code defaults to 365d if unset. jsonwebtoken format (e.g. 30d, 12h).
+      - key: JWT_EXPIRY
+        value: 365d
+      # Web Push (PWA): npx web-push generate-vapid-keys — optional; without these, in-app bell + badge API still work.
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
       - key: SUPERADMIN_EMAIL
         sync: false
       - key: SUPERADMIN_PASS

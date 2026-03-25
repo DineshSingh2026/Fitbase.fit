@@ -19,6 +19,7 @@ import { BootstrapService } from "./bootstrap.service";
 import { StatsController } from "./stats.controller";
 import { TrainerCompatController } from "./trainer-compat.controller";
 import { PushController } from "./push.controller";
+import { PushNotificationService } from "./push-notification.service";
 import { MessageThreadsController } from "./message-threads.controller";
 import { ClientActivityController } from "./client-activity.controller";
 import { CampaignsController } from "./campaigns.controller";
@@ -61,6 +62,7 @@ import { ProfileController } from "./profile.controller";
     AuthService,
     RolesGuard,
     BootstrapService,
+    PushNotificationService,
     CampaignBroadcastService,
     CampaignSchedulerService,
     CampaignService

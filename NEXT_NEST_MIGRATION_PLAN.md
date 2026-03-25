@@ -34,6 +34,7 @@ This is configured in **parity-first mode** so live UX and flows remain stable:
 - `PORT=3200`
 - `DATABASE_URL=postgresql://...`
 - `JWT_SECRET=...`
+- `JWT_EXPIRY=365d` (optional; explicit token lifetime—Nest/Express read this)
 - `LEGACY_SERVER_URL=http://localhost:3000`
 
 ## Render deployment (two services)
@@ -48,7 +49,7 @@ Use Render Blueprint from `render.yaml`:
    - Build: `npm install && npm run build`
    - Start: `npm run start`
 3. Set required env vars:
-   - Backend: `DATABASE_URL`, `JWT_SECRET`, `PORT=3200`
+   - Backend: `DATABASE_URL`, `JWT_SECRET`, `PORT=3200` (optional: `JWT_EXPIRY` e.g. `365d`)
    - Frontend: `NEXT_PUBLIC_LEGACY_SITE_URL=<backend-public-url>`, `BACKEND_URL=<backend-public-url>`
 4. Optional during transition:
    - Keep `LEGACY_SERVER_URL=<legacy-url>` on backend for proxy fallback.

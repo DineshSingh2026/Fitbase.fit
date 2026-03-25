@@ -9,7 +9,8 @@ export class AuthService {
   }
 
   sign(payload: JwtPayload): string {
-    return jwt.sign(payload, this.secret, { expiresIn: "30d" });
+    const exp = process.env.JWT_EXPIRY || "365d";
+    return jwt.sign(payload, this.secret, { expiresIn: exp as jwt.SignOptions["expiresIn"] });
   }
 
   verify(token: string): JwtPayload {

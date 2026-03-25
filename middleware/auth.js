@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fitbase-progress-secret-change-in-production';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+/** Default long-lived sessions for PWA / “stay logged in until logout”. Override with JWT_EXPIRY if needed. */
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '365d';
 
 function normalizeUserRole(role) {
   const r = String(role == null ? '' : role).trim().toLowerCase();

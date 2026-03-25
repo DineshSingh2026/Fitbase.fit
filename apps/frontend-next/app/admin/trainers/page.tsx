@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   FITBASE_SESSION_KEY,
   parseFitbaseSessionFromStorage
@@ -165,14 +165,52 @@ export default function AdminTrainersPage() {
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
+  const tableScrollWrap: CSSProperties = {
+    width: "100%",
+    maxWidth: "100%",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
+    border: "1px solid var(--border)",
+    borderRadius: 12,
+    background: "var(--bg-card)",
+    boxSizing: "border-box"
+  };
+
   return (
-    <main style={{ minHeight: "100dvh", background: "var(--bg-primary)", padding: "24px 20px 48px" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 22, color: "var(--text-primary)", flex: 1 }}>Trainer applications</h1>
-          <a href="/dashboard" style={{ color: "var(--accent)", fontSize: 14 }}>
+    <main
+      style={{
+        minHeight: "100dvh",
+        background: "var(--bg-primary)",
+        paddingTop: "max(24px, calc(env(safe-area-inset-top, 0px) + 12px))",
+        paddingRight: "max(20px, env(safe-area-inset-right, 0px))",
+        paddingBottom: "max(48px, env(safe-area-inset-bottom, 0px))",
+        paddingLeft: "max(20px, env(safe-area-inset-left, 0px))",
+        boxSizing: "border-box"
+      }}
+    >
+      <div style={{ maxWidth: 1100, margin: "0 auto", width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: 10,
+            marginBottom: 20
+          }}
+        >
+          <a href="/dashboard" style={{ color: "var(--accent)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
             ← Back to dashboard
           </a>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "clamp(1.2rem, 4.2vw, 1.5rem)",
+              lineHeight: 1.25,
+              color: "var(--text-primary)"
+            }}
+          >
+            Trainer applications
+          </h1>
         </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
@@ -219,29 +257,33 @@ export default function AdminTrainersPage() {
         {loading ? (
           <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
         ) : tab === "pending" ? (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, background: "var(--bg-card)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--text-muted)" }}>
+              On a phone, scroll sideways inside the table to see all columns.
+            </p>
+            <div style={tableScrollWrap}>
+            <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Name</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Email</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Phone</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>City / Gym</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Applied</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Actions</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Name</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 160 }}>Email</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Phone</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 120 }}>City / Gym</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Applied</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "12px 14px", color: "var(--text-primary)" }}>{r.full_name || "—"}</td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>{r.email || "—"}</td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>{r.phone || "—"}</td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>
+                  <tr key={r.id} style={{ borderBottom: "1px solid var(--border)", verticalAlign: "top" }}>
+                    <td style={{ padding: "12px 14px", color: "var(--text-primary)", whiteSpace: "nowrap" }}>{r.full_name || "—"}</td>
+                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word", maxWidth: 220 }}>{r.email || "—"}</td>
+                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{r.phone || "—"}</td>
+                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word" }}>
                       {[r.city, r.gym_name].filter(Boolean).join(" · ") || "—"}
                     </td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>{formatAppliedAgo(r.created_at)}</td>
-                    <td style={{ padding: "12px 14px" }}>
+                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{formatAppliedAgo(r.created_at)}</td>
+                    <td style={{ padding: "12px 14px", minWidth: 200 }}>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button
                           type="button"
@@ -288,20 +330,25 @@ export default function AdminTrainersPage() {
             {!rows.length ? (
               <p style={{ padding: 20, margin: 0, color: "var(--text-muted)" }}>No pending applications.</p>
             ) : null}
+            </div>
           </div>
         ) : tab === "approved" ? (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, background: "var(--bg-card)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--text-muted)" }}>
+              On a phone, scroll sideways inside the table to see all columns.
+            </p>
+            <div style={tableScrollWrap}>
+            <table style={{ width: "100%", minWidth: 920, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Name</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Email</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Name</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 160 }}>Email</th>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>City</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Approved</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Trainer code</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Invite</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Clients</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Status</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Approved</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Trainer code</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Invite</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Clients</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -310,11 +357,11 @@ export default function AdminTrainersPage() {
                   const join = code ? `${origin}/join/${code}` : "";
                   const susp = r.suspended === true || r.suspended === "t";
                   return (
-                    <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "12px 14px", color: "var(--text-primary)" }}>{r.full_name || "—"}</td>
-                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>{r.email || "—"}</td>
-                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>{r.city || "—"}</td>
-                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)" }}>
+                    <tr key={r.id} style={{ borderBottom: "1px solid var(--border)", verticalAlign: "top" }}>
+                      <td style={{ padding: "12px 14px", color: "var(--text-primary)", whiteSpace: "nowrap" }}>{r.full_name || "—"}</td>
+                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word", maxWidth: 200 }}>{r.email || "—"}</td>
+                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word" }}>{r.city || "—"}</td>
+                      <td style={{ padding: "12px 14px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                         {r.approved_at ? new Date(String(r.approved_at)).toLocaleDateString() : "—"}
                       </td>
                       <td style={{ padding: "12px 14px" }}>
@@ -355,10 +402,11 @@ export default function AdminTrainersPage() {
             {!rows.length ? (
               <p style={{ padding: 20, margin: 0, color: "var(--text-muted)" }}>No approved trainers yet.</p>
             ) : null}
+            </div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, background: "var(--bg-card)" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div style={tableScrollWrap}>
+            <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Name</th>

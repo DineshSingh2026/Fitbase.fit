@@ -18,6 +18,7 @@ import {
   parseFitbaseSessionFromStorage,
   type FitbaseSession
 } from "../../lib/fitbase-session";
+import { clearPwaAppBadge, subscribeFitbasePush, syncPwaAppBadge } from "../../lib/pwa-push";
 import { UserMemberDesktopDashboard, type UserDesktopNavTarget } from "./user-member-desktop-dashboard";
 
 type DashboardTab =
@@ -73,6 +74,18 @@ function trainerChatDisplayNameFromThreadRow(t: unknown): string {
     return local ? local.replace(/[._]+/g, " ").trim() : em;
   }
   return "";
+}
+
+/** Sidebar label for staff thread list (client chat vs trainer ↔ super admin). */
+function staffThreadListTitle(t: unknown, viewerRole: string): string {
+  if (!t || typeof t !== "object") return "Chat";
+  const row = t as { thread_kind?: string; first_name?: string; last_name?: string; email?: string };
+  if (String(row.thread_kind) === "ops") {
+    if (viewerRole === "admin") return "Super Admin";
+    const n = [row.first_name, row.last_name].filter(Boolean).join(" ").trim();
+    return n || String(row.email || "").trim() || "Trainer";
+  }
+  return [row.first_name, row.last_name].filter(Boolean).join(" ").trim() || String(row.email || "").trim() || "Client";
 }
 
 function adminDetailText(v: unknown): ReactNode {
@@ -385,6 +398,12 @@ export default function DashboardPage() {
   const [threadMessages, setThreadMessages] = useState<any[]>([]);
   const [replyText, setReplyText] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const [opsThreadOpening, setOpsThreadOpening] = useState<string>("");
+  const [pushEnableBusy, setPushEnableBusy] = useState(false);
+  const [pushFeedback, setPushFeedback] = useState<string>("");
+  const notifBaselineReadyRef = useRef(false);
+  const notifSeenIdsRef = useRef<Set<string>>(new Set());
+  const lastBannerAtRef = useRef(0);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiReply, setAiReply] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -586,6 +605,12 @@ export default function DashboardPage() {
 
   const isStaff = role !== "user";
   const isTrainer = role === "admin";
+  const isSuperadminViewer = role === "superadmin";
+
+  const selectedThreadRow = useMemo(
+    () => threads.find((t: any) => String(t?.id || "") === String(selectedThreadId)),
+    [threads, selectedThreadId]
+  );
 
   /** When this string changes, reset window scroll so each section/form starts at the top. */
   const dashboardScrollSnapKey = useMemo(() => {
@@ -968,6 +993,9 @@ export default function DashboardPage() {
     }
     writeInboxShowAfterMs(uid, floor);
     setInboxItems([]);
+    notifSeenIdsRef.current.clear();
+    notifBaselineReadyRef.current = false;
+    clearPwaAppBadge();
 
     if (role === "user") {
       const headers = { Authorization: `Bearer ${session.token}` };
@@ -1031,11 +1059,55 @@ export default function DashboardPage() {
   ]);
 
   useEffect(() => {
-    if (!session?.token) return;
+    if (!session?.token) {
+      notifBaselineReadyRef.current = false;
+      notifSeenIdsRef.current.clear();
+      return;
+    }
     void loadInbox();
-    const id = window.setInterval(() => void loadInbox(), 120000);
+    const id = window.setInterval(() => void loadInbox(), 90000);
     return () => window.clearInterval(id);
   }, [session?.token, loadInbox]);
+
+  useEffect(() => {
+    syncPwaAppBadge(inboxItems.length);
+  }, [inboxItems.length]);
+
+  useEffect(() => {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    if (!inboxItems.length) return;
+    const ids = inboxItems.map((n) => String(n.id ?? ""));
+    if (!notifBaselineReadyRef.current) {
+      notifBaselineReadyRef.current = true;
+      ids.forEach((id) => {
+        if (id) notifSeenIdsRef.current.add(id);
+      });
+      return;
+    }
+    const fresh = inboxItems.filter((n) => {
+      const id = String(n.id ?? "");
+      return id && !notifSeenIdsRef.current.has(id);
+    });
+    if (!fresh.length) return;
+    const now = Date.now();
+    if (now - lastBannerAtRef.current < 5000) {
+      fresh.forEach((n) => notifSeenIdsRef.current.add(String(n.id ?? "")));
+      return;
+    }
+    lastBannerAtRef.current = now;
+    const n = fresh[0];
+    const nid = String(n.id ?? "");
+    if (nid) notifSeenIdsRef.current.add(nid);
+    try {
+      new Notification(n.title || "FitBase", {
+        body: String(n.desc || "").slice(0, 180),
+        icon: "/img/Fitbase_logo_PWA2.png",
+        tag: nid || "fitbase-notify"
+      });
+    } catch {
+      /* ignore */
+    }
+  }, [inboxItems]);
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -1390,6 +1462,44 @@ export default function DashboardPage() {
       .then((rows) => setProgramCatalog(Array.isArray(rows) ? rows : []))
       .catch(() => setProgramCatalog([]));
   }, [session, staffOverlay, isStaff, isTrainer, activeTab, apiBase]);
+
+  async function selectStaffThreadRow(t: any) {
+    const existingId = t?.id != null && String(t.id) !== "" ? String(t.id) : "";
+    if (existingId) {
+      setSelectedThreadId(existingId);
+      return;
+    }
+    const trId = String(t?.trainer_user_id || t?.user_id || "").trim();
+    if (!trId || !isSuperadminViewer || !session?.token) return;
+    setOpsThreadOpening(trId);
+    try {
+      const r = await fetch(`${apiBase}/api/threads/ops/open`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
+        body: JSON.stringify({ trainer_user_id: trId })
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.id) return;
+      setThreads((prev) =>
+        prev.map((row: any) => {
+          const ru = String(row.trainer_user_id || row.user_id || "");
+          if (ru !== trId) return row;
+          return {
+            ...row,
+            id: j.id,
+            last_message: j.last_message ?? row.last_message,
+            thread_kind: j.thread_kind || row.thread_kind || "ops"
+          };
+        })
+      );
+      setSelectedThreadId(String(j.id));
+    } finally {
+      setOpsThreadOpening("");
+    }
+  }
 
   async function sendAi() {
     const text = aiPrompt.trim();
@@ -3238,6 +3348,10 @@ export default function DashboardPage() {
         .bb-notif-desc{color:var(--text-secondary);font-size:12px;display:block}
         .bb-notif-time{font-size:11px;color:var(--text-secondary);margin-top:4px}
         .bb-notif-empty{padding:16px 14px;color:var(--text-secondary);font-size:13px;margin:0}
+        .bb-notif-push-footer{padding:10px 14px 8px;margin-top:2px;border-top:1px solid var(--border)}
+        .bb-notif-push-btn{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--accent-border);background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));color:var(--on-accent);font-weight:700;font-size:12px;letter-spacing:.02em;cursor:pointer;box-sizing:border-box}
+        .bb-notif-push-btn:disabled{opacity:.55;cursor:not-allowed}
+        .bb-notif-push-hint{margin:8px 0 0;font-size:11px;line-height:1.45;color:var(--text-secondary)}
         .bb-admin-welcome-card{background:linear-gradient(135deg,var(--bg-surface),color-mix(in srgb,var(--accent) 9%,var(--bg-card)));border-radius:14px;border-left:5px solid var(--accent);padding:18px 20px;margin-bottom:16px;box-sizing:border-box;width:100%;box-shadow:var(--shadow-md),inset 0 0 0 1px var(--accent-border)}
         .bb-admin-welcome-title{font-size:clamp(17px,4.2vw,24px);font-weight:700;color:var(--olive);margin:0 0 8px;line-height:1.32;letter-spacing:.04em}
         .bb-admin-welcome-role{font-weight:800;letter-spacing:.03em}
@@ -3789,6 +3903,37 @@ export default function DashboardPage() {
                     </button>
                   ))
                 )}
+                <div className="bb-notif-push-footer">
+                  <button
+                    type="button"
+                    className="bb-notif-push-btn"
+                    disabled={pushEnableBusy || !session?.token}
+                    onClick={() => {
+                      void (async () => {
+                        if (!session?.token) return;
+                        setPushEnableBusy(true);
+                        setPushFeedback("");
+                        try {
+                          const r = await subscribeFitbasePush(apiBase, session.token);
+                          if (r.ok) {
+                            setPushFeedback("Push enabled. Install the app to your home screen for icon badges and alerts when the app is closed.");
+                          } else if (r.reason === "denied") {
+                            setPushFeedback("Notifications are blocked. Enable them in browser or system settings.");
+                          } else if (r.reason === "no-vapid") {
+                            setPushFeedback("Server is not configured for push yet (VAPID keys). Counts on the bell still update.");
+                          } else {
+                            setPushFeedback("Could not enable push on this device.");
+                          }
+                        } finally {
+                          setPushEnableBusy(false);
+                        }
+                      })();
+                    }}
+                  >
+                    {pushEnableBusy ? "Working…" : "Turn on push alerts (banner + home screen badge)"}
+                  </button>
+                  {pushFeedback ? <p className="bb-notif-push-hint">{pushFeedback}</p> : null}
+                </div>
               </div>
             ) : null}
           </div>
@@ -3835,6 +3980,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => {
+              clearPwaAppBadge();
               localStorage.removeItem(FITBASE_SESSION_KEY);
               window.location.replace("/login");
             }}
@@ -4194,18 +4340,40 @@ export default function DashboardPage() {
                       </div>
                       <div className="push-enable-wrap">
                         <p>
-                          Get workout &amp; check-in reminders, and know when{" "}
-                          {userTrainerChatDisplayName ? `${userTrainerChatDisplayName} replies` : "your coach replies"}.
+                          Get banners when your coach messages or assigns programs, plus a count on your app icon (like food-order
+                          apps)—after you enable below and add FitBase to your home screen.
                         </p>
                         <button
                           type="button"
                           className="push-enable-btn"
+                          disabled={pushEnableBusy || !session?.token}
                           onClick={() => {
-                            if (typeof Notification !== "undefined") Notification.requestPermission().catch(() => {});
+                            void (async () => {
+                              if (!session?.token) return;
+                              setPushEnableBusy(true);
+                              setPushFeedback("");
+                              try {
+                                const r = await subscribeFitbasePush(apiBase, session.token);
+                                if (r.ok) {
+                                  setPushFeedback("You’re set. Keep the app installed for alerts in the background.");
+                                } else if (r.reason === "denied") {
+                                  setPushFeedback("Allow notifications in your browser settings to continue.");
+                                } else if (r.reason === "no-vapid") {
+                                  setPushFeedback("Push will work once the server has VAPID keys configured.");
+                                } else {
+                                  setPushFeedback("Could not subscribe on this device.");
+                                }
+                              } finally {
+                                setPushEnableBusy(false);
+                              }
+                            })();
                           }}
                         >
-                          Enable notifications
+                          {pushEnableBusy ? "…" : "Enable notifications"}
                         </button>
+                        {pushFeedback ? (
+                          <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", maxWidth: 320 }}>{pushFeedback}</p>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -7158,7 +7326,11 @@ export default function DashboardPage() {
                     <HubCard
                       icon={String.fromCodePoint(0x1f4ac)}
                       title="Messages"
-                      desc="Client chat threads and replies"
+                      desc={
+                        isSuperadminViewer
+                          ? "Chat with trainers only (separate from clients)"
+                          : "Clients and Super Admin — separate threads"
+                      }
                       onClick={() => setTrainerMessagesView("threads")}
                     />
                     <HubCard
@@ -7174,17 +7346,21 @@ export default function DashboardPage() {
                       <span className="bb-inline-label">THREADS</span>
                       {threads.length ? (
                         <ul className="bb-list-rows">
-                          {threads.slice(0, 20).map((t: any) => {
+                          {threads.slice(0, 50).map((t: any, ti: number) => {
+                            const rowKey = String(t.id || `tr-${t.trainer_user_id || t.user_id || ti}`);
                             const id = String(t.id || "");
-                            const active = selectedThreadId === id;
+                            const active = id ? selectedThreadId === id : false;
+                            const opening = opsThreadOpening === String(t.trainer_user_id || t.user_id || "");
                             return (
                               <li
-                                key={id}
+                                key={rowKey}
                                 className={`bb-list-row${active ? " bb-list-row-active" : ""}`}
-                                onClick={() => setSelectedThreadId(id)}
+                                onClick={() => void selectStaffThreadRow(t)}
                                 role="presentation"
                               >
-                                <div className="bb-list-row-title">{[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Client"}</div>
+                                <div className="bb-list-row-title">
+                                  {opening ? "Opening…" : staffThreadListTitle(t, role)}
+                                </div>
                                 <p className="bb-list-row-sub">{String(t.last_message || "No messages yet").slice(0, 80)}</p>
                               </li>
                             );
@@ -7204,9 +7380,21 @@ export default function DashboardPage() {
                           <div className="bb-msg-scroll">
                             {threadMessages.length ? (
                               threadMessages.map((m: any) => {
-                                const staffSide = m.sender_role === "admin" || m.sender_role === "superadmin";
+                                const kind = String(selectedThreadRow?.thread_kind || "client");
+                                let staffSide: boolean;
+                                let otherLabel: string;
+                                if (isSuperadminViewer && kind === "ops") {
+                                  staffSide = m.sender_role === "superadmin";
+                                  otherLabel = staffThreadListTitle(selectedThreadRow, role);
+                                } else if (isTrainer && kind === "ops") {
+                                  staffSide = m.sender_role === "admin";
+                                  otherLabel = "Super Admin";
+                                } else {
+                                  staffSide = m.sender_role === "admin" || m.sender_role === "superadmin";
+                                  otherLabel = "Client";
+                                }
                                 const mine = staffSide;
-                                const label = staffSide ? "You" : "Client";
+                                const label = mine ? "You" : otherLabel;
                                 return (
                                   <div key={m.id} className={mine ? "bb-msg-bubble-user" : "bb-msg-bubble-client"} style={{ justifySelf: mine ? "end" : "start" }}>
                                     <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{m.body}</div>
