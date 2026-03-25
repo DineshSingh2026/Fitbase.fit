@@ -325,6 +325,7 @@ export class SuperadminController {
                  'email', u.email,
                  'first_name', u.first_name,
                  'last_name', u.last_name,
+                 'phone', u.phone,
                  'approval_status', u.approval_status,
                  'suspended', COALESCE(u.suspended, FALSE)
                )

@@ -25,6 +25,7 @@ import { CampaignService } from "./campaign.service";
 import { CampaignBroadcastService } from "./campaign-broadcast.service";
 import { CampaignSchedulerService } from "./campaign-scheduler.service";
 import { Part2PublicController } from "./part2-public.controller";
+import { ProfileController } from "./profile.controller";
 
 @Module({
   imports: [
@@ -51,7 +52,8 @@ import { Part2PublicController } from "./part2-public.controller";
     MessageThreadsController,
     ClientActivityController,
     CampaignsController,
-    Part2PublicController
+    Part2PublicController,
+    ProfileController
   ],
   providers: [
     AuthService,

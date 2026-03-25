@@ -1,9 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode
+} from "react";
 import { getApiSiteBase } from "../../lib/site-url";
 import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
+import { UserMemberDesktopDashboard, type UserDesktopNavTarget } from "./user-member-desktop-dashboard";
 
 type DashboardTab =
   | "home"
@@ -76,6 +86,24 @@ function formatAdminCheckinDate(d: unknown): string {
   } catch {
     return "—";
   }
+}
+
+function rosterClientMonogram(client: { first_name?: string; last_name?: string; email?: string }): string {
+  const a = String(client.first_name || "").trim();
+  const b = String(client.last_name || "").trim();
+  const ai = a[0];
+  const bi = b[0];
+  if (ai && bi) return (ai + bi).toUpperCase();
+  if (ai) return ai.toUpperCase();
+  const em = String(client.email || "").trim();
+  return em[0] ? em[0].toUpperCase() : "·";
+}
+
+function superadminRosterStatusClass(approvalStatus: unknown): string {
+  const s = String(approvalStatus || "").trim().toLowerCase();
+  if (s === "approved") return "bb-sa-roster-status bb-sa-roster-status--approved";
+  if (s === "pending") return "bb-sa-roster-status bb-sa-roster-status--pending";
+  return "bb-sa-roster-status";
 }
 
 const PERF_INSIGHT_LABELS: Record<string, string> = {
@@ -377,6 +405,27 @@ export default function DashboardPage() {
   const [part2Submissions, setPart2Submissions] = useState<any[]>([]);
   const [selectedPart2, setSelectedPart2] = useState<any | null>(null);
   const [userCheckinView, setUserCheckinView] = useState<"hub" | "daily" | "sunday" | "progress">("hub");
+  const [userWide768, setUserWide768] = useState(false);
+  const deferredPwaRef = useRef<any>(null);
+  const [userShowPwaRow, setUserShowPwaRow] = useState(true);
+  const [remoteProfile, setRemoteProfile] = useState<{
+    phone?: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_picture?: string;
+  } | null>(null);
+  const [profPhone, setProfPhone] = useState("");
+  const [profEmail, setProfEmail] = useState("");
+  const [profEmailErr, setProfEmailErr] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveOk, setProfileSaveOk] = useState(false);
+  const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
+  const [eliteModalOpen, setEliteModalOpen] = useState(false);
+  const [eliteGenerating, setEliteGenerating] = useState(false);
+  const [elitePreviewUrl, setElitePreviewUrl] = useState<string | null>(null);
+  const eliteCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const eliteBlobRef = useRef<Blob | null>(null);
   const [userToday, setUserToday] = useState<any | null>(null);
   const [userStreak, setUserStreak] = useState<any | null>(null);
   const [userPrograms, setUserPrograms] = useState<any[]>([]);
@@ -884,6 +933,51 @@ export default function DashboardPage() {
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     setTodayLabel(`${days[d.getDay()]} · ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width:768px)");
+    const fn = () => setUserWide768(mq.matches);
+    fn();
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || role !== "user") return;
+    const onBip = (e: Event) => {
+      e.preventDefault();
+      deferredPwaRef.current = e;
+    };
+    window.addEventListener("beforeinstallprompt", onBip);
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const syncStandalone = () => {
+      const iosStandalone = Boolean((navigator as unknown as { standalone?: boolean }).standalone);
+      setUserShowPwaRow(!mq.matches && !iosStandalone);
+    };
+    syncStandalone();
+    mq.addEventListener("change", syncStandalone);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBip);
+      mq.removeEventListener("change", syncStandalone);
+    };
+  }, [role]);
+
+  useEffect(() => {
+    if (!session?.token || role !== "user") return;
+    const uid = String(session.user?.id || "");
+    if (!uid) return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    fetch(`${apiBase}/api/profile/${encodeURIComponent(uid)}`, { headers })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d || d.error) return;
+        setRemoteProfile(d);
+        setProfPhone(String(d.phone || ""));
+        setProfEmail(String(d.email || ""));
+      })
+      .catch(() => {});
+  }, [session?.token, role, apiBase, session?.user?.id]);
 
   useEffect(() => {
     if (!session?.token || role !== "superadmin") return;
@@ -1471,6 +1565,200 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadUserProfileFromApi() {
+    const uid = session?.user?.id;
+    if (!session?.token || !uid || role !== "user") return;
+    setProfEmailErr("");
+    setProfileSaveOk(false);
+    const r = await fetch(`${apiBase}/api/profile/${encodeURIComponent(String(uid))}`, {
+      headers: { Authorization: `Bearer ${session.token}` }
+    });
+    const d = await r.json().catch(() => null);
+    if (d && !d.error) {
+      setRemoteProfile(d);
+      setProfPhone(String(d.phone || ""));
+      setProfEmail(String(d.email || ""));
+    }
+    setPendingAvatar(null);
+  }
+
+  async function saveUserProfile() {
+    const uid = session?.user?.id;
+    if (!session?.token || !uid || role !== "user") return;
+    setProfEmailErr("");
+    setProfileSaveOk(false);
+    const emailVal = profEmail.trim();
+    if (emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      setProfEmailErr("Please enter a valid email address");
+      return;
+    }
+    setProfileSaving(true);
+    const body: Record<string, string> = {
+      first_name: String(remoteProfile?.first_name ?? session?.user?.first_name ?? ""),
+      last_name: String(remoteProfile?.last_name ?? session?.user?.last_name ?? ""),
+      phone: profPhone.trim(),
+      email: emailVal
+    };
+    if (pendingAvatar) body.profile_picture = pendingAvatar;
+    try {
+      const r = await fetch(`${apiBase}/api/profile/${encodeURIComponent(String(uid))}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.token}`
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setProfEmailErr(String(data?.error || data?.message || "Update failed"));
+        return;
+      }
+      const pic = pendingAvatar || remoteProfile?.profile_picture || session?.user?.profile_picture || "";
+      setPendingAvatar(null);
+      setProfileSaveOk(true);
+      setSession((prev) => {
+        if (!prev) return prev;
+        const next: Session = {
+          ...prev,
+          user: {
+            ...prev.user,
+            email: emailVal || prev.user.email,
+            first_name: body.first_name,
+            last_name: body.last_name,
+            ...(pic ? { profile_picture: String(pic) } : {})
+          }
+        };
+        try {
+          localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+      setRemoteProfile((p) => ({ ...(p || {}), ...body, profile_picture: String(pic || p?.profile_picture || "") }));
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  function handleUserAvatarUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || role !== "user") return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      const m = dataUrl.match(/^data:image\/[\w+.-]+;base64,(.+)$/);
+      const b64 = m ? m[1] : "";
+      const approx = b64 ? Math.floor((b64.length * 3) / 4) : 0;
+      if (approx > 5 * 1024 * 1024) {
+        setError("Profile photo must be 5 MB or smaller.");
+        return;
+      }
+      setPendingAvatar(dataUrl);
+      setError("");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
+
+  function eliteCardFullName(): string {
+    const fn = String(remoteProfile?.first_name ?? session?.user?.first_name ?? "").trim();
+    const ln = String(remoteProfile?.last_name ?? session?.user?.last_name ?? "").trim();
+    return `${fn} ${ln}`.trim() || displayName;
+  }
+
+  async function openUserEliteCardModal() {
+    const fullName = eliteCardFullName();
+    if (!fullName.trim()) {
+      setError("Please add your first and last name in your profile, then try again.");
+      return;
+    }
+    const canvas = eliteCanvasRef.current;
+    if (!canvas) return;
+    setEliteGenerating(true);
+    setError("");
+    try {
+      const img = new globalThis.Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Could not load card image"));
+        img.src = `${typeof window !== "undefined" ? window.location.origin : ""}/Elite%20card%204.png`;
+      });
+      const w = img.naturalWidth || 900;
+      const h = img.naturalHeight || 540;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas unavailable");
+      ctx.drawImage(img, 0, 0);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const nameX = w * 0.065;
+      const nameY = h * 0.52;
+      const maxW = w * 0.7;
+      let fontSize = Math.round(w * 0.055);
+      if (fontSize < 28) fontSize = 28;
+      ctx.font = `600 ${fontSize}px 'Outfit', 'Segoe UI', sans-serif`;
+      if (ctx.measureText(fullName).width > maxW) {
+        fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
+        ctx.font = `600 ${fontSize}px 'Outfit', 'Segoe UI', sans-serif`;
+      }
+      ctx.fillStyle = "#0a0a0a";
+      ctx.shadowColor = "rgba(0,0,0,0.15)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(fullName, nameX, nameY);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      eliteBlobRef.current = await new Promise<Blob | null>((r) => canvas.toBlob((b) => r(b), "image/png", 1));
+      setElitePreviewUrl(canvas.toDataURL("image/png"));
+      setEliteModalOpen(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not generate Elite card.");
+    } finally {
+      setEliteGenerating(false);
+    }
+  }
+
+  async function downloadEliteCard() {
+    const blob =
+      eliteBlobRef.current ||
+      (await new Promise<Blob | null>((r) => eliteCanvasRef.current?.toBlob((b) => r(b), "image/png", 1)));
+    if (!blob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "fitbase-elite-card.png";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function handlePwaAddToHomescreenUser() {
+    if (typeof window === "undefined") return;
+    const iosStandalone = Boolean((navigator as unknown as { standalone?: boolean }).standalone);
+    if (window.matchMedia("(display-mode: standalone)").matches || iosStandalone) return;
+    const e = deferredPwaRef.current;
+    if (e && typeof e.prompt === "function") {
+      void e.prompt();
+      if (e.userChoice) {
+        void e.userChoice.then(() => {
+          deferredPwaRef.current = null;
+        });
+      }
+      return;
+    }
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+      window.alert("On iPhone: tap Share, then Add to Home Screen.");
+    }
+  }
+
   async function submitUserMeeting() {
     const uid = session?.user?.id;
     if (!session?.token || !uid) return;
@@ -1782,6 +2070,33 @@ export default function DashboardPage() {
     setActiveTab(id);
   }
 
+  function userNavigateDesktop(target: UserDesktopNavTarget) {
+    switch (target) {
+      case "workout":
+        goTab("clients");
+        break;
+      case "progress":
+        goTab("progress");
+        break;
+      case "sunday":
+        goTab("forms");
+        setUserCheckinView("sunday");
+        break;
+      case "messages":
+        goTab("messages");
+        break;
+      case "contact":
+        goTab("contact");
+        break;
+      case "formsHub":
+        goTab("forms");
+        setUserCheckinView("hub");
+        break;
+      default:
+        goTab("home");
+    }
+  }
+
   function applyInboxLink(link: string | null | undefined) {
     setNotifOpen(false);
     const l = String(link || "");
@@ -1871,19 +2186,53 @@ export default function DashboardPage() {
   const timerSec = String(timerSeconds % 60).padStart(2, "0");
   const weeklyRecap = userStreak?.weekly || {};
 
-  const userPageTitle: Record<DashboardTab, string> = {
-    home: "HOME",
-    clients: "WORKOUT",
-    programs: "PROGRAMS",
-    forms: "CHECK-IN",
-    messages: "MESSAGES",
-    ai: "AI",
-    contact: "SCHEDULE A MEETING",
-    profile: "MY PROFILE",
-    progress: "MY PROGRESS",
-    training: "TRAINING",
-    analytics: "ANALYTICS"
-  };
+  const { userSecTitle, userSecSub } = useMemo(() => {
+    if (role !== "user") return { userSecTitle: "", userSecSub: "" };
+    const SUB: Partial<Record<DashboardTab, string>> = {
+      home: "Your dashboard and daily actions in one place.",
+      clients: "Log sessions and review recent training history.",
+      programs: "Programs assigned by your lifestyle manager.",
+      progress: "Track body metrics and keep every entry visible.",
+      forms: "Daily check-in, Sunday check-in, or My progress.",
+      messages: "Chat directly with your Lifestyle Manager in one clean thread.",
+      profile: "Keep your personal and contact details up to date.",
+      contact: "Schedule calls or send support requests quickly."
+    };
+    const LAB: Partial<Record<DashboardTab, string>> = {
+      home: "Home",
+      clients: "My Workout",
+      programs: "My Programs",
+      progress: "My Progress",
+      forms: "Check-in",
+      messages: "Messages",
+      profile: "My Profile",
+      contact: "Contact Us"
+    };
+    if (activeTab === "forms" && userCheckinView === "daily") {
+      return { userSecTitle: "Daily Check-in", userSecSub: "Log steps, water, protein & sleep for today" };
+    }
+    if (activeTab === "forms" && userCheckinView === "sunday") {
+      return { userSecTitle: "Sunday Check-in", userSecSub: "Complete your weekly review form" };
+    }
+    if (activeTab === "forms" && userCheckinView === "progress") {
+      return {
+        userSecTitle: "My Progress",
+        userSecSub: "Log metrics by date and view your analytics"
+      };
+    }
+    return {
+      userSecTitle: LAB[activeTab] || "Home",
+      userSecSub: SUB[activeTab] || SUB.home || ""
+    };
+  }, [role, activeTab, userCheckinView]);
+
+  const userWelcomeAvatarSrc = useMemo(() => {
+    const p = pendingAvatar || remoteProfile?.profile_picture || session?.user?.profile_picture || "";
+    if (!p) return "";
+    if (p.startsWith("data:") || p.startsWith("http://") || p.startsWith("https://")) return p;
+    const base = String(apiBase).replace(/\/+$/, "");
+    return `${base}${p.startsWith("/") ? p : `/${p}`}`;
+  }, [pendingAvatar, remoteProfile?.profile_picture, session?.user?.profile_picture, apiBase]);
 
   async function refetchAdminList(path: string, f: AdminListFilter, setRows: (rows: any[]) => void) {
     if (!session?.token) return;
@@ -2554,7 +2903,7 @@ export default function DashboardPage() {
 
   return (
     <main
-      className={`bb-dash-root${isTrainer ? " bb-trainer-shell" : ""}`}
+      className={`bb-dash-root${isTrainer ? " bb-trainer-shell" : ""}${role === "user" ? " bb-user-shell" : ""}`}
       style={{ minHeight: "100dvh", background: s.bg, color: s.text, display: "flex", flexDirection: "column" }}
     >
       <style>{`
@@ -2562,6 +2911,12 @@ export default function DashboardPage() {
         .bb-dash-header{padding-top:max(12px, env(safe-area-inset-top, 0px));padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-bottom:12px}
         .bb-dash-main{padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-top:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
         .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer;overflow:visible}
+        .bb-staff-detail-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin-top:16px}
+        .bb-staff-detail-btn{min-height:42px;padding:10px 18px;border-radius:10px;border:1px solid var(--accent-border);background:color-mix(in srgb,var(--accent) 10%,var(--bg-card));color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;font:inherit;white-space:normal;line-height:1.3;text-align:center;box-sizing:border-box}
+        .bb-staff-detail-btn:hover{filter:brightness(1.04);border-color:var(--accent)}
+        .bb-staff-detail-btn:disabled{opacity:.55;cursor:not-allowed}
+        .bb-staff-detail-btn--danger{border-color:rgba(200,80,80,0.45);color:var(--red);background:color-mix(in srgb,var(--red) 8%,var(--bg-card))}
+        .bb-staff-detail-btn--danger:hover{border-color:var(--red)}
         .bb-header-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:2px 6px;font-size:10px;font-weight:700;line-height:1.15;min-width:18px;box-sizing:border-box;text-align:center;display:inline-flex;align-items:center;justify-content:center}
         .bb-notif-wrap{position:relative}
         .bb-notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 28px));max-height:min(420px,70vh);overflow:auto;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:50;padding:10px 0}
@@ -2593,6 +2948,35 @@ export default function DashboardPage() {
         .bb-dash-root{font-family:'Outfit',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
         .bb-trainer-shell{display:flex;flex-direction:column;min-height:100dvh}
         @media(min-width:900px){.bb-trainer-shell .bb-dash-main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}}
+        .bb-user-shell{display:flex;flex-direction:column;min-height:100dvh}
+        .bb-user-layout-row{display:flex;flex:1;min-height:0;min-width:0;align-items:stretch;flex-direction:row}
+        .bb-user-sidebar-desktop{display:none;flex-direction:column;width:240px;flex-shrink:0;border-right:1px solid var(--border);background:color-mix(in srgb,var(--bg-primary) 97%,transparent);padding:12px 0 24px;gap:2px}
+        .bb-user-side-logo{padding:0 18px 20px;border-bottom:1px solid var(--border);margin-bottom:10px}
+        .bb-user-side-logo img{display:block;height:72px;width:auto;object-fit:contain}
+        .bb-user-side-link{display:flex;align-items:center;gap:10px;padding:11px 16px;border:none;background:transparent;color:var(--text-secondary);font:inherit;font-size:11px;font-weight:600;cursor:pointer;text-align:left;width:100%;text-transform:uppercase;letter-spacing:.08em;border-left:3px solid transparent;box-sizing:border-box}
+        .bb-user-side-link:hover,.bb-user-side-link:focus{background:rgb(var(--accent-rgb) / 0.06);color:var(--accent);outline:none}
+        .bb-user-side-link-active{color:var(--accent);border-left-color:var(--accent);background:rgb(var(--accent-rgb) / 0.08)}
+        .bb-user-section-strip{margin:0 0 16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+        .bb-user-section-name{display:block;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-primary);margin-bottom:6px}
+        .bb-user-section-sub{display:block;font-size:13px;color:var(--text-secondary);line-height:1.45}
+        .bb-user-pwa-row{display:flex;justify-content:center;margin-bottom:16px}
+        .bb-user-pwa-btn{padding:10px 20px;border-radius:10px;border:1px solid var(--accent-border);background:var(--accent-dim);color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;font:inherit}
+        .bb-user-desktop-only{display:none}
+        .bb-user-home-wrap.bb-desktop .bb-user-desktop-only{display:block}
+        .bb-user-home-wrap.bb-desktop .bb-user-mobile-home{display:none!important}
+        .user-wa-top-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer;padding:0;flex-shrink:0}
+        .user-wa-top-btn svg{width:22px;height:22px;fill:currentColor}
+        .timer-paused-label{font-size:12px;color:var(--text-secondary);text-align:center;margin-top:8px;letter-spacing:.06em;text-transform:uppercase}
+        .user-welcome-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid rgb(var(--accent-rgb) / 0.55);display:block}
+        .elite-card-btn{display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border-radius:10px;border:1px solid var(--accent-border);background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));color:var(--on-accent);font-weight:700;font-size:13px;cursor:pointer;font:inherit}
+        .bb-elite-modal-overlay{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,0.55);display:flex;align-items:flex-start;justify-content:center;padding:max(16px,5vh) 16px;overflow-y:auto}
+        .bb-elite-modal{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;max-width:960px;width:100%;padding:20px;position:relative;box-shadow:var(--shadow-lg)}
+        .bb-elite-modal-x{position:absolute;top:12px;right:12px;width:40px;height:40px;border:none;background:transparent;font-size:24px;cursor:pointer;color:var(--text-secondary)}
+        @media(min-width:900px){
+          .bb-user-shell .bb-user-sidebar-desktop{display:flex}
+          .bb-user-shell .bb-nav-dock{display:none!important}
+          .bb-user-shell .bb-dash-main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+        }
         .bb-trainer-welcome-line{margin:0 0 10px;font-family:'Outfit',sans-serif;font-size:clamp(15px,3.4vw,18px);font-weight:600;color:var(--olive);letter-spacing:.03em;line-height:1.35}
         .bb-trainer-welcome-name{font-weight:700;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 55%,var(--accent-light) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bb-dashboard-title{margin:0 0 12px;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,44px);letter-spacing:3px;line-height:1;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 32%,var(--accent-light) 62%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -2631,6 +3015,91 @@ export default function DashboardPage() {
         .bb-live-dot{width:9px;height:9px;border-radius:50%;background:var(--green)}
         .bb-live-pill{font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;background:var(--green-dim);color:var(--green);letter-spacing:.4px}
         .bb-live-empty{margin:0;color:var(--text-secondary);font-size:14px}
+        .bb-sa-roster-shell{position:relative;border-radius:22px;padding:clamp(20px,4vw,34px);box-sizing:border-box;background:radial-gradient(ellipse 120% 90% at 0% 0%,rgb(var(--accent-rgb) / 0.16),transparent 52%),radial-gradient(ellipse 80% 70% at 100% 8%,rgb(var(--accent-rgb) / 0.09),transparent 48%),linear-gradient(168deg,color-mix(in srgb,var(--bg-card) 94%,var(--text-primary) 6%),var(--bg-surface));border:1px solid color-mix(in srgb,var(--accent) 24%,var(--border));box-shadow:0 28px 56px rgb(var(--shadow-rgb) / 0.14),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 14%,transparent)}
+        .bb-sa-roster-shell::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text-on-accent) 6%,transparent)}
+        .bb-sa-roster-hero{position:relative;z-index:1;margin-bottom:4px;padding-bottom:22px;border-bottom:1px solid color-mix(in srgb,var(--accent) 14%,var(--border))}
+        .bb-sa-roster-kicker{margin:0 0 10px;font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:5px;text-transform:uppercase;color:rgb(var(--accent-rgb) / 0.58)}
+        .bb-sa-roster-title{margin:0 0 14px;font-family:'Bebas Neue',sans-serif;font-size:clamp(34px,7vw,52px);letter-spacing:5px;line-height:0.95;background:linear-gradient(118deg,var(--olive) 0%,var(--accent) 38%,var(--accent-light) 68%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .bb-sa-roster-sub{margin:0;font-size:14px;line-height:1.6;color:var(--text-secondary);max-width:46ch}
+        .bb-sa-roster-stats{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;align-items:center}
+        .bb-sa-roster-stat{display:inline-flex;align-items:center;gap:12px;padding:10px 18px;border-radius:999px;background:rgb(var(--accent-rgb) / 0.09);border:1px solid rgb(var(--accent-rgb) / 0.22);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 10%,transparent)}
+        .bb-sa-roster-stat-num{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--accent);line-height:1}
+        .bb-sa-roster-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--text-secondary)}
+        .bb-sa-roster-search-wrap{position:relative;z-index:1;margin-top:22px}
+        .bb-sa-roster-search-icon{position:absolute;left:18px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:rgb(var(--accent-rgb) / 0.48);pointer-events:none}
+        .bb-sa-roster-search-icon svg{width:100%;height:100%;display:block;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+        .bb-sa-roster-input{width:100%;box-sizing:border-box;padding:17px 20px 17px 52px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));background:color-mix(in srgb,var(--bg-primary) 72%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--text-primary);font-size:15px;font-family:inherit;transition:border-color .2s ease,box-shadow .2s ease}
+        .bb-sa-roster-input:focus{outline:none;border-color:rgb(var(--accent-rgb) / 0.42);box-shadow:0 0 0 4px rgb(var(--accent-rgb) / 0.1)}
+        .bb-sa-roster-input::placeholder{color:var(--text-muted)}
+        .bb-sa-roster-grid{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:15px;grid-template-columns:1fr;position:relative;z-index:1}
+        @media(min-width:760px){.bb-sa-roster-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}}
+        @media(min-width:1200px){.bb-sa-roster-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        .bb-sa-roster-card{position:relative;border-radius:20px;padding:20px 18px 20px 22px;cursor:pointer;border:1px solid color-mix(in srgb,var(--accent) 14%,var(--border));background:linear-gradient(158deg,color-mix(in srgb,var(--bg-surface) 82%,var(--accent) 18%) 0%,var(--bg-card) 55%,color-mix(in srgb,var(--bg-card) 92%,var(--text-primary) 8%) 100%);box-shadow:0 10px 32px rgb(var(--shadow-rgb) / 0.1),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 12%,transparent);transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease;box-sizing:border-box}
+        .bb-sa-roster-card:hover{transform:translateY(-4px);border-color:rgb(var(--accent-rgb) / 0.38);box-shadow:0 20px 48px rgb(var(--accent-rgb) / 0.12),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 18%,transparent)}
+        .bb-sa-roster-card:focus{outline:none;box-shadow:0 0 0 3px rgb(var(--accent-rgb) / 0.22),0 10px 32px rgb(var(--shadow-rgb) / 0.1)}
+        .bb-sa-roster-card:focus:not(:focus-visible){box-shadow:0 10px 32px rgb(var(--shadow-rgb) / 0.1),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 12%,transparent)}
+        .bb-sa-roster-card-inner{display:flex;gap:18px;align-items:flex-start;min-width:0}
+        .bb-sa-roster-mono{flex-shrink:0;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-family:'Syne',sans-serif;font-weight:700;font-size:17px;letter-spacing:0.5px;color:var(--accent);background:linear-gradient(148deg,rgb(var(--accent-rgb) / 0.28),rgb(var(--accent-rgb) / 0.05));border:2px solid rgb(var(--accent-rgb) / 0.38);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 22%,transparent),0 4px 14px rgb(var(--accent-rgb) / 0.08)}
+        .bb-sa-roster-body{min-width:0;flex:1}
+        .bb-sa-roster-name{margin:0 0 6px;font-family:'Syne',sans-serif;font-size:17px;font-weight:700;letter-spacing:0.35px;color:var(--text-primary);line-height:1.2}
+        .bb-sa-roster-email{margin:0 0 14px;font-size:13px;color:var(--text-secondary);word-break:break-word;line-height:1.45}
+        .bb-sa-roster-meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+        .bb-sa-roster-coach{font-size:12px;color:var(--text-secondary);line-height:1.4}
+        .bb-sa-roster-coach strong{color:var(--text-primary);font-weight:600}
+        .bb-sa-roster-status{font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:rgb(var(--accent-rgb) / 0.06);color:var(--text-secondary)}
+        .bb-sa-roster-status--approved{border-color:color-mix(in srgb,var(--green) 45%,var(--border));background:color-mix(in srgb,var(--green) 12%,transparent);color:var(--green)}
+        .bb-sa-roster-status--pending{border-color:color-mix(in srgb,var(--accent-dark) 40%,var(--border));background:color-mix(in srgb,var(--accent-dark) 10%,transparent);color:var(--accent-dark)}
+        .bb-sa-roster-badge-warn{font-size:10px;font-weight:700;letter-spacing:0.4px;color:var(--red)}
+        .bb-sa-roster-cta{flex-shrink:0;align-self:center;display:flex;flex-direction:column;align-items:flex-end;gap:6px;padding-left:8px}
+        .bb-sa-roster-cta-pill{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);padding:11px 14px;border-radius:999px;border:1px solid rgb(var(--accent-rgb) / 0.38);background:linear-gradient(180deg,rgb(var(--accent-rgb) / 0.14),rgb(var(--accent-rgb) / 0.05));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 12%,transparent)}
+        .bb-sa-roster-empty{position:relative;z-index:1;text-align:center;margin-top:28px;padding:52px 28px;border-radius:20px;border:1px dashed color-mix(in srgb,var(--accent) 30%,var(--border));background:rgb(var(--accent-rgb) / 0.045)}
+        .bb-sa-roster-empty-line{width:56px;height:1px;margin:0 auto 18px;background:linear-gradient(90deg,transparent,rgb(var(--accent-rgb) / 0.65),transparent)}
+        .bb-sa-roster-empty p{margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:32ch;margin-left:auto;margin-right:auto}
+        .bb-sa-home-page-h1{margin-bottom:4px;letter-spacing:4px}
+        .bb-sa-home{margin-top:4px;margin-bottom:4px}
+        .bb-sa-home-top-bento{display:grid;gap:12px;margin-bottom:10px}
+        @media(min-width:880px){.bb-sa-home-top-bento{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:14px;align-items:stretch}}
+        .bb-sa-home-hero{position:relative;border-radius:20px;padding:14px 16px 16px;box-sizing:border-box;background:radial-gradient(ellipse 100% 120% at 0% 0%,rgb(var(--accent-rgb) / 0.14),transparent 55%),linear-gradient(165deg,color-mix(in srgb,var(--bg-card) 95%,var(--text-primary) 5%),var(--bg-surface));border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border));box-shadow:0 16px 40px rgb(var(--shadow-rgb) / 0.1),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 12%,transparent)}
+        .bb-sa-home-hero::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--text-on-accent) 5%,transparent)}
+        .bb-sa-home-kicker{margin:0 0 6px;font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:rgb(var(--accent-rgb) / 0.52)}
+        .bb-sa-home-hero-title{margin:0;font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,5.5vw,38px);letter-spacing:4px;line-height:0.95;background:linear-gradient(118deg,var(--olive) 0%,var(--accent) 42%,var(--accent-light) 72%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .bb-sa-home-hero-line{margin:8px 0 2px;font-size:12px;line-height:1.45;color:var(--text-secondary);max-width:36ch}
+        .bb-sa-home-hero-date{margin:6px 0 0;font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:0.04em;color:rgb(var(--accent-rgb) / 0.75);font-weight:600}
+        .bb-sa-home-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        @media(max-width:380px){.bb-sa-home-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        .bb-sa-metric{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;min-height:0;padding:10px 11px 11px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 14%,var(--border));background:linear-gradient(165deg,color-mix(in srgb,var(--bg-surface) 88%,var(--accent) 12%),var(--bg-card));box-shadow:0 6px 20px rgb(var(--shadow-rgb) / 0.07),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 10%,transparent);cursor:pointer;font:inherit;color:inherit;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;box-sizing:border-box}
+        .bb-sa-metric:hover{transform:translateY(-2px);border-color:rgb(var(--accent-rgb) / 0.32);box-shadow:0 12px 28px rgb(var(--accent-rgb) / 0.1),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 14%,transparent)}
+        .bb-sa-metric-lbl{font-size:8px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:4px;line-height:1.25}
+        .bb-sa-metric-num{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,6.5vw,30px);line-height:1;font-weight:700}
+        .bb-sa-metric-num.num-gold{color:var(--accent)}.bb-sa-metric-num.num-green{color:var(--green)}.bb-sa-metric-num.num-orange{color:var(--accent-dark)}.bb-sa-metric-num.num-pink{color:var(--text-primary)}
+        .bb-sa-sync-shell{margin-bottom:10px;border-radius:16px;overflow:hidden;border:1px solid color-mix(in srgb,var(--accent) 16%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--bg-card) 92%,var(--accent) 8%),var(--bg-surface));box-shadow:0 8px 24px rgb(var(--shadow-rgb) / 0.08),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 8%,transparent)}
+        .bb-sa-sync-shell.bb-sa-sync--warn{border-color:color-mix(in srgb,var(--red) 45%,var(--border))}
+        .bb-sa-sync-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:none;background:transparent;color:var(--text-primary);cursor:pointer;font:inherit;text-align:left}
+        .bb-sa-sync-trigger-lbl{font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:var(--text-secondary)}
+        .bb-sa-sync-trigger-meta{font-size:11px;font-variant-numeric:tabular-nums;color:var(--accent);font-weight:600;white-space:nowrap}
+        .bb-sa-sync-body{padding:0 14px 12px}
+        .bb-sa-sync-reload{margin-top:8px;padding:8px 16px;border-radius:999px;border:1px solid rgb(var(--accent-rgb) / 0.4);background:linear-gradient(180deg,rgb(var(--accent-rgb) / 0.12),rgb(var(--accent-rgb) / 0.04));color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;font:inherit}
+        .bb-sa-sync-reload:disabled{opacity:0.55;cursor:wait}
+        .bb-sa-home-queues{display:grid;gap:10px;margin-bottom:10px}
+        @media(min-width:960px){.bb-sa-home-queues{grid-template-columns:1fr 1fr;gap:12px;align-items:stretch}}
+        .bb-sa-queue-col{min-width:0;display:flex;flex-direction:column}
+        .bb-sa-sec-head{font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgb(var(--accent-rgb) / 0.55);margin:0 0 8px;line-height:1.35;scroll-margin-top:20px}
+        .bb-sa-sec-head strong{color:var(--accent)}
+        .bb-sa-queue-panel{border-radius:18px;padding:10px 10px 12px;border:1px solid color-mix(in srgb,var(--accent) 12%,var(--border));background:linear-gradient(175deg,var(--bg-card),color-mix(in srgb,var(--bg-surface) 88%,var(--accent) 12%));box-shadow:0 10px 28px rgb(var(--shadow-rgb) / 0.08),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 8%,transparent);max-height:min(48vh,400px);overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box}
+        .bb-sa-queue-panel .bb-list-rows{gap:8px}
+        .bb-sa-queue-panel .bb-list-row{background:color-mix(in srgb,var(--text-primary) 4%,var(--bg-primary));border:1px solid color-mix(in srgb,var(--accent) 8%,var(--border));border-radius:14px;padding:11px 12px}
+        .bb-sa-queue-panel .bb-inline-label{margin-top:10px;margin-bottom:6px;display:block}
+        .bb-sa-btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+        .bb-sa-btn-approve{padding:8px 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--green) 55%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--green) 16%,transparent),color-mix(in srgb,var(--green) 6%,transparent));color:var(--green);font-weight:700;font-size:11px;letter-spacing:0.04em;cursor:pointer;font:inherit}
+        .bb-sa-btn-approve:disabled{opacity:0.55;cursor:wait}
+        .bb-sa-btn-reject{padding:8px 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--red) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--red) 12%,transparent),color-mix(in srgb,var(--red) 4%,transparent));color:var(--red);font-weight:700;font-size:11px;letter-spacing:0.04em;cursor:pointer;font:inherit}
+        .bb-sa-btn-reject:disabled{opacity:0.55;cursor:wait}
+        .bb-sa-queue-select{width:100%;max-width:100%;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 15%,var(--border));background:var(--bg-card);color:var(--text-primary);font-size:13px;box-sizing:border-box}
+        .bb-sa-roster-snap-section{margin-bottom:8px}
+        .bb-sa-roster-snap-panel{max-height:none;padding:12px}
+        .bb-sa-roster-snap-panel .bb-list-row{padding:10px 12px}
+        .bb-sa-roster-open-btn{width:100%;margin-top:10px;padding:12px 16px;border-radius:14px;border:1px solid rgb(var(--accent-rgb) / 0.35);background:linear-gradient(145deg,var(--accent-light),var(--accent) 42%,var(--accent-dark));color:var(--on-accent);font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font:inherit;box-shadow:0 8px 22px rgb(var(--accent-rgb) / 0.25),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 28%,transparent)}
+        .bb-sa-roster-open-btn:hover{filter:brightness(1.03)}
         .bb-admin-la-list-wrap{display:flex;flex-direction:column;gap:0}
         .bb-admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-section-page{padding:4px 0 8px}
@@ -2809,6 +3278,7 @@ export default function DashboardPage() {
         @keyframes bbStreakGlow{from{box-shadow:0 0 20px rgb(var(--accent-rgb) / 0.28)}to{box-shadow:0 0 28px rgb(var(--accent-rgb) / 0.45)}}
         @keyframes bbStreakPulse{0%,100%{opacity:1}50%{opacity:.85}}
         .streak-at-risk-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--red-dim);border:1px solid rgb(var(--red-rgb) / 0.35);border-radius:10px;margin-bottom:16px}
+        .streak-at-risk-banner .icon{font-size:16px;flex-shrink:0;line-height:1}
         .streak-at-risk-banner .text{flex:1;font-size:13px;font-weight:600;color:var(--text-primary)}
         .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
         @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
@@ -2906,7 +3376,8 @@ export default function DashboardPage() {
         .progress-logs-list td{padding:10px 12px;color:var(--text-secondary);border-bottom:1px solid var(--border)}
         .progress-logs-list tr:last-child td{border-bottom:none}
         .admin-cp-placeholder{color:var(--text-secondary);padding:16px;text-align:center;font-size:14px;margin:0}
-        .admin-cp-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:16px}
+        .admin-cp-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+        @media(min-width:640px){.admin-cp-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
         .admin-cp-kpi{background:color-mix(in srgb,var(--text-primary) 5%,var(--bg-card));border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
         .admin-cp-kpi .num{display:block;font-size:1.15rem;font-weight:700;color:var(--accent)}
         .admin-cp-kpi .lbl{display:block;font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
@@ -2982,6 +3453,19 @@ export default function DashboardPage() {
               </div>
             ) : null}
           </div>
+          {role === "user" ? (
+            <button
+              type="button"
+              className="user-wa-top-btn"
+              title="Chat on WhatsApp"
+              aria-label="Chat on WhatsApp"
+              onClick={() => window.open("https://wa.me/919502575669", "_blank", "noopener,noreferrer")}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+            </button>
+          ) : null}
           <button
             className="bb-header-btn"
             aria-label="Refresh"
@@ -3051,14 +3535,55 @@ export default function DashboardPage() {
       ) : null}
 
       <div
+        className={role === "user" ? "bb-user-layout-row" : undefined}
         style={{
           display: "flex",
           flex: 1,
           minHeight: 0,
           minWidth: 0,
-          flexDirection: isTrainer ? "row" : "column"
+          flexDirection: isTrainer || role === "user" ? "row" : "column"
         }}
       >
+        {role === "user" ? (
+          <aside className="bb-user-sidebar-desktop" aria-label="Member navigation">
+            <div className="bb-user-side-logo">
+              <img src={`${apiBase}/img/Fitbase_logo2.png`} alt="FitBase" decoding="async" />
+            </div>
+            {(
+              [
+                ["home", "Home", "\u25A0"],
+                ["clients", "My Workout", "\uD83C\uDFCB"],
+                ["programs", "My Programs", "\uD83C\uDFAF"],
+                ["progress", "My Progress", "\uD83D\uDCCA"],
+                ["forms", "Sunday Check-in", "\u2713"],
+                ["messages", "Messages", "\uD83D\uDCAC"],
+                ["profile", "My Profile", "\uD83D\uDC64"],
+                ["contact", "Contact Us", "\u2709"]
+              ] as const
+            ).map(([t, label, ic]) => {
+              const tab = t as DashboardTab;
+              const active =
+                tab === "forms"
+                  ? activeTab === "forms"
+                  : tab === "clients"
+                    ? activeTab === "clients"
+                    : activeTab === tab;
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  className={`bb-user-side-link${active ? " bb-user-side-link-active" : ""}`}
+                  onClick={() => {
+                    goTab(tab);
+                    if (tab === "forms") setUserCheckinView("hub");
+                  }}
+                >
+                  <span aria-hidden>{ic}</span> {label}
+                </button>
+              );
+            })}
+          </aside>
+        ) : null}
         {isTrainer ? (
           <aside className="bb-trainer-sidebar" aria-label="Trainer navigation">
             {trainerNavDefs.map(({ t, label, ic }) => (
@@ -3089,14 +3614,27 @@ export default function DashboardPage() {
             Welcome back <span className="bb-trainer-welcome-name">{displayName}</span>
           </p>
         ) : null}
-        <h1
-          className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
-            role === "user" && activeTab === "home" ? " bb-client-home-title" : ""
-          }`}
-        >
-          {role === "user"
-            ? userPageTitle[activeTab]
-            : activeTab === "home"
+        {role === "user" ? (
+          <>
+            <div className="bb-user-section-strip" aria-live="polite">
+              <span className="bb-user-section-name">{userSecTitle}</span>
+              <span className="bb-user-section-sub">{userSecSub}</span>
+            </div>
+            {activeTab === "home" && userShowPwaRow ? (
+              <div className="bb-user-pwa-row">
+                <button type="button" className="bb-user-pwa-btn" onClick={handlePwaAddToHomescreenUser}>
+                  Add to Home Screen
+                </button>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <h1
+            className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
+              role === "superadmin" && activeTab === "home" ? " bb-sa-home-page-h1" : ""
+            }`}
+          >
+            {activeTab === "home"
               ? role === "superadmin"
                 ? "SUPER ADMIN"
                 : "DASHBOARD"
@@ -3117,26 +3655,45 @@ export default function DashboardPage() {
                           ? "MEETINGS"
                           : "MESSAGES"
                         : activeTab.toUpperCase()}
-        </h1>
+          </h1>
+        )}
 
         {error ? <p style={{ color: "var(--red)", marginTop: 12 }}>{error}</p> : null}
 
         {activeTab === "home" ? (
           <>
             {role === "user" ? (
-              <div id="usec-home" style={{ marginTop: 8 }}>
-                <div className="user-welcome">
-                  <div className="user-welcome-avatar-placeholder" aria-hidden>
-                    <svg viewBox="0 0 24 24">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </div>
+              <div
+                id="usec-home"
+                style={{ marginTop: 8 }}
+                className={`bb-user-home-wrap${userWide768 ? " bb-desktop" : ""}`}
+              >
+                <div className="bb-user-desktop-only">
+                  <UserMemberDesktopDashboard
+                    displayName={displayName}
+                    workouts={workouts}
+                    meetings={activity}
+                    userToday={userToday}
+                    userStreak={userStreak}
+                    onNavigate={userNavigateDesktop}
+                  />
+                </div>
+                <div className="bb-user-mobile-home user-welcome">
+                  {userWelcomeAvatarSrc ? (
+                    <img className="user-welcome-avatar" src={userWelcomeAvatarSrc} alt="" />
+                  ) : (
+                    <div className="user-welcome-avatar-placeholder" aria-hidden>
+                      <svg viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                  )}
                   <h1>
                     <span className="welcome-label">Welcome back</span>
                     <span className="welcome-name">{displayName}</span>
                   </h1>
-                  <p className="user-welcome-tag">FitBase member</p>
+                  <p className="user-welcome-tag">Tribe Elite Member</p>
 
                   <div className="today-dash">
                     <div className="today-row">
@@ -3187,6 +3744,9 @@ export default function DashboardPage() {
                     <div className="micro-goals-wrap">
                       {userStreakBadge.atRisk && userStreak && (userStreak.streak || 0) > 0 ? (
                         <div className="streak-at-risk-banner">
+                          <span className="icon" aria-hidden>
+                            ⏱
+                          </span>
                           <span className="text">Save today&apos;s check-in to keep your streak!</span>
                         </div>
                       ) : null}
@@ -3371,399 +3931,340 @@ export default function DashboardPage() {
               </div>
             ) : role === "superadmin" ? (
               <>
-                <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
-                  <h2 className="bb-admin-welcome-title">
-                    Command center <span className="bb-admin-welcome-role">super admin</span>
-                  </h2>
-                  <p className="bb-admin-welcome-date">Trainers, clients, onboarding queues, and live signals — one screen.</p>
-                  <p className="bb-admin-welcome-date" suppressHydrationWarning>
-                    {todayLabel || "\u00a0"}
-                  </p>
-                </div>
-                <div className="bb-admin-summary-cards">
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      goTab("clients");
-                      setTrainerClientsView("roster");
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">MEMBERS</span>
-                    <span className="bb-admin-summary-num num-gold">
-                      {Number(superadminSnapshot?.stats?.approved_users ?? stats?.active_members ?? 0)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      goTab("clients");
-                      setTrainerClientsView("pending");
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">PENDING SIGN-UPS</span>
-                    <span className="bb-admin-summary-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      const el = typeof document !== "undefined" ? document.getElementById("sa-trainer-onboarding") : null;
-                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">TRAINER APPS</span>
-                    <span className="bb-admin-summary-num num-green">
-                      {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      const el = typeof document !== "undefined" ? document.getElementById("sa-client-onboarding") : null;
-                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">CLIENT REQUESTS</span>
-                    <span className="bb-admin-summary-num num-green">
-                      {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      goTab("forms");
-                      setTrainerFormsView("sunday");
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">SUNDAY CHECK-INS</span>
-                    <span className="bb-admin-summary-num num-gold">
-                      {Number(superadminSnapshot?.stats?.sunday_checkins ?? 0)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bb-admin-summary-card"
-                    onClick={() => {
-                      goTab("messages");
-                      setTrainerMessagesView("threads");
-                    }}
-                  >
-                    <span className="bb-admin-summary-lbl">MESSAGES</span>
-                    <span className="bb-admin-summary-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
-                  </button>
-                </div>
-                <div
-                  className="bb-panel"
-                  style={{
-                    marginTop: 8,
-                    marginBottom: 12,
-                    padding: 0,
-                    border: `1px solid ${superadminSync.issues.length ? "var(--red)" : "var(--border)"}`,
-                    background: "var(--bg-card)",
-                    overflow: "hidden"
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setSuperadminSyncOpen((o) => !o)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      padding: "12px 14px",
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--text-primary)",
-                      cursor: "pointer",
-                      textAlign: "left"
-                    }}
-                  >
-                    <span className="bb-inline-label" style={{ margin: 0 }}>
-                      API &amp; data sync {superadminSyncOpen ? "▾" : "▸"}
-                    </span>
-                    <span className="bb-list-row-sub" style={{ margin: 0, fontSize: 11 }}>
-                      {superadminSync.lastLoadedLabel || "—"}
-                      {superadminSync.loading ? " · …" : ""}
-                    </span>
-                  </button>
-                  {superadminSyncOpen ? (
-                    <div style={{ padding: "0 14px 14px" }}>
-                      <p className="bb-list-row-sub" style={{ marginTop: 0, wordBreak: "break-word" }}>
-                        Endpoint <strong>{apiBase}</strong>
+                <div className="bb-sa-home">
+                  <div className="bb-sa-home-top-bento">
+                    <div className="bb-sa-home-hero">
+                      <p className="bb-sa-home-kicker">Command suite</p>
+                      <h2 className="bb-sa-home-hero-title">Super admin</h2>
+                      <p className="bb-sa-home-hero-line">
+                        Trainers, clients, onboarding queues, and live signals — distilled on one canvas.
                       </p>
+                      <p className="bb-sa-home-hero-date" suppressHydrationWarning>
+                        {todayLabel || "\u00a0"}
+                      </p>
+                    </div>
+                    <div className="bb-sa-home-metrics">
                       <button
                         type="button"
-                        disabled={superadminSync.loading}
-                        onClick={() => void loadSuperadminDashboard()}
-                        style={{
-                          marginTop: 10,
-                          border: "1px solid var(--accent)",
-                          background: "transparent",
-                          color: "var(--accent)",
-                          borderRadius: 8,
-                          padding: "8px 14px",
-                          fontWeight: 700,
-                          cursor: superadminSync.loading ? "wait" : "pointer",
-                          whiteSpace: "nowrap"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          goTab("clients");
+                          setTrainerClientsView("roster");
                         }}
                       >
-                        {superadminSync.loading ? "Loading…" : "Reload all data"}
+                        <span className="bb-sa-metric-lbl">Members</span>
+                        <span className="bb-sa-metric-num num-gold">
+                          {Number(superadminSnapshot?.stats?.approved_users ?? stats?.active_members ?? 0)}
+                        </span>
                       </button>
-                      {!superadminSync.issues.length ? (
-                        <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--green)" }}>
-                          All super admin endpoints responded OK. If counts stay at zero, confirm public forms post to this same
-                          site URL.
-                        </p>
-                      ) : (
-                        <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 13, lineHeight: 1.55 }}>
-                          {superadminSync.issues.map((msg, i) => (
-                            <li key={i}>{msg}</li>
-                          ))}
-                        </ul>
-                      )}
+                      <button
+                        type="button"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          goTab("clients");
+                          setTrainerClientsView("pending");
+                        }}
+                      >
+                        <span className="bb-sa-metric-lbl">Pending sign-ups</span>
+                        <span className="bb-sa-metric-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          const el = typeof document !== "undefined" ? document.getElementById("sa-trainer-onboarding") : null;
+                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                      >
+                        <span className="bb-sa-metric-lbl">Trainer apps</span>
+                        <span className="bb-sa-metric-num num-green">
+                          {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          const el = typeof document !== "undefined" ? document.getElementById("sa-client-onboarding") : null;
+                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                      >
+                        <span className="bb-sa-metric-lbl">Client requests</span>
+                        <span className="bb-sa-metric-num num-green">
+                          {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          goTab("forms");
+                          setTrainerFormsView("sunday");
+                        }}
+                      >
+                        <span className="bb-sa-metric-lbl">Sunday check-ins</span>
+                        <span className="bb-sa-metric-num num-gold">
+                          {Number(superadminSnapshot?.stats?.sunday_checkins ?? 0)}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className="bb-sa-metric"
+                        onClick={() => {
+                          goTab("messages");
+                          setTrainerMessagesView("threads");
+                        }}
+                      >
+                        <span className="bb-sa-metric-lbl">Messages</span>
+                        <span className="bb-sa-metric-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
+                      </button>
                     </div>
-                  ) : null}
-                </div>
-                    <h3 id="sa-trainer-onboarding" className="bb-admin-qa-title" style={{ marginTop: 4, scrollMarginTop: 24 }}>
-                      TRAINER ONBOARDING · ACCESS REQUESTS ·{" "}
-                      <strong style={{ color: "var(--accent)" }}>
-                        {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
-                      </strong>
-                      <span style={{ fontWeight: 400, color: "var(--text-secondary)", fontSize: 12, marginLeft: 8 }}>
-                        ({trainerRequests.length} total on file)
+                  </div>
+
+                  <div className={`bb-sa-sync-shell${superadminSync.issues.length ? " bb-sa-sync--warn" : ""}`}>
+                    <button type="button" className="bb-sa-sync-trigger" onClick={() => setSuperadminSyncOpen((o) => !o)}>
+                      <span className="bb-sa-sync-trigger-lbl">API &amp; data sync {superadminSyncOpen ? "▾" : "▸"}</span>
+                      <span className="bb-sa-sync-trigger-meta">
+                        {superadminSync.lastLoadedLabel || "—"}
+                        {superadminSync.loading ? " · …" : ""}
                       </span>
-                    </h3>
-                    <div className="bb-panel" style={{ marginBottom: 20 }}>
-                      {trainerRequests.filter((r: any) => String(r.status) === "pending").length ? (
-                        <ul className="bb-list-rows">
-                          {trainerRequests
-                            .filter((req: any) => String(req.status) === "pending")
-                            .map((req: any) => {
-                              const rid = String(req.id || "");
-                              const busyTa = superadminQueueBusy === `${rid}-ta`;
-                              const busyTr = superadminQueueBusy === `${rid}-tr`;
-                              const busy = busyTa || busyTr;
-                              return (
-                                <li key={rid || req.email} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
-                                  <div>
-                                    <div className="bb-list-row-title">{req.full_name || "Trainer applicant"}</div>
-                                    <p className="bb-list-row-sub">{req.email}</p>
-                                    <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
-                                      {[req.phone && `Phone: ${req.phone}`, req.gym_name && `Gym: ${req.gym_name}`, req.city && `City: ${req.city}`]
+                    </button>
+                    {superadminSyncOpen ? (
+                      <div className="bb-sa-sync-body">
+                        <p className="bb-list-row-sub" style={{ marginTop: 0, wordBreak: "break-word" }}>
+                          Endpoint <strong>{apiBase}</strong>
+                        </p>
+                        <button
+                          type="button"
+                          className="bb-sa-sync-reload"
+                          disabled={superadminSync.loading}
+                          onClick={() => void loadSuperadminDashboard()}
+                        >
+                          {superadminSync.loading ? "Loading…" : "Reload all data"}
+                        </button>
+                        {!superadminSync.issues.length ? (
+                          <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--green)", lineHeight: 1.5 }}>
+                            All super admin endpoints responded OK. If counts stay at zero, confirm public forms post to this same
+                            site URL.
+                          </p>
+                        ) : (
+                          <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 12, lineHeight: 1.55 }}>
+                            {superadminSync.issues.map((msg, i) => (
+                              <li key={i}>{msg}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="bb-sa-home-queues">
+                    <div className="bb-sa-queue-col">
+                      <h3 id="sa-trainer-onboarding" className="bb-sa-sec-head">
+                        Trainer access · pending{" "}
+                        <strong>{trainerRequests.filter((r: any) => String(r.status) === "pending").length}</strong>
+                        <span style={{ fontWeight: 500, color: "var(--text-secondary)", marginLeft: 6 }}>
+                          · {trainerRequests.length} on file
+                        </span>
+                      </h3>
+                      <div className="bb-sa-queue-panel">
+                        {trainerRequests.filter((r: any) => String(r.status) === "pending").length ? (
+                          <ul className="bb-list-rows">
+                            {trainerRequests
+                              .filter((req: any) => String(req.status) === "pending")
+                              .map((req: any) => {
+                                const rid = String(req.id || "");
+                                const busyTa = superadminQueueBusy === `${rid}-ta`;
+                                const busyTr = superadminQueueBusy === `${rid}-tr`;
+                                const busy = busyTa || busyTr;
+                                return (
+                                  <li
+                                    key={rid || req.email}
+                                    className="bb-list-row bb-list-row-static"
+                                    style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}
+                                  >
+                                    <div>
+                                      <div className="bb-list-row-title">{req.full_name || "Trainer applicant"}</div>
+                                      <p className="bb-list-row-sub">{req.email}</p>
+                                      <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                        {[req.phone && `Phone: ${req.phone}`, req.gym_name && `Gym: ${req.gym_name}`, req.city && `City: ${req.city}`]
+                                          .filter(Boolean)
+                                          .join(" · ") || "—"}
+                                      </p>
+                                      {req.message ? (
+                                        <p className="bb-list-row-sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
+                                          {req.message}
+                                        </p>
+                                      ) : null}
+                                    </div>
+                                    <div className="bb-sa-btn-row">
+                                      <button
+                                        type="button"
+                                        className="bb-sa-btn-approve"
+                                        onClick={() => void superadminApproveTrainerRequestRow(rid)}
+                                        disabled={busy}
+                                      >
+                                        {busyTa ? "…" : "Approve & create login"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="bb-sa-btn-reject"
+                                        onClick={() => void superadminRejectTrainerRequestRow(rid)}
+                                        disabled={busy}
+                                      >
+                                        {busyTr ? "…" : "Reject"}
+                                      </button>
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                          </ul>
+                        ) : (
+                          <p className="bb-live-empty">No pending trainer applications.</p>
+                        )}
+                        {trainerRequests.some((r: any) => String(r.status) !== "pending") ? (
+                          <>
+                            <p className="bb-inline-label">Recent decisions (trainer applications)</p>
+                            <ul className="bb-list-rows">
+                              {trainerRequests
+                                .filter((r: any) => String(r.status) !== "pending")
+                                .slice(0, 25)
+                                .map((req: any) => (
+                                  <li key={String(req.id)} className="bb-list-row bb-list-row-static">
+                                    <div className="bb-list-row-title">{req.full_name || req.email}</div>
+                                    <p className="bb-list-row-sub">
+                                      {req.email} · <span style={{ color: "var(--accent)" }}>{req.status}</span>
+                                      {req.created_at ? ` · ${String(req.created_at).slice(0, 10)}` : ""}
+                                    </p>
+                                  </li>
+                                ))}
+                            </ul>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="bb-sa-queue-col">
+                      <h3 id="sa-client-onboarding" className="bb-sa-sec-head">
+                        Website coaching requests · pending{" "}
+                        <strong>{clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}</strong>
+                        <span style={{ fontWeight: 500, color: "var(--text-secondary)", marginLeft: 6 }}>
+                          · recent {Math.min(clientLeadRequests.length, 50)}
+                        </span>
+                      </h3>
+                      <div className="bb-sa-queue-panel">
+                        {clientLeadRequests.length ? (
+                          <ul className="bb-list-rows">
+                            {[...clientLeadRequests]
+                              .sort((a: any, b: any) => {
+                                const pa = String(a.status) === "pending" ? 0 : 1;
+                                const pb = String(b.status) === "pending" ? 0 : 1;
+                                if (pa !== pb) return pa - pb;
+                                return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+                              })
+                              .slice(0, 50)
+                              .map((c: any) => {
+                                const cid = String(c.id || "");
+                                const pending = String(c.status) === "pending";
+                                const busyCa = superadminQueueBusy === `${cid}-ca`;
+                                const busyCr = superadminQueueBusy === `${cid}-cr`;
+                                const busy = busyCa || busyCr;
+                                const pick = assignTrainerForClient[cid] || "";
+                                return (
+                                  <li
+                                    key={cid || c.email}
+                                    className="bb-list-row bb-list-row-static"
+                                    style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}
+                                  >
+                                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
+                                      <div>
+                                        <div className="bb-list-row-title">{c.full_name || "Client"}</div>
+                                        <p className="bb-list-row-sub">{c.email}</p>
+                                      </div>
+                                      <span
+                                        style={{
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          letterSpacing: 1,
+                                          textTransform: "uppercase",
+                                          color:
+                                            c.status === "approved"
+                                              ? "var(--green)"
+                                              : c.status === "rejected"
+                                                ? "var(--red)"
+                                                : "var(--accent)"
+                                        }}
+                                      >
+                                        {c.status || "pending"}
+                                      </span>
+                                    </div>
+                                    <p className="bb-list-row-sub">
+                                      {[c.phone && `Phone: ${c.phone}`, c.city && `City: ${c.city}`, c.goal_focus && `Goal: ${c.goal_focus}`]
                                         .filter(Boolean)
                                         .join(" · ") || "—"}
                                     </p>
-                                    {req.message ? (
-                                      <p className="bb-list-row-sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
-                                        {req.message}
+                                    {c.message ? (
+                                      <p className="bb-list-row-sub" style={{ whiteSpace: "pre-wrap" }}>
+                                        {c.message}
                                       </p>
                                     ) : null}
-                                  </div>
-                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => void superadminApproveTrainerRequestRow(rid)}
-                                      disabled={busy}
-                                      style={{
-                                        border: "none",
-                                        background: "var(--green)",
-                                        color: "var(--on-accent)",
-                                        borderRadius: 8,
-                                        padding: "8px 12px",
-                                        fontWeight: 700,
-                                        cursor: busy ? "wait" : "pointer"
-                                      }}
-                                    >
-                                      {busyTa ? "…" : "Approve & create login"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => void superadminRejectTrainerRequestRow(rid)}
-                                      disabled={busy}
-                                      style={{
-                                        border: "none",
-                                        background: "var(--red)",
-                                        color: "var(--on-accent)",
-                                        borderRadius: 8,
-                                        padding: "8px 12px",
-                                        fontWeight: 700,
-                                        cursor: busy ? "wait" : "pointer"
-                                      }}
-                                    >
-                                      {busyTr ? "…" : "Reject"}
-                                    </button>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      ) : (
-                        <p className="bb-live-empty">No pending trainer applications.</p>
-                      )}
-                      {trainerRequests.some((r: any) => String(r.status) !== "pending") ? (
-                        <>
-                          <p className="bb-inline-label" style={{ marginTop: 16 }}>
-                            Recent decisions (trainer applications)
-                          </p>
-                          <ul className="bb-list-rows">
-                            {trainerRequests
-                              .filter((r: any) => String(r.status) !== "pending")
-                              .slice(0, 25)
-                              .map((req: any) => (
-                                <li key={String(req.id)} className="bb-list-row bb-list-row-static">
-                                  <div className="bb-list-row-title">{req.full_name || req.email}</div>
-                                  <p className="bb-list-row-sub">
-                                    {req.email} · <span style={{ color: "var(--accent)" }}>{req.status}</span>
-                                    {req.created_at ? ` · ${String(req.created_at).slice(0, 10)}` : ""}
-                                  </p>
-                                </li>
-                              ))}
-                          </ul>
-                        </>
-                      ) : null}
-                    </div>
-
-                    <h3 id="sa-client-onboarding" className="bb-admin-qa-title" style={{ scrollMarginTop: 24 }}>
-                      WEBSITE CLIENT ONBOARDING · COACHING REQUESTS ·{" "}
-                      <strong style={{ color: "var(--accent)" }}>
-                        {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
-                      </strong>
-                      <span style={{ fontWeight: 400, color: "var(--text-secondary)", fontSize: 12, marginLeft: 8 }}>
-                        (showing recent {Math.min(clientLeadRequests.length, 50)} records)
-                      </span>
-                    </h3>
-                    <div className="bb-panel" style={{ marginBottom: 20 }}>
-                      {clientLeadRequests.length ? (
-                        <ul className="bb-list-rows">
-                          {[...clientLeadRequests]
-                            .sort((a: any, b: any) => {
-                              const pa = String(a.status) === "pending" ? 0 : 1;
-                              const pb = String(b.status) === "pending" ? 0 : 1;
-                              if (pa !== pb) return pa - pb;
-                              return String(b.created_at || "").localeCompare(String(a.created_at || ""));
-                            })
-                            .slice(0, 50)
-                            .map((c: any) => {
-                              const cid = String(c.id || "");
-                              const pending = String(c.status) === "pending";
-                              const busyCa = superadminQueueBusy === `${cid}-ca`;
-                              const busyCr = superadminQueueBusy === `${cid}-cr`;
-                              const busy = busyCa || busyCr;
-                              const pick = assignTrainerForClient[cid] || "";
-                              return (
-                                <li key={cid || c.email} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 10 }}>
-                                  <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
-                                    <div>
-                                      <div className="bb-list-row-title">{c.full_name || "Client"}</div>
-                                      <p className="bb-list-row-sub">{c.email}</p>
-                                    </div>
-                                    <span
-                                      style={{
-                                        fontSize: 11,
-                                        fontWeight: 700,
-                                        letterSpacing: 1,
-                                        textTransform: "uppercase",
-                                        color:
-                                          c.status === "approved" ? "var(--green)" : c.status === "rejected" ? "var(--red)" : "var(--accent)"
-                                      }}
-                                    >
-                                      {c.status || "pending"}
-                                    </span>
-                                  </div>
-                                  <p className="bb-list-row-sub">
-                                    {[c.phone && `Phone: ${c.phone}`, c.city && `City: ${c.city}`, c.goal_focus && `Goal: ${c.goal_focus}`]
-                                      .filter(Boolean)
-                                      .join(" · ") || "—"}
-                                  </p>
-                                  {c.message ? (
-                                    <p className="bb-list-row-sub" style={{ whiteSpace: "pre-wrap" }}>
-                                      {c.message}
-                                    </p>
-                                  ) : null}
-                                  {c.heard_about ? <p className="bb-list-row-sub">Heard about: {c.heard_about}</p> : null}
-                                  {!pending && c.trainer_email ? (
-                                    <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                      Assigned coach: {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email}
-                                    </p>
-                                  ) : null}
-                                  {pending ? (
-                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                      <label className="bb-list-row-sub" style={{ margin: 0 }}>
-                                        Assign trainer
-                                      </label>
-                                      <select
-                                        value={pick}
-                                        onChange={(e) => setAssignTrainerForClient((p) => ({ ...p, [cid]: e.target.value }))}
-                                        style={{
-                                          padding: 10,
-                                          borderRadius: 8,
-                                          border: "1px solid var(--border)",
-                                          background: "var(--bg-card)",
-                                          color: "var(--text-primary)",
-                                          maxWidth: 400
-                                        }}
-                                      >
-                                        <option value="">Choose trainer…</option>
-                                        {superadminTrainers.map((t: any) => (
-                                          <option key={t.id} value={t.id}>
-                                            {[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email}
-                                            {t.suspended ? " (suspended)" : ""}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                                        <button
-                                          type="button"
-                                          onClick={() => void superadminApproveClientRequestRow(cid, pick)}
-                                          disabled={busy}
-                                          style={{
-                                            border: "none",
-                                            background: "var(--green)",
-                                            color: "var(--on-accent)",
-                                            borderRadius: 8,
-                                            padding: "8px 12px",
-                                            fontWeight: 700,
-                                            cursor: busy ? "wait" : "pointer"
-                                          }}
+                                    {c.heard_about ? <p className="bb-list-row-sub">Heard about: {c.heard_about}</p> : null}
+                                    {!pending && c.trainer_email ? (
+                                      <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                        Assigned coach: {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email}
+                                      </p>
+                                    ) : null}
+                                    {pending ? (
+                                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                        <label className="bb-list-row-sub" style={{ margin: 0 }}>
+                                          Assign trainer
+                                        </label>
+                                        <select
+                                          className="bb-sa-queue-select"
+                                          value={pick}
+                                          onChange={(e) => setAssignTrainerForClient((p) => ({ ...p, [cid]: e.target.value }))}
                                         >
-                                          {busyCa ? "…" : "Approve & get invite link"}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => void superadminRejectClientRequestRow(cid)}
-                                          disabled={busy}
-                                          style={{
-                                            border: "none",
-                                            background: "var(--red)",
-                                            color: "var(--on-accent)",
-                                            borderRadius: 8,
-                                            padding: "8px 12px",
-                                            fontWeight: 700,
-                                            cursor: busy ? "wait" : "pointer"
-                                          }}
-                                        >
-                                          {busyCr ? "…" : "Reject"}
-                                        </button>
+                                          <option value="">Choose trainer…</option>
+                                          {superadminTrainers.map((t: any) => (
+                                            <option key={t.id} value={t.id}>
+                                              {[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email}
+                                              {t.suspended ? " (suspended)" : ""}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <div className="bb-sa-btn-row">
+                                          <button
+                                            type="button"
+                                            className="bb-sa-btn-approve"
+                                            onClick={() => void superadminApproveClientRequestRow(cid, pick)}
+                                            disabled={busy}
+                                          >
+                                            {busyCa ? "…" : "Approve & get invite link"}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="bb-sa-btn-reject"
+                                            onClick={() => void superadminRejectClientRequestRow(cid)}
+                                            disabled={busy}
+                                          >
+                                            {busyCr ? "…" : "Reject"}
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ) : null}
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      ) : (
-                        <p className="bb-live-empty">No client coaching requests yet.</p>
-                      )}
+                                    ) : null}
+                                  </li>
+                                );
+                              })}
+                          </ul>
+                        ) : (
+                          <p className="bb-live-empty">No client coaching requests yet.</p>
+                        )}
+                      </div>
                     </div>
+                  </div>
 
-                    <h3 className="bb-admin-qa-title">ROSTER SNAPSHOT</h3>
-                    <div className="bb-panel" style={{ marginBottom: 20 }}>
+                  <div className="bb-sa-roster-snap-section">
+                    <h3 className="bb-sa-sec-head">Roster snapshot · first coaches</h3>
+                    <div className="bb-sa-queue-panel bb-sa-roster-snap-panel">
                       {trainerClientOverview.length ? (
                         <ul className="bb-list-rows">
                           {trainerClientOverview.slice(0, 6).map((row: any) => {
@@ -3777,7 +4278,11 @@ export default function DashboardPage() {
                             }
                             const tname = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.email || "Trainer";
                             return (
-                              <li key={String(row.id)} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                              <li
+                                key={String(row.id)}
+                                className="bb-list-row bb-list-row-static"
+                                style={{ flexDirection: "column", alignItems: "stretch", gap: 4 }}
+                              >
                                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
                                   <div className="bb-list-row-title">{tname}</div>
                                   <span style={{ fontSize: 11, color: row.suspended ? "var(--red)" : "var(--text-secondary)" }}>
@@ -3794,8 +4299,7 @@ export default function DashboardPage() {
                       )}
                       <button
                         type="button"
-                        className="bb-btn-primary"
-                        style={{ width: "100%", marginTop: 12 }}
+                        className="bb-sa-roster-open-btn"
                         onClick={() => {
                           goTab("clients");
                           setTrainerClientsView("roster");
@@ -3804,6 +4308,8 @@ export default function DashboardPage() {
                         Open full platform roster (search &amp; client 360°)
                       </button>
                     </div>
+                  </div>
+                </div>
                 <h3 className="bb-admin-qa-title">SHORTCUTS</h3>
                 <div className="bb-admin-qa-grid">
                   {[
@@ -4029,6 +4535,11 @@ export default function DashboardPage() {
                     <span className="timer-sep">:</span>
                     <span>{timerSec}</span>
                   </div>
+                  {!timerRunning && timerSeconds > 0 ? (
+                    <div className="timer-paused-label" aria-live="polite">
+                      Paused
+                    </div>
+                  ) : null}
                 </div>
                 <button type="button" className="timer-btn" onClick={toggleUserTimer}>
                   {timerRunning ? "❚❚" : "▶"}
@@ -4076,7 +4587,6 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="ud-form-divider" />
-                <div className="ud-form-section-title">Recent sessions</div>
                 {workouts.length ? (
                   <ul className="bb-list-rows">
                     {workouts.slice(0, 20).map((w: any) => (
@@ -4206,48 +4716,101 @@ export default function DashboardPage() {
                   </div>
                 ) : null}
                 {trainerClientsView === "roster" && role === "superadmin" ? (
-                  <div className="bb-panel">
-                    <span className="bb-inline-label">
-                      PLATFORM ROSTER · <strong style={{ color: "var(--accent)" }}>{superadminRosterFiltered.length}</strong>
-                      {superadminRosterQ.trim() ? (
-                        <span style={{ fontWeight: 400, color: "var(--text-secondary)", marginLeft: 8 }}>
-                          (filtered from {superadminRosterRows.length})
-                        </span>
-                      ) : null}
-                    </span>
-                    <input
-                      className="bb-input"
-                      value={superadminRosterQ}
-                      onChange={(e) => setSuperadminRosterQ(e.target.value)}
-                      placeholder="Search by client name, email, or coach…"
-                      style={{ marginTop: 10, marginBottom: 12 }}
-                    />
+                  <div className="bb-sa-roster-shell">
+                    <header className="bb-sa-roster-hero">
+                      <p className="bb-sa-roster-kicker">Concierge directory</p>
+                      <h2 className="bb-sa-roster-title">Platform roster</h2>
+                      <p className="bb-sa-roster-sub">
+                        Curated view of every member under a coach. Select a card for the full client profile, progress intelligence, and secure share links.
+                      </p>
+                      <div className="bb-sa-roster-stats">
+                        <div className="bb-sa-roster-stat">
+                          <span className="bb-sa-roster-stat-num">{superadminRosterFiltered.length}</span>
+                          <span className="bb-sa-roster-stat-lbl">
+                            {superadminRosterQ.trim() ? "Matches" : "Members"}
+                          </span>
+                        </div>
+                        {superadminRosterQ.trim() ? (
+                          <div className="bb-sa-roster-stat">
+                            <span className="bb-sa-roster-stat-num">{superadminRosterRows.length}</span>
+                            <span className="bb-sa-roster-stat-lbl">Linked total</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </header>
+                    <div className="bb-sa-roster-search-wrap">
+                      <span className="bb-sa-roster-search-icon" aria-hidden>
+                        <svg viewBox="0 0 24 24" aria-hidden>
+                          <circle cx="11" cy="11" r="7" />
+                          <path d="M20 20l-4.2-4.2" />
+                        </svg>
+                      </span>
+                      <input
+                        className="bb-sa-roster-input"
+                        value={superadminRosterQ}
+                        onChange={(e) => setSuperadminRosterQ(e.target.value)}
+                        placeholder="Refine by client name, email, or coach…"
+                        aria-label="Search platform roster"
+                        autoComplete="off"
+                      />
+                    </div>
                     {superadminRosterFiltered.length ? (
-                      <ul className="bb-list-rows">
+                      <ul className="bb-sa-roster-grid">
                         {superadminRosterFiltered.slice(0, 200).map(({ client: u, trainer: t }) => {
                           const tname = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
+                          const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Client";
+                          const statusText = u.approval_status
+                            ? String(u.approval_status).replace(/\b\w/g, (c) => c.toUpperCase())
+                            : "—";
+                          const open = () => openClientDetail(u);
                           return (
-                            <li key={`${t.id}-${u.id}`} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
-                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                                <div>
-                                  <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Client"}</div>
-                                  <p className="bb-list-row-sub">{u.email || "—"}</p>
-                                  <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
-                                    Coach: {tname}
-                                    {t.suspended ? <span style={{ color: "var(--red)", marginLeft: 6 }}>(suspended)</span> : null}
-                                  </p>
-                                  <p className="bb-list-row-sub">Status: {u.approval_status || "—"}</p>
+                            <li
+                              key={`${t.id}-${u.id}`}
+                              className="bb-sa-roster-card"
+                              onClick={open}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  open();
+                                }
+                              }}
+                            >
+                              <div className="bb-sa-roster-card-inner">
+                                <div className="bb-sa-roster-mono" aria-hidden>
+                                  {rosterClientMonogram(u)}
                                 </div>
-                                <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>360°</span>
+                                <div className="bb-sa-roster-body">
+                                  <h3 className="bb-sa-roster-name">{displayName}</h3>
+                                  <p className="bb-sa-roster-email">{u.email || "—"}</p>
+                                  <div className="bb-sa-roster-meta">
+                                    <span className="bb-sa-roster-coach">
+                                      Coach <strong>{tname}</strong>
+                                      {t.suspended ? (
+                                        <span className="bb-sa-roster-badge-warn"> · suspended</span>
+                                      ) : null}
+                                    </span>
+                                    <span className={superadminRosterStatusClass(u.approval_status)}>{statusText}</span>
+                                  </div>
+                                </div>
+                                <div className="bb-sa-roster-cta">
+                                  <span className="bb-sa-roster-cta-pill">Profile</span>
+                                </div>
                               </div>
                             </li>
                           );
                         })}
                       </ul>
                     ) : (
-                      <p className="bb-live-empty">
-                        {superadminRosterRows.length ? "No matches for that search." : "No clients linked to coaches yet."}
-                      </p>
+                      <div className="bb-sa-roster-empty">
+                        <div className="bb-sa-roster-empty-line" />
+                        <p>
+                          {superadminRosterRows.length
+                            ? "No profiles match this refinement. Adjust your search to continue."
+                            : "No members are linked to coaches yet. Assignments will appear here as the platform grows."}
+                        </p>
+                      </div>
                     )}
                   </div>
                 ) : null}
@@ -5431,21 +5994,146 @@ export default function DashboardPage() {
                 ← Back
               </button>
             </div>
-            <div className="ud-form-section-title">My Profile</div>
-            <p className="form-hint">View your account details. Profile photo and edits match the BodyBank member profile flow.</p>
-            <div className="schedule-call-block">
-              <div className="ud-form-group">
-                <label>Name</label>
-                <div className="ud-form-input" style={{ opacity: 0.9 }}>
-                  {displayName}
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div style={{ position: "relative", display: "inline-block" }}>
+                {userWelcomeAvatarSrc ? (
+                  <img
+                    src={userWelcomeAvatarSrc}
+                    alt="Profile"
+                    style={{
+                      width: 120,
+                      height: 120,
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "3px solid rgb(var(--accent-rgb) / 0.45)"
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="user-welcome-avatar-placeholder"
+                    style={{ width: 120, height: 120, margin: 0 }}
+                    aria-hidden
+                  >
+                    <svg viewBox="0 0 24 24" width={48} height={48} fill="none" stroke="currentColor" strokeWidth={1.5}>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="profAvatarInput"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={handleUserAvatarUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("profAvatarInput")?.click()}
+                  style={{
+                    marginTop: 12,
+                    padding: "8px 20px",
+                    background: "var(--accent)",
+                    border: "none",
+                    borderRadius: 6,
+                    color: "var(--on-accent)",
+                    fontWeight: 600,
+                    fontSize: 12,
+                    cursor: "pointer",
+                    letterSpacing: 1,
+                    display: "block",
+                    width: "100%"
+                  }}
+                >
+                  Change Photo
+                </button>
+                <div className="ud-form-hint-sm" style={{ marginTop: 8 }}>
+                  JPG, PNG, WEBP or GIF up to 5 MB
                 </div>
               </div>
-              <div className="ud-form-group">
-                <label>Email</label>
-                <div className="ud-form-input" style={{ opacity: 0.9 }}>
-                  {session?.user?.email || "—"}
-                </div>
-              </div>
+            </div>
+            <div className="ud-form-section-title">Personal information</div>
+            <div className="ud-form-group">
+              <label>First Name</label>
+              <input
+                type="text"
+                className="ud-form-input"
+                readOnly
+                value={String(remoteProfile?.first_name ?? session?.user?.first_name ?? "")}
+                placeholder="e.g. John"
+              />
+              <span className="ud-form-hint-sm">Your first name as we should address you</span>
+            </div>
+            <div className="ud-form-group">
+              <label>Last Name</label>
+              <input
+                type="text"
+                className="ud-form-input"
+                readOnly
+                value={String(remoteProfile?.last_name ?? session?.user?.last_name ?? "")}
+                placeholder="e.g. Smith"
+              />
+              <span className="ud-form-hint-sm">Your family or surname</span>
+            </div>
+            <div className="ud-form-divider" />
+            <div className="ud-form-section-title">Contact details</div>
+            <div className="ud-form-group">
+              <label>
+                Mobile number <span style={{ fontWeight: 400, color: "var(--text-secondary)" }}>(Linked to WhatsApp)</span>
+              </label>
+              <input
+                type="tel"
+                className="ud-form-input"
+                value={profPhone}
+                onChange={(e) => setProfPhone(e.target.value)}
+                placeholder="e.g. +91 98765 43210"
+              />
+              <span className="ud-form-hint-sm">Used for scheduling and support</span>
+            </div>
+            <div className="ud-form-group">
+              <label>Email address</label>
+              <input
+                type="email"
+                className="ud-form-input"
+                value={profEmail}
+                onChange={(e) => setProfEmail(e.target.value)}
+                placeholder="e.g. john@example.com"
+              />
+              {profEmailErr ? (
+                <span style={{ color: "var(--red)", fontSize: 12, display: "block", marginTop: 6 }}>{profEmailErr}</span>
+              ) : null}
+            </div>
+            {profileSaveOk ? (
+              <p style={{ color: "var(--green)", textAlign: "center", marginTop: 12 }}>Profile updated successfully.</p>
+            ) : null}
+            <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 24, flexWrap: "wrap" }}>
+              <button type="button" className="ud-back-btn" onClick={() => void loadUserProfileFromApi()}>
+                Discard
+              </button>
+              <button
+                type="button"
+                className="ud-form-submit"
+                style={{ width: "auto", padding: "12px 40px", marginTop: 0 }}
+                onClick={() => void saveUserProfile()}
+                disabled={profileSaving}
+              >
+                {profileSaving ? "Saving…" : "Update"}
+              </button>
+            </div>
+            <div className="ud-form-divider" />
+            <div style={{ textAlign: "center", marginTop: 20 }}>
+              <button type="button" className="elite-card-btn" onClick={() => void openUserEliteCardModal()} disabled={eliteGenerating}>
+                {eliteGenerating ? "…" : (
+                  <>
+                    <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <rect x="2" y="4" width="20" height="14" rx="2" />
+                      <path d="M2 10h20" />
+                      <path d="M6 4v16" />
+                    </svg>
+                    View my Elite Card
+                  </>
+                )}
+              </button>
             </div>
           </div>
         ) : null}
@@ -6001,8 +6689,17 @@ export default function DashboardPage() {
               <div style={{ display: "grid", gap: 6 }}>
                 <div><strong>Client:</strong> {[selectedClient.first_name, selectedClient.last_name].filter(Boolean).join(" ") || selectedClient.email || "User"}</div>
                 <div><strong>Email:</strong> {selectedClient.email || "-"}</div>
-                <div><strong>Phone:</strong> {selectedClient.phone || "-"}</div>
-                <div><strong>Status:</strong> {selectedClient.approval_status || "-"}</div>
+                <div>
+                  <strong>Phone:</strong> {selectedClient.phone ? String(selectedClient.phone) : "—"}
+                </div>
+                <div>
+                  <strong>Status:</strong>{" "}
+                  {selectedClient.suspended
+                    ? "Suspended"
+                    : selectedClient.approval_status
+                      ? String(selectedClient.approval_status).replace(/\b\w/g, (c) => c.toUpperCase())
+                      : "—"}
+                </div>
                 {selectedClient._coachName ? (
                   <div>
                     <strong>Coach:</strong> {selectedClient._coachName}
@@ -6017,7 +6714,7 @@ export default function DashboardPage() {
                 {clientProgress && typeof clientProgress === "object" && !(clientProgress as { error?: string }).error ? (
                   <>
                     <p className="bb-list-row-sub" style={{ marginTop: 10, marginBottom: 0 }}>
-                      KPIs and charts match BodyBank Client Progress. Generate a link when the client should open their read-only report.
+                      KPIs blend progress logs, workout sessions, daily check-ins, and Sunday check-ins. Consistency uses the last 28 days; streak counts consecutive days with any logged activity. Generate a link when the client should open their read-only report.
                       {(clientProgress as { suspended?: boolean }).suspended ? (
                         <span style={{ color: s.gold, fontWeight: 700 }}> (User is suspended)</span>
                       ) : null}
@@ -6078,11 +6775,10 @@ export default function DashboardPage() {
                       </p>
                     ) : null}
                     <ClientProgressCharts logs={Array.isArray(clientProgress.logs) ? clientProgress.logs : []} />
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginTop: 16 }}>
+                    <div className="bb-staff-detail-actions">
                       <button
                         type="button"
-                        className="bb-header-btn"
-                        style={{ fontWeight: 600 }}
+                        className="bb-staff-detail-btn"
                         disabled={clientProgressShareBusy}
                         onClick={() => void generateClientProgressShareLink()}
                       >
@@ -6091,22 +6787,16 @@ export default function DashboardPage() {
                       {(clientProgress as { suspended?: boolean }).suspended ? (
                         <button
                           type="button"
-                          className="bb-header-btn"
-                          style={{ fontWeight: 600 }}
+                          className="bb-staff-detail-btn"
                           disabled={clientProgressUserBusy}
                           onClick={() => void reactivateSelectedClient()}
                         >
-                          Re-activate
+                          Re-activate user
                         </button>
                       ) : (
                         <button
                           type="button"
-                          className="bb-header-btn"
-                          style={{
-                            fontWeight: 600,
-                            borderColor: "rgba(200,80,80,0.45)",
-                            color: "var(--red)"
-                          }}
+                          className="bb-staff-detail-btn bb-staff-detail-btn--danger"
                           disabled={clientProgressUserBusy}
                           onClick={() => void suspendSelectedClient()}
                         >
@@ -6121,7 +6811,7 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           <input type="text" readOnly className="ud-form-input" style={{ flex: 1, minWidth: 200 }} value={clientProgressShareUrl} />
-                          <button type="button" className="bb-header-btn" style={{ fontWeight: 600 }} onClick={() => void copyClientProgressShareUrl()}>
+                          <button type="button" className="bb-staff-detail-btn" onClick={() => void copyClientProgressShareUrl()}>
                             Copy link
                           </button>
                           <a href={clientProgressShareUrl} target="_blank" rel="noreferrer" style={{ color: s.gold, fontWeight: 700 }}>
@@ -6329,6 +7019,52 @@ export default function DashboardPage() {
             <button type="button" className="bb-back-btn" style={{ marginBottom: 0, width: "100%", justifyContent: "center" }} onClick={() => setStaffAiOpen(false)}>
               Close AI Assist
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {role === "user" ? (
+        <canvas ref={eliteCanvasRef} width={0} height={0} style={{ position: "absolute", left: -9999, top: 0, opacity: 0 }} aria-hidden />
+      ) : null}
+
+      {eliteModalOpen ? (
+        <div
+          className="bb-elite-modal-overlay"
+          role="dialog"
+          aria-label="Elite card"
+          onMouseDown={(e) => e.target === e.currentTarget && setEliteModalOpen(false)}
+        >
+          <div className="bb-elite-modal">
+            <button
+              type="button"
+              className="bb-elite-modal-x"
+              onClick={() => {
+                setEliteModalOpen(false);
+                setElitePreviewUrl(null);
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 style={{ marginTop: 0, fontFamily: "'Syne',sans-serif", fontSize: 18 }}>Your Elite Card</h2>
+            {elitePreviewUrl ? (
+              <img src={elitePreviewUrl} alt="Elite card preview" style={{ maxWidth: "100%", height: "auto", display: "block", margin: "0 auto" }} />
+            ) : null}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16, justifyContent: "center" }}>
+              <button type="button" className="bb-btn-primary" onClick={() => void downloadEliteCard()}>
+                Download PNG
+              </button>
+              <button
+                type="button"
+                className="ud-back-btn"
+                onClick={() => {
+                  setEliteModalOpen(false);
+                  setElitePreviewUrl(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

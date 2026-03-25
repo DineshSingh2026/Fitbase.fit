@@ -641,7 +641,7 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Server error" });
     try {
       let sql =
-        "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.fitbase.fit') AND (LOWER(first_name) NOT LIKE '%e2e%')";
+        "SELECT id, first_name, last_name, email, phone, approval_status, country, timezone, COALESCE(suspended, false) as suspended, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.fitbase.fit') AND (LOWER(first_name) NOT LIKE '%e2e%')";
       const params: string[] = [];
       if (isAdmin(req.user)) {
         sql += " AND trainer_id = $1";

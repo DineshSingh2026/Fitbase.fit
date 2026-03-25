@@ -116,40 +116,55 @@ function mergeLogs(
     });
 }
 
-async function getCurrentStreak(pool: Pool, userId: string): Promise<number> {
-  const r = await pool.query(
-    `SELECT created_at::date AS d, workout_completed FROM progress_logs
-     WHERE user_id = $1 ORDER BY created_at DESC`,
-    [userId]
-  );
-  const rows = r.rows || [];
-  if (rows.length === 0) return 0;
+function isoDay(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
 
-  const byDate: Record<string, boolean> = {};
-  rows.forEach((row: any) => {
-    const d = row.d ? String(row.d).slice(0, 10) : null;
-    if (!d) return;
-    if (byDate[d] === undefined) byDate[d] = false;
-    if (row.workout_completed) byDate[d] = true;
-  });
+/** Days the client showed any engagement: logged workout, daily check-in, progress row, or Sunday check-in. */
+function collectActivityDayKeys(input: {
+  workoutRows: { created_at?: string | Date }[];
+  dailyRows: { checkin_date?: string }[];
+  progressRows: { created_at?: string | Date }[];
+  sundayRows: { created_at?: string | Date }[];
+}): Set<string> {
+  const s = new Set<string>();
+  const add = (raw: string | Date | null | undefined) => {
+    if (raw == null) return;
+    const t = typeof raw === "string" ? raw : raw.toISOString();
+    const day = t.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) s.add(day);
+  };
+  (input.workoutRows || []).forEach((r) => add(r.created_at));
+  (input.dailyRows || []).forEach((r) => add(r.checkin_date));
+  (input.progressRows || []).forEach((r) => add(r.created_at));
+  (input.sundayRows || []).forEach((r) => add(r.created_at));
+  return s;
+}
 
-  const sortedDates = Object.keys(byDate).sort().reverse();
+/** Longest run of consecutive calendar days ending on the client’s most recent activity day (UTC). */
+function consecutiveActivityStreak(activityDays: Set<string>): number {
+  if (activityDays.size === 0) return 0;
+  const sorted = [...activityDays].sort();
+  let d = new Date(`${sorted[sorted.length - 1]}T12:00:00.000Z`);
   let streak = 0;
-  for (let i = 0; i < sortedDates.length; i++) {
-    const d = sortedDates[i];
-    if (!byDate[d]) break;
-    const diff =
-      i === 0
-        ? Math.floor((Date.now() - new Date(d + "T12:00:00").getTime()) / (24 * 60 * 60 * 1000))
-        : Math.floor(
-            (new Date(sortedDates[i - 1] + "T12:00:00").getTime() - new Date(d + "T12:00:00").getTime()) /
-              (24 * 60 * 60 * 1000)
-          );
-    if (i === 0 && diff > 1) break;
-    if (i > 0 && diff > 1) break;
+  while (activityDays.has(isoDay(d))) {
     streak++;
+    d.setUTCDate(d.getUTCDate() - 1);
   }
   return streak;
+}
+
+/** Share of last `windowDays` calendar days (ending today UTC) that have any activity. */
+function rollingActivityConsistency(activityDays: Set<string>, windowDays: number): string {
+  if (windowDays <= 0) return "0.0";
+  let hit = 0;
+  const end = new Date();
+  for (let i = 0; i < windowDays; i++) {
+    const d = new Date(end);
+    d.setUTCDate(d.getUTCDate() - i);
+    if (activityDays.has(isoDay(d))) hit++;
+  }
+  return ((hit / windowDays) * 100).toFixed(1);
 }
 
 async function getGoalCompletionPercent(pool: Pool, userId: string): Promise<number | null> {
@@ -183,7 +198,7 @@ async function getGoalCompletionPercent(pool: Pool, userId: string): Promise<num
   }
 }
 
-function computeInsights(logs: any[]): string[] {
+function computeInsights(logs: MergedProgressLog[]): string[] {
   const insights: string[] = [];
   if (!logs || logs.length === 0) return insights;
 
@@ -206,8 +221,8 @@ function computeInsights(logs: any[]): string[] {
   if (withStrength.length >= 2) {
     const first = withStrength[0];
     const last = withStrength[withStrength.length - 1];
-    const firstAvg = averageStrengthTriplet(first as MergedProgressLog);
-    const lastAvg = averageStrengthTriplet(last as MergedProgressLog);
+    const firstAvg = averageStrengthTriplet(first);
+    const lastAvg = averageStrengthTriplet(last);
     if (firstAvg != null && lastAvg != null && firstAvg > 0 && lastAvg > 0) {
       const growth = ((lastAvg - firstAvg) / firstAvg) * 100;
       if (growth > 10) insights.push("Strength Milestone Achieved");
@@ -215,6 +230,22 @@ function computeInsights(logs: any[]): string[] {
   }
 
   return insights;
+}
+
+function tagWorkoutDaysOnLogs(logs: MergedProgressLog[], workoutRows: { created_at?: string | Date }[]): MergedProgressLog[] {
+  const days = new Set<string>();
+  workoutRows.forEach((r) => {
+    if (r.created_at == null) return;
+    const t = typeof r.created_at === "string" ? r.created_at : (r.created_at as Date).toISOString();
+    const day = t.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) days.add(day);
+  });
+  if (days.size === 0) return logs;
+  return logs.map((l) => {
+    const day = String(l.created_at).slice(0, 10);
+    if (days.has(day)) return { ...l, workout_completed: true };
+    return l;
+  });
 }
 
 export type AdminUserProgressPayload = {
@@ -237,7 +268,7 @@ export async function buildAdminUserProgressPayload(pool: Pool, userId: string):
   ]);
   const suspended = !!(userRow.rows[0]?.suspended === true || userRow.rows[0]?.suspended === "t");
 
-  const [progressRes, dailyRes, sundayRes] = await Promise.all([
+  const [progressRes, dailyRes, sundayRes, workoutRes] = await Promise.all([
     pool.query("SELECT * FROM progress_logs WHERE user_id = $1 ORDER BY created_at ASC", [userId]),
     pool.query(
       "SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = $1 ORDER BY checkin_date ASC",
@@ -246,36 +277,51 @@ export async function buildAdminUserProgressPayload(pool: Pool, userId: string):
     pool.query(
       "SELECT current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = $1 ORDER BY created_at ASC",
       [userId]
-    )
+    ),
+    pool
+      .query("SELECT created_at FROM workout_logs WHERE user_id::text = $1::text ORDER BY created_at ASC", [userId])
+      .then((r) => r)
+      .catch(() => ({ rows: [] as { created_at: string }[] }))
   ]);
 
   const progressLogs = progressRes.rows || [];
-  const logs = mergeLogs(progressLogs, dailyRes.rows || [], sundayRes.rows || []);
+  const dailyRows = dailyRes.rows || [];
+  const sundayRows = sundayRes.rows || [];
+  const workoutRows = workoutRes.rows || [];
 
-  const [streak, goalPct, insights] = await Promise.all([
-    getCurrentStreak(pool, userId),
-    getGoalCompletionPercent(pool, userId),
-    Promise.resolve(computeInsights(progressLogs))
-  ]);
+  let logs = mergeLogs(progressLogs, dailyRows, sundayRows);
+  logs = tagWorkoutDaysOnLogs(logs, workoutRows);
+
+  const activityDays = collectActivityDayKeys({
+    workoutRows,
+    dailyRows,
+    progressRows: progressLogs,
+    sundayRows
+  });
+
+  const streak = consecutiveActivityStreak(activityDays);
+  const goalPct = await getGoalCompletionPercent(pool, userId);
+  const insights = computeInsights(logs);
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-  const recent = logs.filter((l) => new Date(l.created_at).getTime() >= thirtyDaysAgo.getTime());
+  const thirtyMs = thirtyDaysAgo.getTime();
   const withWeight = logs.filter((l) => l.weight != null);
   const currentWeight = withWeight.length ? parseFloat(String(withWeight[withWeight.length - 1].weight)) : null;
 
-  const weight30Ago =
-    recent.length > 0
-      ? (() => {
-          const past = logs.filter((l) => new Date(l.created_at) <= thirtyDaysAgo);
-          const w = past.filter((l) => l.weight != null);
-          return w.length ? parseFloat(String(w[w.length - 1].weight)) : null;
-        })()
-      : null;
+  let weightBaseline: number | null = null;
+  if (withWeight.length >= 1) {
+    const beforeOrOn = withWeight.filter((l) => new Date(l.created_at).getTime() <= thirtyMs);
+    if (beforeOrOn.length) {
+      weightBaseline = parseFloat(String(beforeOrOn[beforeOrOn.length - 1].weight));
+    } else if (withWeight.length >= 2) {
+      weightBaseline = parseFloat(String(withWeight[0].weight));
+    }
+  }
 
   const weightChange =
-    currentWeight != null && weight30Ago != null && weight30Ago !== 0
-      ? (((currentWeight - weight30Ago) / weight30Ago) * 100).toFixed(1)
+    currentWeight != null && weightBaseline != null && Math.abs(weightBaseline) > 1e-6
+      ? (((currentWeight - weightBaseline) / weightBaseline) * 100).toFixed(1)
       : null;
 
   const withStrength = logs.filter(
@@ -292,9 +338,7 @@ export async function buildAdminUserProgressPayload(pool: Pool, userId: string):
     }
   }
 
-  const total = logs.length;
-  const workoutCount = logs.filter((l) => l.workout_completed).length;
-  const consistency = total > 0 ? ((workoutCount / total) * 100).toFixed(1) : "0.0";
+  const consistency = rollingActivityConsistency(activityDays, 28);
 
   const calRows = logs.filter((l) => l.calories_intake != null);
   const avgCalories = calRows.length
