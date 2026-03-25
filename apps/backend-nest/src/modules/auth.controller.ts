@@ -15,7 +15,10 @@ import * as bcrypt from "bcryptjs";
 import { AuthService } from "./auth.service";
 import { toUserRole } from "./auth-role.util";
 import { JwtAuthGuard } from "./jwt-auth.guard";
+import { RolesGuard } from "./roles.guard";
+import { Roles } from "./roles.decorator";
 import type { Response } from "express";
+import { ensureTrainersTableQueries } from "./trainers-credential.util";
 
 const FALLBACK_SUPERADMIN_EMAIL = "superadmin@gmail.com";
 const FALLBACK_SUPERADMIN_PASS = "Fitbase@2026";
@@ -26,6 +29,20 @@ export class AuthController {
     @Inject("PG_POOL") private readonly pool: Pool | null,
     private readonly authService: AuthService
   ) {}
+
+  private async trainerMustChangePassword(emailNorm: string): Promise<boolean> {
+    if (!this.pool) return false;
+    try {
+      const r = await this.pool.query(
+        `SELECT must_change_password FROM trainers
+         WHERE LOWER(TRIM(email)) = $1 AND status = 'approved' LIMIT 1`,
+        [emailNorm]
+      );
+      return r.rows[0]?.must_change_password === true;
+    } catch {
+      return false;
+    }
+  }
 
   private async getUserByEmail(email: string) {
     if (!this.pool) return null;
@@ -173,6 +190,24 @@ export class AuthController {
 
       let user = await this.getUserByEmail(email);
       if (!user) {
+        await ensureTrainersTableQueries(this.pool);
+        const trSt = await this.pool.query(
+          `SELECT status FROM trainers WHERE LOWER(TRIM(email)) = $1 ORDER BY created_at DESC LIMIT 1`,
+          [email]
+        );
+        const st = String(trSt.rows[0]?.status || "").toLowerCase();
+        if (st === "pending") {
+          return res.status(403).json({
+            error: "pending_review",
+            message: "Application under review"
+          });
+        }
+        if (st === "rejected") {
+          return res.status(403).json({
+            error: "not_approved",
+            message: "Application not approved"
+          });
+        }
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
@@ -225,11 +260,15 @@ export class AuthController {
         await this.pool.query(`UPDATE users SET role = $1 WHERE id = $2`, [resolvedRole, user.id]);
       }
 
+      const mustChange =
+        resolvedRole === "admin" ? await this.trainerMustChangePassword(String(user.email || "").trim().toLowerCase()) : false;
+
       const token = this.authService.sign({
         id: user.id,
         email: user.email,
         role: resolvedRole,
-        trainer_id: user.trainer_id || null
+        trainer_id: user.trainer_id || null,
+        must_change_password: mustChange || undefined
       });
 
       return res.json({
@@ -242,11 +281,140 @@ export class AuthController {
         country: user.country || "",
         timezone: user.timezone || "",
         trainer_id: user.trainer_id || null,
+        must_change_password: mustChange,
         token
       });
     } catch (e: any) {
       console.error("[auth/login]", e?.message || e);
       return res.status(500).json({ error: "Server error. Please try again." });
+    }
+  }
+
+  @Post("trainer/login")
+  async trainerLogin(
+    @Body() body: { email?: string; password?: string },
+    @Res() res: Response
+  ) {
+    if (!this.pool) {
+      return res.status(503).json({ error: "database_unconfigured", message: "Database is not connected." });
+    }
+    const email = String(body?.email || "").trim().toLowerCase();
+    const password = String(body?.password || "").trim();
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+    try {
+      await ensureTrainersTableQueries(this.pool);
+      const trRes = await this.pool.query(
+        `SELECT id, email, password_hash, must_change_password, status FROM trainers
+         WHERE LOWER(TRIM(email)) = $1 AND status = 'approved' LIMIT 1`,
+        [email]
+      );
+      const trow = trRes.rows[0];
+      if (!trow) {
+        const anyTr = await this.pool.query(
+          `SELECT status FROM trainers WHERE LOWER(TRIM(email)) = $1 ORDER BY created_at DESC LIMIT 1`,
+          [email]
+        );
+        const st = String(anyTr.rows[0]?.status || "").toLowerCase();
+        if (st === "pending") {
+          return res.status(403).json({ error: "pending_review", message: "Application under review" });
+        }
+        if (st === "rejected") {
+          return res.status(403).json({ error: "not_approved", message: "Application not approved" });
+        }
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const hash = String(trow.password_hash || "");
+      const user = await this.getUserByEmail(email);
+      let valid = false;
+      if (hash && bcrypt.compareSync(password, hash)) valid = true;
+      else if (user?.password && bcrypt.compareSync(password, user.password)) valid = true;
+      if (!valid) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      if (!user || toUserRole(user.role) !== "admin") {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+      const suspended = user.suspended === true || user.suspended === "t";
+      if (suspended) {
+        return res.status(403).json({
+          error: "suspended",
+          message: "Your account has been suspended. Please contact support."
+        });
+      }
+
+      const mustChange = trow.must_change_password === true;
+      const token = this.authService.sign({
+        id: user.id,
+        email: user.email,
+        role: "admin",
+        trainer_id: user.trainer_id || null,
+        must_change_password: mustChange || undefined
+      });
+
+      return res.json({
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        profile_picture: user.profile_picture || "",
+        role: "admin",
+        country: user.country || "",
+        timezone: user.timezone || "",
+        trainer_id: user.trainer_id || null,
+        must_change_password: mustChange,
+        token
+      });
+    } catch (e: any) {
+      console.error("[auth/trainer/login]", e?.message || e);
+      return res.status(500).json({ error: "Server error. Please try again." });
+    }
+  }
+
+  @Post("trainer/change-password")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("admin")
+  async trainerChangePassword(
+    @Body() body: { new_password?: string },
+    @Req() req: any,
+    @Res() res: Response
+  ) {
+    if (!this.pool) return res.status(503).json({ error: "database_unconfigured" });
+    const newPassword = String(body?.new_password || "");
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters" });
+    }
+    if (!/[A-Z]/.test(newPassword)) {
+      return res.status(400).json({ error: "Password must include at least one uppercase letter" });
+    }
+    if (!/\d/.test(newPassword)) {
+      return res.status(400).json({ error: "Password must include at least one number" });
+    }
+    const id = String(req.user?.id || "");
+    const user = await this.getUserById(id);
+    if (!user) return res.status(401).json({ error: "User not found" });
+    const emailNorm = String(user.email || "").trim().toLowerCase();
+    try {
+      await ensureTrainersTableQueries(this.pool);
+      const hash = bcrypt.hashSync(newPassword, 10);
+      await this.pool.query(
+        `UPDATE trainers SET password_hash = $1, temp_password = NULL, must_change_password = FALSE
+         WHERE LOWER(TRIM(email)) = $2 AND status = 'approved'`,
+        [hash, emailNorm]
+      );
+      await this.pool.query(`UPDATE users SET password = $1 WHERE id = $2`, [hash, id]);
+      const token = this.authService.sign({
+        id: user.id,
+        email: user.email,
+        role: "admin",
+        trainer_id: user.trainer_id || null
+      });
+      return res.json({ success: true, token });
+    } catch (e: any) {
+      console.error("[auth/trainer/change-password]", e?.message || e);
+      return res.status(500).json({ error: "Failed to update password" });
     }
   }
 
@@ -260,6 +428,11 @@ export class AuthController {
     if (!id) throw new UnauthorizedException("Invalid token");
     const user = await this.getUserById(id);
     if (!user) throw new UnauthorizedException("User not found");
-    return user;
+    const role = toUserRole(user.role);
+    let must_change_password = false;
+    if (role === "admin") {
+      must_change_password = await this.trainerMustChangePassword(String(user.email || "").trim().toLowerCase());
+    }
+    return { ...user, must_change_password };
   }
 }

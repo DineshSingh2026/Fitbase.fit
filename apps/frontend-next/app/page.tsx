@@ -98,7 +98,7 @@ export default function FitBaseLandingPage() {
   return (
     <main style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box}
         html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth;background:var(--bg-primary);color:var(--text-primary)}
         #apply input,#apply textarea{color:var(--text-primary)}
@@ -107,14 +107,62 @@ export default function FitBaseLandingPage() {
         a[href="#dashboard"]:hover{border-color:var(--accent)!important}
         .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
         .reveal.is-visible{opacity:1;transform:translateY(0)}
-        .pulse-dot{animation:pulseDot 2s ease-in-out infinite;background:var(--accent)!important}
-        @keyframes pulseDot{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
+        @keyframes floatCard1{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @keyframes floatCard2{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes badgePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
+        .fb-hero{position:relative;overflow:hidden;background:#faf7f2}
+        .fb-hero-dotgrid{position:absolute;top:0;right:0;width:320px;height:320px;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(201,168,76,0.18) 1.2px,transparent 1.2px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%);mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%)}
+        .fb-hero-glow{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:420px;height:380px;pointer-events:none;z-index:0;background:radial-gradient(ellipse at center,rgba(201,168,76,0.09) 0%,transparent 70%)}
+        .fb-hero-row{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:40px;max-width:1180px;margin:0 auto;width:100%;box-sizing:border-box}
+        .fb-hero-left{flex:1;min-width:0;max-width:620px}
+        .fb-hero-screens-wrap{position:relative;width:400px;height:380px;flex-shrink:0;z-index:2}
+        .fb-hero-badge-dot{animation:badgePulse 2.5s ease-in-out infinite;width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+        .fb-hero-stats{display:flex;flex-wrap:wrap;align-items:flex-start;border-top:1px solid #e8e0d0;padding-top:24px;margin-top:36px}
+        .fb-hero-stat{display:flex;flex-direction:column;gap:4px;border-right:1px solid #e8e0d0;padding-right:32px;margin-right:32px}
+        .fb-hero-stat:last-child{border-right:none;margin-right:0;padding-right:0}
+        .fb-hero-stat-num{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#0f1f3d;line-height:1}
+        .fb-hero-stat-lbl{font-family:'DM Sans',sans-serif;font-size:10px;color:#9a8a70;letter-spacing:0.5px;font-weight:500}
+        .fb-hero-float1{animation:floatCard1 4s ease-in-out infinite}
+        .fb-hero-float2{animation:floatCard2 4s 1.5s ease-in-out infinite}
         @media (max-width:860px){
           .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
           .hide-mobile{display:none !important}
           .mobile-login{display:inline-flex !important}
           .pad{padding-left:max(20px, env(safe-area-inset-left, 0px)) !important;padding-right:max(20px, env(safe-area-inset-right, 0px)) !important}
           .hero{padding-top:max(120px, calc(96px + env(safe-area-inset-top, 0px))) !important}
+          .fb-hero-dotgrid,.fb-hero-glow,.fb-hero-screens-wrap{display:none !important}
+          .fb-hero-row{flex-direction:column;align-items:stretch;gap:0}
+          .fb-hero-left{max-width:100%}
+          .fb-hero-h1{font-size:clamp(48px,10vw,68px)!important}
+          .fb-hero-stats{flex-direction:column;gap:0}
+          .fb-hero-stat{border-right:none!important;padding-right:0!important;margin-right:0!important;padding-top:14px;padding-bottom:14px;border-bottom:1px solid #e8e0d0;width:100%}
+          .fb-hero-stat:first-child{padding-top:0}
+          .fb-hero-stat:last-child{border-bottom:none;padding-bottom:0}
+          .fb-hero{padding-top:max(120px,calc(32px + env(safe-area-inset-top,0px)))!important;padding-left:20px!important;padding-right:20px!important;padding-bottom:56px!important}
+        }
+        @keyframes fbCpFloat1{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @keyframes fbCpFloat2{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+        #client-portal.fb-cp-section{background:#faf7f2;padding:80px 60px;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;overflow:hidden;min-height:480px;box-sizing:border-box}
+        .fb-cp-dotgrid{position:absolute;top:0;left:0;width:280px;height:280px;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(201,168,76,0.16) 1.2px,transparent 1.2px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse at top left,black 20%,transparent 68%);mask-image:radial-gradient(ellipse at top left,black 20%,transparent 68%)}
+        .fb-cp-glow{position:absolute;left:60px;top:50%;transform:translateY(-50%);width:380px;height:380px;pointer-events:none;z-index:0;background:radial-gradient(ellipse,rgba(201,168,76,0.07) 0%,transparent 70%)}
+        .fb-cp-row{display:flex;align-items:center;gap:80px;width:100%;max-width:1180px;margin:0 auto;position:relative;z-index:2;box-sizing:border-box}
+        .fb-cp-screens{position:relative;width:272px;height:400px;flex-shrink:0;z-index:2}
+        .fb-cp-copy{flex:1;min-width:0;z-index:2;position:relative}
+        .fb-cp-h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,4vw,52px);line-height:0.93;letter-spacing:1.5px;color:#0f1f3d;margin:0 0 18px}
+        .fb-cp-feat{display:flex;gap:16px;align-items:flex-start;padding:18px 0;border-bottom:1px solid #e8e0d0}
+        .fb-cp-feat:first-of-type{padding-top:0}
+        .fb-cp-feat:last-of-type{border-bottom:none}
+        .fb-cp-float1{animation:fbCpFloat1 4s ease-in-out infinite}
+        .fb-cp-float2{animation:fbCpFloat2 4s 1.5s ease-in-out infinite}
+        @media(max-width:860px){
+          #client-portal.fb-cp-section{padding:48px max(20px, env(safe-area-inset-left, 0px)) 48px max(20px, env(safe-area-inset-right, 0px))!important;min-height:0;align-items:stretch}
+          .fb-cp-dotgrid,.fb-cp-glow{display:none!important}
+          .fb-cp-row{flex-direction:column-reverse;gap:0;max-width:100%}
+          .fb-cp-screens{width:100%;height:340px;margin-top:40px}
+          .fb-cp-back{display:none!important}
+          .fb-cp-float1,.fb-cp-float2{display:none!important}
+          .fb-cp-main{position:relative!important;right:auto!important;top:auto!important;left:auto!important;width:100%!important;max-width:300px!important;margin:0 auto!important}
+          .fb-cp-h2{font-size:clamp(36px,8vw,52px)!important}
         }
         @media (min-width:861px){
           .mobile-login{display:none !important}
@@ -232,65 +280,338 @@ export default function FitBaseLandingPage() {
       </nav>
 
       {/* 2. HERO */}
-      <section className="pad hero" style={{ padding: "110px 36px 80px", background: "var(--bg-primary)" }}>
-        <div style={{ ...sectionBase, maxWidth: 720 }}>
-          <div className="reveal" data-reveal>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "var(--bg-card)", border: "1px solid var(--border)", marginBottom: 16 }}>
-              <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
-              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Now in Early Access</span>
+      <section className="pad hero fb-hero" style={{ padding: "110px 36px 80px" }}>
+        <div className="fb-hero-dotgrid" aria-hidden />
+        <div className="fb-hero-glow" aria-hidden />
+        <div className="fb-hero-row">
+          <div className="fb-hero-left">
+            <div className="reveal" data-reveal>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border)",
+                  marginBottom: 16
+                }}
+              >
+                <span className="fb-hero-badge-dot" />
+                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Now in Early Access</span>
+              </div>
+              <h1
+                className="fb-hero-h1"
+                style={{
+                  fontFamily: "'Bebas Neue',sans-serif",
+                  fontSize: "clamp(52px,7vw,96px)",
+                  margin: 0,
+                  letterSpacing: 1,
+                  lineHeight: 0.95
+                }}
+              >
+                THE PLATFORM THAT POWERS{" "}
+                <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "var(--accent)" }}>Modern Trainers</span>
+              </h1>
+              <p
+                style={{
+                  margin: "18px 0 24px",
+                  color: "var(--text-secondary)",
+                  maxWidth: 560,
+                  lineHeight: 1.75,
+                  fontFamily: "'Cormorant Garamond',serif",
+                  fontSize: "clamp(18px,2.2vw,22px)"
+                }}
+              >
+                Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
+              </p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <a
+                  href="#apply"
+                  style={{
+                    textDecoration: "none",
+                    background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+                    color: "var(--on-accent)",
+                    padding: "12px 18px",
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    boxShadow: "0 8px 28px rgb(var(--accent-rgb) / 0.4)"
+                  }}
+                >
+                  Request Trainer Access
+                </a>
+                <a
+                  href="#dashboard"
+                  style={{
+                    textDecoration: "none",
+                    background: "transparent",
+                    color: "var(--olive)",
+                    padding: "12px 16px",
+                    borderRadius: 10,
+                    border: "1px solid var(--accent-border)",
+                    fontWeight: 600
+                  }}
+                >
+                  Explore the platform
+                </a>
+              </div>
+              <div className="fb-hero-stats">
+                {[
+                  ["500+", "Active Trainers"],
+                  ["12K+", "Clients Managed"],
+                  ["4.9/5", "Platform Rating"]
+                ].map(([num, lbl]) => (
+                  <div key={lbl} className="fb-hero-stat">
+                    <span className="fb-hero-stat-num">{num}</span>
+                    <span className="fb-hero-stat-lbl">{lbl}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(52px,7vw,96px)", margin: 0, letterSpacing: 1, lineHeight: 0.95 }}>
-              THE PLATFORM THAT POWERS{" "}
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "var(--accent)" }}>Modern Trainers</span>
-            </h1>
-            <p
+          </div>
+          <div className="fb-hero-screens-wrap" aria-hidden>
+            {/* Back screen — Forms */}
+            <div
               style={{
-                margin: "18px 0 24px",
-                color: "var(--text-secondary)",
-                maxWidth: 560,
-                lineHeight: 1.75,
-                fontFamily: "'Cormorant Garamond',serif",
-                fontSize: "clamp(18px,2.2vw,22px)"
+                position: "absolute",
+                right: -10,
+                top: 28,
+                width: 210,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 8px 32px rgba(15,31,61,0.10)",
+                transform: "rotate(-6deg)",
+                zIndex: 1,
+                opacity: 0.85
               }}
             >
-              Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
-            </p>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a
-                href="#apply"
+              <div
                 style={{
-                  textDecoration: "none",
-                  background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
-                  color: "var(--on-accent)",
-                  padding: "12px 18px",
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  boxShadow: "0 8px 28px rgb(var(--accent-rgb) / 0.4)"
+                  background: "#f0ebe0",
+                  padding: "8px 12px",
+                  display: "flex",
+                  gap: 5,
+                  borderBottom: "1px solid #e8e0d0"
                 }}
               >
-                Request Trainer Access
-              </a>
-              <a
-                href="#dashboard"
-                style={{
-                  textDecoration: "none",
-                  background: "transparent",
-                  color: "var(--olive)",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1px solid var(--accent-border)",
-                  fontWeight: 600
-                }}
-              >
-                Explore the platform
-              </a>
-            </div>
-            <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 28 }}>
-              {["500+ Active Trainers", "12K+ Clients Managed", "4.9/5 Platform Rating"].map((t) => (
-                <div key={t} style={{ padding: "14px 0", borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
-                  {t}
+                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                  <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
+                ))}
+              </div>
+              <div style={{ padding: 12 }}>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 13,
+                    letterSpacing: 1,
+                    color: "#c9a84c",
+                    marginBottom: 8
+                  }}
+                >
+                  Forms
                 </div>
-              ))}
+                {[
+                  ["📋", "Audit Forms", "Review client audits"],
+                  ["📅", "Sunday Check-In", "Weekly progress"],
+                  ["📌", "Daily Check-In", "Steps, water, protein"]
+                ].map(([ic, name, desc]) => (
+                  <div
+                    key={name}
+                    style={{
+                      background: "#f8f4ee",
+                      borderRadius: 7,
+                      padding: "8px 10px",
+                      marginBottom: 5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8
+                    }}
+                  >
+                    <span style={{ fontSize: 12 }}>{ic}</span>
+                    <div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, fontWeight: 600, color: "#0f1f3d" }}>{name}</div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 8, color: "#9a8a70", marginTop: 1 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Main screen — Dashboard */}
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                width: 252,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 20px 60px rgba(15,31,61,0.14), 0 4px 16px rgba(15,31,61,0.08)",
+                zIndex: 3
+              }}
+            >
+              <div
+                style={{
+                  background: "#f0ebe0",
+                  padding: "9px 12px",
+                  display: "flex",
+                  gap: 5,
+                  alignItems: "center",
+                  borderBottom: "1px solid #e8e0d0"
+                }}
+              >
+                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                  <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
+                ))}
+              </div>
+              <div style={{ padding: 16 }}>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 16,
+                    letterSpacing: 2,
+                    color: "#c9a84c",
+                    marginBottom: 12
+                  }}
+                >
+                  Dashboard
+                </div>
+                <div style={{ background: "#f8f4ee", borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>
+                    Welcome back Idris Kurnooli
+                  </div>
+                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#9a8a70" }}>Monday · 23 March 2026</div>
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 7,
+                    marginBottom: 12
+                  }}
+                >
+                  {[
+                    ["MEMBERS", "24", "#c9a84c"],
+                    ["DAILY CHECK-IN", "18", "#c9a84c"],
+                    ["PENDING", "3", "#0f1f3d"],
+                    ["MESSAGES", "7", "#0f1f3d"]
+                  ].map(([label, val, col]) => (
+                    <div key={label} style={{ background: "#f8f4ee", borderRadius: 8, padding: "9px 11px" }}>
+                      <div
+                        style={{
+                          fontFamily: "'DM Sans',sans-serif",
+                          fontSize: 8,
+                          fontWeight: 600,
+                          letterSpacing: 1.5,
+                          textTransform: "uppercase",
+                          color: "#9a8a70"
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: col, lineHeight: 1.1 }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 8,
+                    fontWeight: 600,
+                    letterSpacing: 2,
+                    textTransform: "uppercase",
+                    color: "#9a8a70",
+                    marginBottom: 7
+                  }}
+                >
+                  QUICK ACCESS
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6 }}>
+                  {[
+                    ["👤", "Sign-ups"],
+                    ["📅", "Check-Ins"],
+                    ["📊", "Analytics"]
+                  ].map(([ic, lab]) => (
+                    <div key={lab} style={{ background: "#f8f4ee", borderRadius: 8, padding: "9px 6px", textAlign: "center" }}>
+                      <div style={{ fontSize: 14, marginBottom: 3 }}>{ic}</div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 8, color: "#6a7a8a" }}>{lab}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Floating cards */}
+            <div
+              className="fb-hero-float1"
+              style={{
+                position: "absolute",
+                bottom: -16,
+                left: 20,
+                padding: "10px 13px",
+                gap: 9,
+                display: "flex",
+                alignItems: "center",
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 10,
+                boxShadow: "0 8px 24px rgba(15,31,61,0.12)",
+                zIndex: 5
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  background: "rgba(201,168,76,0.12)",
+                  borderRadius: 7,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  flexShrink: 0
+                }}
+              >
+                📈
+              </div>
+              <div>
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>Client check-in logged</div>
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#4caf7d", marginTop: 1 }}>✓ 94% weekly compliance</div>
+              </div>
+            </div>
+            <div
+              className="fb-hero-float2"
+              style={{
+                position: "absolute",
+                top: 10,
+                right: -20,
+                padding: "10px 14px",
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 10,
+                boxShadow: "0 8px 24px rgba(15,31,61,0.12)",
+                zIndex: 5,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start"
+              }}
+            >
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: "#c9a84c", lineHeight: 1 }}>3×</div>
+              <div
+                style={{
+                  fontFamily: "'DM Sans',sans-serif",
+                  fontSize: 9,
+                  color: "#9a8a70",
+                  textTransform: "uppercase",
+                  letterSpacing: 1.5,
+                  marginTop: 2
+                }}
+              >
+                REVENUE GROWTH
+              </div>
             </div>
           </div>
         </div>
@@ -483,48 +804,420 @@ export default function FitBaseLandingPage() {
       </section>
 
       {/* 6. CLIENT PORTAL */}
-      <section
-        id="client-portal"
-        className="pad"
-        style={{
-          padding: "76px 36px",
-          background: "var(--bg-primary)"
-        }}
-      >
-        <div style={{ ...sectionBase, maxWidth: 720 }}>
-          <div className="reveal" data-reveal>
-            <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5.4vw,76px)", margin: "0 0 12px", lineHeight: 1.02, letterSpacing: 0.4 }}>
-              What your clients actually see
-            </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
-              Every touchpoint stays clear and calm—so adherence, trust, and follow-through stay high.
-            </p>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-              {[
-                ["Daily check-in", "Core daily metrics in under two minutes."],
-                ["Sunday progress review", "Structured weekly review with habits and outcomes."],
-                ["Programs & workouts", "Assigned plans and history in one place."],
-                ["Trainer messaging", "Questions and support without leaving the portal."]
-              ].map(([title, desc]) => (
-                <li
-                  key={title}
+      <section id="client-portal" className="fb-cp-section">
+        <div className="fb-cp-dotgrid" aria-hidden />
+        <div className="fb-cp-glow" aria-hidden />
+        <div className="fb-cp-row">
+          <div className="fb-cp-screens" aria-hidden>
+            {/* Back — Forms */}
+            <div
+              className="fb-cp-back"
+              style={{
+                position: "absolute",
+                left: -18,
+                bottom: 20,
+                width: 200,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 8px 32px rgba(15,31,61,0.10)",
+                transform: "rotate(6deg)",
+                zIndex: 1,
+                opacity: 0.82
+              }}
+            >
+              <div
+                style={{
+                  background: "#f0ebe0",
+                  padding: "9px 12px",
+                  display: "flex",
+                  gap: 5,
+                  alignItems: "center",
+                  borderBottom: "1px solid #e8e0d0"
+                }}
+              >
+                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                  <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
+                ))}
+                <span
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "22px 1fr",
-                    gap: 12,
-                    padding: "16px 0",
-                    borderBottom: "1px solid var(--border)"
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 9,
+                    color: "#b0a080",
+                    marginLeft: 6,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase"
                   }}
                 >
-                  <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 14, marginTop: 2 }}>✓</span>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>{title}</div>
-                    <div style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.55, marginTop: 2 }}>{desc}</div>
+                  Forms
+                </span>
+              </div>
+              <div style={{ padding: 14 }}>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    color: "#c9a84c",
+                    marginBottom: 10
+                  }}
+                >
+                  Forms
+                </div>
+                {[
+                  ["📋", "Audit Forms", "Client audits"],
+                  ["📅", "Sunday Check-In", "Weekly progress"],
+                  ["📌", "Daily Check-In", "Steps, water, protein"]
+                ].map(([ic, name, desc]) => (
+                  <div
+                    key={name}
+                    style={{
+                      background: "#f8f4ee",
+                      borderRadius: 7,
+                      padding: "9px 10px",
+                      marginBottom: 6,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>{ic}</span>
+                    <div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, fontWeight: 600, color: "#0f1f3d" }}>{name}</div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 8, color: "#9a8a70", marginTop: 1 }}>{desc}</div>
+                    </div>
                   </div>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+            </div>
+            {/* Main — Check-In */}
+            <div
+              className="fb-cp-main"
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 0,
+                width: 248,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 14,
+                overflow: "hidden",
+                boxShadow: "0 20px 60px rgba(15,31,61,0.13), 0 4px 16px rgba(15,31,61,0.07)",
+                zIndex: 3
+              }}
+            >
+              <div
+                style={{
+                  background: "#f0ebe0",
+                  padding: "9px 12px",
+                  display: "flex",
+                  gap: 5,
+                  alignItems: "center",
+                  borderBottom: "1px solid #e8e0d0"
+                }}
+              >
+                {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                  <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
+                ))}
+                <span
+                  style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 9,
+                    color: "#b0a080",
+                    marginLeft: 6,
+                    letterSpacing: 1.5,
+                    textTransform: "uppercase"
+                  }}
+                >
+                  Check-In
+                </span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <div
+                  style={{
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 15,
+                    letterSpacing: 2,
+                    color: "#c9a84c",
+                    marginBottom: 4
+                  }}
+                >
+                  Check-In
+                </div>
+                <div
+                  style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 9,
+                    color: "#9a8a70",
+                    marginBottom: 14,
+                    lineHeight: 1.5
+                  }}
+                >
+                  Daily check-in, Sunday check-in, or My progress.
+                </div>
+                <div
+                  style={{
+                    background: "#f8f4ee",
+                    border: "1px solid #e8e0d0",
+                    borderRadius: 7,
+                    padding: "8px 11px",
+                    marginBottom: 10,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center"
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "'DM Sans',sans-serif",
+                        fontSize: 8,
+                        fontWeight: 600,
+                        letterSpacing: 1,
+                        textTransform: "uppercase",
+                        color: "#9a8a70",
+                        marginBottom: 2
+                      }}
+                    >
+                      Date
+                    </div>
+                    <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 10, fontWeight: 500, color: "#0f1f3d" }}>03/23/2026</div>
+                  </div>
+                  <span style={{ fontSize: 12, opacity: 0.5 }}>📅</span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, marginBottom: 10 }}>
+                  {[
+                    ["WEIGHT (KG)", "e.g. 72.5"],
+                    ["BODY FAT %", "e.g. 18"],
+                    ["CALORIES", "e.g. 2000"],
+                    ["PROTEIN (G)", "e.g. 120"],
+                    ["SLEEP (HRS)", "e.g. 7.5"],
+                    ["WORKOUT", "Upper body"]
+                  ].map(([lab, val]) => (
+                    <div
+                      key={lab}
+                      style={{
+                        background: "#f8f4ee",
+                        border: "1px solid #e8e0d0",
+                        borderRadius: 7,
+                        padding: "8px 10px"
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'DM Sans',sans-serif",
+                          fontSize: 8,
+                          fontWeight: 600,
+                          letterSpacing: 1,
+                          textTransform: "uppercase",
+                          color: "#9a8a70",
+                          marginBottom: 3
+                        }}
+                      >
+                        {lab}
+                      </div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#b0a898" }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7 }}>
+                  {[
+                    ["BENCH", "e.g. 60kg"],
+                    ["SQUAT", "e.g. 80kg"],
+                    ["DEADLIFT", "e.g. 140kg"]
+                  ].map(([lab, val]) => (
+                    <div
+                      key={lab}
+                      style={{
+                        background: "#f8f4ee",
+                        border: "1px solid #e8e0d0",
+                        borderRadius: 7,
+                        padding: "7px 8px",
+                        textAlign: "center"
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'DM Sans',sans-serif",
+                          fontSize: 7,
+                          fontWeight: 600,
+                          letterSpacing: 1,
+                          textTransform: "uppercase",
+                          color: "#9a8a70",
+                          marginBottom: 2
+                        }}
+                      >
+                        {lab}
+                      </div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#b0a898" }}>{val}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div
+              className="fb-cp-float1"
+              style={{
+                position: "absolute",
+                bottom: -14,
+                right: 10,
+                zIndex: 6,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 10,
+                padding: "10px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 9,
+                boxShadow: "0 8px 24px rgba(15,31,61,0.12)"
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  background: "rgba(201,168,76,0.10)",
+                  borderRadius: 7,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 13,
+                  flexShrink: 0
+                }}
+              >
+                ⚡
+              </div>
+              <div>
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>Check-in done</div>
+                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#4caf7d", marginTop: 2 }}>✓ Under 2 minutes</div>
+              </div>
+            </div>
+            <div
+              className="fb-cp-float2"
+              style={{
+                position: "absolute",
+                top: 14,
+                left: -14,
+                zIndex: 6,
+                background: "#ffffff",
+                border: "1px solid #e8e0d0",
+                borderRadius: 10,
+                padding: "10px 14px",
+                boxShadow: "0 8px 24px rgba(15,31,61,0.12)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start"
+              }}
+            >
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: "#c9a84c", lineHeight: 1 }}>87%</div>
+              <div
+                style={{
+                  fontFamily: "'DM Sans',sans-serif",
+                  fontSize: 9,
+                  color: "#9a8a70",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                  marginTop: 2
+                }}
+              >
+                FEEL ACCOUNTABLE
+              </div>
+            </div>
+          </div>
+          <div className="fb-cp-copy">
+            <div className="reveal" data-reveal>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <span style={{ width: 24, height: 1, background: "rgba(201,168,76,0.5)" }} />
+                <span
+                  style={{
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: 3,
+                    textTransform: "uppercase",
+                    color: "#c9a84c"
+                  }}
+                >
+                  Client Portal
+                </span>
+              </div>
+              <h2 className="fb-cp-h2">
+                WHAT YOUR CLIENTS
+                <br />
+                <span
+                  style={{
+                    fontFamily: "'Instrument Serif',serif",
+                    fontStyle: "italic",
+                    color: "#c9a84c",
+                    fontSize: "0.9em",
+                    letterSpacing: 0
+                  }}
+                >
+                  actually see
+                </span>
+              </h2>
+              <p
+                style={{
+                  fontFamily: "'DM Sans',sans-serif",
+                  fontSize: 14,
+                  fontWeight: 300,
+                  color: "#6a7a8a",
+                  lineHeight: 1.75,
+                  maxWidth: 420,
+                  margin: "0 0 36px"
+                }}
+              >
+                Every client touchpoint stays clear and calm — so adherence, trust, and follow-through stay high.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                {[
+                  ["Daily check-in", "Core daily metrics logged in under two minutes."],
+                  ["Sunday progress review", "Structured weekly review with habits and outcomes."],
+                  ["Programs & workouts", "Assigned plans and full history in one place."],
+                  ["Trainer messaging", "Questions and support without leaving the portal."]
+                ].map(([title, desc]) => (
+                  <div key={title} className="fb-cp-feat">
+                    <div
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: "50%",
+                        background: "rgba(201,168,76,0.10)",
+                        border: "1px solid rgba(201,168,76,0.25)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 2
+                      }}
+                    >
+                      <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#c9a84c" }}>✓</span>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 15, fontWeight: 600, color: "#0f1f3d", marginBottom: 4 }}>{title}</div>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 13, color: "#9a8a70", lineHeight: 1.6 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(201,168,76,0.08)",
+                  border: "1px solid rgba(201,168,76,0.20)",
+                  borderRadius: 100,
+                  padding: "5px 14px",
+                  marginTop: 28
+                }}
+              >
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#4caf7d" }} />
+                <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, color: "#9a8a70", letterSpacing: 0.5 }}>Average client check-in rate</span>
+                <span style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#c9a84c" }}>94%</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1259,19 +1952,22 @@ export default function FitBaseLandingPage() {
         <div
           style={{
             marginTop: 32,
-            padding: "clamp(32px, 6vw, 52px) max(20px, env(safe-area-inset-left, 0px)) clamp(40px, 7vw, 64px)",
+            padding: "clamp(20px, 4vw, 36px) max(20px, env(safe-area-inset-left, 0px))",
             paddingRight: "max(20px, env(safe-area-inset-right, 0px))",
             background: "#0a0a0a",
             borderTop: "1px solid color-mix(in srgb, var(--accent) 28%, transparent)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
             textAlign: "center"
           }}
         >
           <p
             style={{
-              margin: "0 0 18px",
+              margin: "0 0 12px",
               color: "rgba(255,255,255,0.55)",
-              fontSize: 11,
-              letterSpacing: "0.28em",
+              fontSize: 10,
+              letterSpacing: "0.22em",
               textTransform: "uppercase",
               fontWeight: 600
             }}
@@ -1282,23 +1978,31 @@ export default function FitBaseLandingPage() {
             href="https://bodybank.fit"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: "inline-block", lineHeight: 0, borderRadius: 8 }}
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              lineHeight: 0,
+              borderRadius: 8,
+              maxWidth: "min(260px, 84vw)"
+            }}
             aria-label="Visit Bodybank.fit"
           >
             <img
               src="/img/Bodybank%20logo.png"
               alt="Bodybank"
-              width={520}
-              height={120}
+              width={260}
+              height={52}
               loading="lazy"
               decoding="async"
               style={{
-                height: "clamp(72px, 14vw, 120px)",
                 width: "auto",
-                maxWidth: "min(560px, 92vw)",
+                maxWidth: "100%",
+                maxHeight: 48,
+                height: "auto",
                 objectFit: "contain",
-                display: "block",
-                margin: "0 auto"
+                objectPosition: "50% 50%",
+                display: "block"
               }}
             />
           </a>
@@ -1308,9 +2012,9 @@ export default function FitBaseLandingPage() {
             rel="noopener noreferrer"
             style={{
               display: "inline-block",
-              marginTop: 16,
+              marginTop: 10,
               color: "var(--accent)",
-              fontSize: "clamp(15px, 2.5vw, 17px)",
+              fontSize: 13,
               fontWeight: 600,
               textDecoration: "none",
               letterSpacing: "0.04em"

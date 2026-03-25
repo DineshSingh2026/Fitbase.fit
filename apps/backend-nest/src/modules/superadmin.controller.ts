@@ -17,6 +17,7 @@ import { Roles } from "./roles.decorator";
 import { randomUUID } from "crypto";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
+import { ensureTrainersTableQueries } from "./trainers-credential.util";
 
 @Controller("api/superadmin")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -436,7 +437,7 @@ export class SuperadminController {
           [hash, firstName, lastName, reqRow.phone || "", trainerId]
         );
       } else {
-        trainerId = randomUUID();
+        trainerId = requestId;
         await this.pool.query(
           "INSERT INTO users (id, email, password, first_name, last_name, phone, role, approval_status, suspended) VALUES ($1, $2, $3, $4, $5, $6, 'admin', 'approved', FALSE)",
           [trainerId, emailNorm, hash, firstName, lastName, reqRow.phone || ""]
@@ -450,6 +451,26 @@ export class SuperadminController {
       );
 
       const referral_code = await this.ensureTrainerReferralCode(trainerId);
+      await ensureTrainersTableQueries(this.pool);
+      await this.pool.query(
+        `INSERT INTO trainers (id, full_name, email, phone, gym_name, city, message, status, created_at)
+         SELECT id, full_name, email, phone, gym_name, city, message, 'pending', created_at FROM trainer_requests WHERE id = $1::uuid
+         ON CONFLICT (id) DO NOTHING`,
+        [requestId]
+      );
+      await this.pool.query(
+        `UPDATE trainers SET
+           status = 'approved',
+           password_hash = $1,
+           temp_password = $2,
+           must_change_password = true,
+           trainer_code = $3,
+           approved_at = CURRENT_TIMESTAMP,
+           approved_by = $4::uuid,
+           rejection_reason = NULL
+         WHERE id = $5::uuid`,
+        [hash, password, referral_code, reviewer || null, requestId]
+      );
       return res.json({ ok: true, trainer_id: trainerId, email: emailNorm, password, referral_code });
     } catch {
       return res.status(500).json({ error: "Failed to approve trainer request" });
@@ -461,6 +482,7 @@ export class SuperadminController {
     if (!this.pool) return res.status(500).json({ error: "Failed to reject trainer request" });
     try {
       await this.ensureTrainerRequestsSchema();
+      await ensureTrainersTableQueries(this.pool);
       const requestId = String(id || "").trim();
       const reqRes = await this.pool.query(
         "SELECT id FROM trainer_requests WHERE id = $1 AND status = 'pending' LIMIT 1",
@@ -473,6 +495,12 @@ export class SuperadminController {
       await this.pool.query(
         "UPDATE trainer_requests SET status = 'rejected', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $1 WHERE id = $2",
         [reviewer, requestId]
+      );
+      await this.pool.query(
+        `UPDATE trainers SET status = 'rejected', rejection_reason = NULL, password_hash = NULL, temp_password = NULL,
+         trainer_code = NULL, approved_at = NULL, approved_by = NULL
+         WHERE id = $1::uuid AND status = 'pending'`,
+        [requestId]
       );
       return res.json({ ok: true });
     } catch {

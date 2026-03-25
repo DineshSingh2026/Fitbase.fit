@@ -6,6 +6,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { RolesGuard } from "./roles.guard";
 import { AdminController } from "./admin.controller";
+import { AdminTrainersController } from "./admin-trainers.controller";
 import { join } from "path";
 import { TrainerRequestsController } from "./trainer-requests.controller";
 import { ClientRequestsController } from "./client-requests.controller";
@@ -46,6 +47,7 @@ import { ProfileController } from "./profile.controller";
     NotificationsController,
     ProgramsController,
     AdminController,
+    AdminTrainersController,
     StatsController,
     TrainerCompatController,
     PushController,

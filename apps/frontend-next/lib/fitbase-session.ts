@@ -13,6 +13,8 @@ export type FitbaseSessionUser = {
   trainer_id?: string | null;
   country?: string;
   timezone?: string;
+  /** Trainer must set password before dashboard (from JWT / login body) */
+  must_change_password?: boolean;
 };
 
 export type FitbaseSession = {
@@ -32,7 +34,8 @@ function pickUserFields(src: Record<string, unknown>): FitbaseSessionUser {
     profile_picture: String(src.profile_picture ?? ""),
     trainer_id: src.trainer_id != null ? String(src.trainer_id) : null,
     country: String(src.country ?? ""),
-    timezone: String(src.timezone ?? "")
+    timezone: String(src.timezone ?? ""),
+    must_change_password: src.must_change_password === true
   };
 }
 

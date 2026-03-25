@@ -28,6 +28,11 @@ export default function LoginPage() {
       if (!session?.token) {
         throw new Error("Invalid session from server.");
       }
+      const userRole = String(session.user.role || "").toLowerCase();
+      if (userRole === "admin" && session.user.must_change_password === true) {
+        window.location.replace("/change-password");
+        return;
+      }
       window.location.replace("/dashboard");
     } catch (err: unknown) {
       const text = err instanceof Error ? err.message : "Network error. Please try again.";

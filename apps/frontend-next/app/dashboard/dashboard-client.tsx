@@ -12,7 +12,12 @@ import {
   type ReactNode
 } from "react";
 import { getApiSiteBase } from "../../lib/site-url";
-import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
+import {
+  FITBASE_SESSION_KEY,
+  normalizeFitbaseSession,
+  parseFitbaseSessionFromStorage,
+  type FitbaseSession
+} from "../../lib/fitbase-session";
 import { UserMemberDesktopDashboard, type UserDesktopNavTarget } from "./user-member-desktop-dashboard";
 
 type DashboardTab =
@@ -403,6 +408,13 @@ export default function DashboardPage() {
   }>({ loading: false, lastLoadedLabel: null, issues: [] });
   const [superadminSyncOpen, setSuperadminSyncOpen] = useState(false);
   const [superadminRosterQ, setSuperadminRosterQ] = useState("");
+  const [superadminTrainerCredModal, setSuperadminTrainerCredModal] = useState<{
+    full_name: string;
+    email: string;
+    temp_password: string;
+    trainer_code: string;
+    login_url: string;
+  } | null>(null);
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
   const [staffOverlay, setStaffOverlay] = useState<StaffOverlay>(null);
@@ -1008,6 +1020,54 @@ export default function DashboardPage() {
     }
     setSession(s);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !session?.token) return;
+    const userRole = String(session.user.role || "").toLowerCase();
+    if (userRole !== "admin") return;
+    if (session.user.must_change_password === true) {
+      window.location.replace("/change-password");
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch(`${apiBase}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${session.token}` }
+        });
+        const d = await r.json();
+        if (cancelled || !d || (d as { error?: string }).error) return;
+        if ((d as { must_change_password?: boolean }).must_change_password === true) {
+          const upd = normalizeFitbaseSession({
+            token: session.token,
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.role,
+            first_name: session.user.first_name,
+            last_name: session.user.last_name,
+            profile_picture: session.user.profile_picture,
+            trainer_id: session.user.trainer_id,
+            country: session.user.country,
+            timezone: session.user.timezone,
+            must_change_password: true
+          });
+          if (upd) {
+            try {
+              localStorage.setItem(FITBASE_SESSION_KEY, JSON.stringify(upd));
+            } catch {
+              /* ignore */
+            }
+          }
+          window.location.replace("/change-password");
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token, session?.user?.role, session?.user?.must_change_password, apiBase]);
 
   useEffect(() => {
     const d = new Date();
@@ -2017,27 +2077,29 @@ export default function DashboardPage() {
   }
 
   async function superadminApproveTrainerRequestRow(requestId: string) {
-    const pwd = typeof window !== "undefined" ? window.prompt("Set trainer login password (min 6 characters):") : null;
-    if (pwd === null) return;
-    if (!pwd || pwd.length < 6) {
-      setError("Password must be at least 6 characters.");
-      return;
-    }
     if (!session?.token) return;
     setSuperadminQueueBusy(`${requestId}-ta`);
     setError("");
     try {
-      const r = await fetch(`${apiBase}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
-        body: JSON.stringify({ password: pwd })
+      const r = await fetch(`${apiBase}/api/admin/trainers/${encodeURIComponent(requestId)}/approve`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${session.token}` }
       });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok || data?.error) throw new Error(data?.error || "Approve failed");
-      const msg = data?.referral_code
-        ? `Trainer approved. Referral code: ${data.referral_code}\nJoin URL path: /join/${data.referral_code}`
-        : "Trainer approved.";
-      if (typeof window !== "undefined") window.alert(msg);
+      if (!r.ok || (data as { error?: string }).error) {
+        throw new Error((data as { error?: string }).error || "Approve failed");
+      }
+      const tr = (data as { trainer?: Record<string, string> }).trainer;
+      if (tr?.temp_password && tr?.trainer_code) {
+        const loginUrl = String(tr.login_url || `${typeof window !== "undefined" ? window.location.origin : ""}/login`);
+        setSuperadminTrainerCredModal({
+          full_name: String(tr.full_name || ""),
+          email: String(tr.email || ""),
+          temp_password: String(tr.temp_password || ""),
+          trainer_code: String(tr.trainer_code || ""),
+          login_url: loginUrl
+        });
+      }
       await refreshSuperadminQueues();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Approve failed");
@@ -2048,16 +2110,22 @@ export default function DashboardPage() {
 
   async function superadminRejectTrainerRequestRow(requestId: string) {
     if (typeof window !== "undefined" && !window.confirm("Reject this trainer request?")) return;
+    const reason =
+      typeof window !== "undefined" ? window.prompt("Optional rejection reason (visible in admin tools):", "") : "";
+    if (reason === null) return;
     if (!session?.token) return;
     setSuperadminQueueBusy(`${requestId}-tr`);
     setError("");
     try {
-      const r = await fetch(`${apiBase}/api/superadmin/trainer-requests/${encodeURIComponent(requestId)}/reject`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${session.token}` }
+      const r = await fetch(`${apiBase}/api/admin/trainers/${encodeURIComponent(requestId)}/reject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({ reason: String(reason || "").trim() || undefined })
       });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok || data?.error) throw new Error(data?.error || "Reject failed");
+      if (!r.ok || (data as { error?: string }).error) {
+        throw new Error((data as { error?: string }).error || "Reject failed");
+      }
       await refreshSuperadminQueues();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Reject failed");
@@ -4223,6 +4291,11 @@ export default function DashboardPage() {
                           · {trainerRequests.length} on file
                         </span>
                       </h3>
+                      <p style={{ margin: "0 0 10px", fontSize: 13 }}>
+                        <a href="/admin/trainers" style={{ color: "var(--accent)", fontWeight: 600 }}>
+                          Open trainer management (tables &amp; credentials) →
+                        </a>
+                      </p>
                       <div className="bb-sa-queue-panel">
                         {trainerRequests.filter((r: any) => String(r.status) === "pending").length ? (
                           <ul className="bb-list-rows">
@@ -7565,6 +7638,122 @@ export default function DashboardPage() {
             <button type="button" className="bb-back-btn" style={{ marginBottom: 0, width: "100%", justifyContent: "center" }} onClick={() => setStaffAiOpen(false)}>
               Close AI Assist
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {superadminTrainerCredModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sa-cred-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+          onClick={() => setSuperadminTrainerCredModal(null)}
+        >
+          <div
+            className="bb-card"
+            style={{
+              maxWidth: 440,
+              width: "100%",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: 22,
+              boxShadow: "var(--shadow-lg)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="sa-cred-title" style={{ margin: "0 0 8px", fontSize: 18, color: "var(--text-primary)" }}>
+              Trainer approved
+            </h2>
+            <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary)" }}>
+              Share these credentials with <strong>{superadminTrainerCredModal.full_name}</strong>
+            </p>
+            {(() => {
+              const origin = typeof window !== "undefined" ? window.location.origin : "";
+              const joinPath = `/join/${superadminTrainerCredModal.trainer_code}`;
+              const joinFull = `${origin}${joinPath}`;
+              const loginLine = superadminTrainerCredModal.login_url.replace(/^https?:\/\//, "");
+              const copy = async (label: string, text: string) => {
+                try {
+                  await navigator.clipboard.writeText(text);
+                  if (typeof window !== "undefined") window.alert(`${label} copied.`);
+                } catch {
+                  if (typeof window !== "undefined") window.prompt(`Copy ${label}:`, text);
+                }
+              };
+              const copyAll = async () => {
+                const block = `---
+Welcome to FitBase!
+Login: ${superadminTrainerCredModal.login_url}
+Email: ${superadminTrainerCredModal.email}
+Password: ${superadminTrainerCredModal.temp_password}
+Your client invite link: ${joinFull}
+Change your password on first login.
+---`;
+                await copy("All details", block);
+              };
+              const row = (lab: string, val: string, onCopy: () => void) => (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{lab}</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <code
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontSize: 13,
+                        padding: "8px 10px",
+                        background: "var(--bg-surface)",
+                        borderRadius: 8,
+                        border: "1px solid var(--border)",
+                        wordBreak: "break-all"
+                      }}
+                    >
+                      {val}
+                    </code>
+                    <button
+                      type="button"
+                      className="bb-btn-secondary"
+                      style={{ flexShrink: 0 }}
+                      onClick={() => void onCopy()}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              );
+              return (
+                <>
+                  {row("Login URL", loginLine, () =>
+                    void copy("Login URL", superadminTrainerCredModal.login_url)
+                  )}
+                  {row("Email", superadminTrainerCredModal.email, () =>
+                    void copy("Email", superadminTrainerCredModal.email)
+                  )}
+                  {row("Password", superadminTrainerCredModal.temp_password, () =>
+                    void copy("Password", superadminTrainerCredModal.temp_password)
+                  )}
+                  {row("Client invite link", joinFull.replace(/^https?:\/\//, ""), () => void copy("Invite link", joinFull))}
+                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 18 }}>
+                    <button type="button" className="bb-btn-secondary" onClick={() => void copyAll()}>
+                      Copy all
+                    </button>
+                    <button type="button" className="bb-btn-primary" onClick={() => setSuperadminTrainerCredModal(null)}>
+                      Done
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       ) : null}

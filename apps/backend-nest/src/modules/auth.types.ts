@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   trainer_id?: string | null;
+  /** Trainer accounts only — force password change after credential handoff */
+  must_change_password?: boolean;
 }
 
 export interface JwtPayload extends AuthUser {

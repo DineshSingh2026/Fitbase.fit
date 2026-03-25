@@ -2,6 +2,7 @@ import { Body, Controller, Inject, Post, Res } from "@nestjs/common";
 import { Pool } from "pg";
 import { randomUUID } from "crypto";
 import type { Response } from "express";
+import { ensureTrainersTableQueries } from "./trainers-credential.util";
 
 @Controller("api")
 export class TrainerRequestsController {
@@ -57,6 +58,7 @@ export class TrainerRequestsController {
 
     try {
       await this.ensureTrainerRequestsTable();
+      await ensureTrainersTableQueries(this.pool);
       const name = String(body?.full_name || "").trim();
       const emailNorm = String(body?.email || "").trim().toLowerCase();
       if (!name || !emailNorm) {
@@ -84,18 +86,33 @@ export class TrainerRequestsController {
         });
       }
 
+      const pendingTrainer = await this.pool.query(
+        "SELECT id FROM trainers WHERE LOWER(email) = $1 AND status = 'pending' LIMIT 1",
+        [emailNorm]
+      );
+      if (pendingTrainer.rows[0]) {
+        return res.status(409).json({
+          error: "A trainer request with this email is already pending review."
+        });
+      }
+
+      const id = randomUUID();
+      const phone = String(body?.phone || "").trim();
+      const gym = String(body?.gym_name || "").trim();
+      const city = String(body?.city || "").trim();
+      const message = String(body?.message || "").trim();
+
       await this.pool.query(
         `INSERT INTO trainer_requests (id, full_name, email, phone, gym_name, city, message, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')`,
-        [
-          randomUUID(),
-          name,
-          emailNorm,
-          String(body?.phone || "").trim(),
-          String(body?.gym_name || "").trim(),
-          String(body?.city || "").trim(),
-          String(body?.message || "").trim()
-        ]
+        [id, name, emailNorm, phone, gym, city, message]
+      );
+
+      await this.pool.query(
+        `INSERT INTO trainers (id, full_name, email, phone, gym_name, city, message, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+         ON CONFLICT (id) DO NOTHING`,
+        [id, name, emailNorm, phone, gym, city, message]
       );
 
       return res.json({
