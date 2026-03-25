@@ -17,7 +17,7 @@ const faqs: FaqItem[] = [
 ];
 
 const plans: Plan[] = [
-  { name: "Starter", price: "$24/mo", features: ["15 clients", "Check-ins", "Tracking", "Messaging", "Audit forms"] },
+  { name: "Starter", price: "$24/mo", features: ["15 clients", "Check-ins", "Part 2 forms", "Tracking", "Messaging"] },
   {
     name: "Professional",
     price: "$49/mo",
@@ -679,7 +679,7 @@ export default function FitBaseLandingPage() {
                 {[
                   ["Daily check-in tracking", "✓", "✓", "Limited", "✓"],
                   ["AI assistant for trainers", "✓", "✗", "✗", "✗"],
-                  ["Client audit forms", "✓", "Basic", "Basic", "✓"],
+                  ["Part 2 & check-ins", "✓", "Basic", "Basic", "✓"],
                   ["White-label option", "✓", "✓", "✗", "✓"],
                   ["Starts at per month", "$24", "$35", "$19", "$49"],
                   ["India-focused onboarding", "✓", "✗", "✗", "✗"],

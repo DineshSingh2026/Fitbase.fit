@@ -136,12 +136,7 @@ export class SuperadminController {
     const filterUserId = filters.user_id || null;
     const hasDate = !!(dateFrom || dateTo);
 
-    const pendingRequests = await this.safeCount("SELECT COUNT(*)::int as c FROM audit_requests WHERE status='pending'");
-    const auditTotal = await this.safeCount("SELECT COUNT(*)::int as c FROM audit_requests");
-    const tribeTotal = await this.safeCount("SELECT COUNT(*)::int as c FROM tribe_members");
-    const tribeActive = await this.safeCount("SELECT COUNT(*)::int as c FROM tribe_members WHERE status='active'");
     const workoutsCount = await this.safeCount("SELECT COUNT(*)::int as c FROM workout_logs");
-    const part2Count = await this.safeCount("SELECT COUNT(*)::int as c FROM part2_audit");
     const sundayCount = await this.safeCount("SELECT COUNT(*)::int as c FROM sunday_checkins");
     const messagesCount = await this.safeCount("SELECT COUNT(*)::int as c FROM contact_messages");
     const meetingsCount = await this.safeCount("SELECT COUNT(*)::int as c FROM meetings");
@@ -152,15 +147,16 @@ export class SuperadminController {
       "SELECT COUNT(*)::int as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)"
     );
     const dailyCheckinsCount = await this.safeCount("SELECT COUNT(*)::int as c FROM daily_checkins");
+    const part2Count = await this.safeCount("SELECT COUNT(*)::int as c FROM part2_audit");
     const programAssignCount = await this.safeCount(
       "SELECT COUNT(*)::int as c FROM user_program_assignments WHERE removed_at IS NULL"
     );
 
     const stats = {
-      pending_requests: pendingRequests,
-      audit_total: auditTotal,
-      tribe_total: tribeTotal,
-      tribe_active: tribeActive,
+      pending_requests: 0,
+      audit_total: 0,
+      tribe_total: 0,
+      tribe_active: 0,
       workouts: workoutsCount,
       part2: part2Count,
       sunday_checkins: sundayCount,
@@ -172,9 +168,7 @@ export class SuperadminController {
       approved_users: usersApproved
     };
 
-    let audit = await this.safeRows(
-      "SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200"
-    );
+    const audit: any[] = [];
     let part2 = await this.safeRows(
       "SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200"
     );
@@ -187,9 +181,7 @@ export class SuperadminController {
     let workouts = await this.safeRows(
       "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text ORDER BY w.created_at DESC LIMIT 200"
     );
-    const tribe = await this.safeRows(
-      "SELECT id, first_name, last_name, email, city, phase, start_date, activity_per_week, status FROM tribe_members ORDER BY start_date DESC LIMIT 200"
-    );
+    const tribe: any[] = [];
     let meetings = await this.safeRows(
       "SELECT id, user_id, user_name, user_email, meeting_date, time_slot, status, created_at FROM meetings ORDER BY created_at DESC LIMIT 200"
     );
@@ -212,9 +204,8 @@ export class SuperadminController {
           return okDate && okUser;
         });
 
-      audit = filterByDate(audit, "created_at");
-      part2 = filterByDate(part2, "created_at");
       sundayCheckins = filterByDate(sundayCheckins, "created_at");
+      part2 = filterByDate(part2, "created_at");
       workouts = filterByDate(workouts, "created_at");
       meetings = filterByDate(meetings, "created_at");
       messages = filterByDate(messages, "created_at");

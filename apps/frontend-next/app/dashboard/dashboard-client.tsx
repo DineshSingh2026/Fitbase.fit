@@ -4,9 +4,49 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { getApiSiteBase } from "../../lib/site-url";
 import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
 
-type DashboardTab = "home" | "clients" | "forms" | "messages" | "ai" | "programs" | "contact" | "profile" | "progress";
+type DashboardTab =
+  | "home"
+  | "clients"
+  | "forms"
+  | "messages"
+  | "ai"
+  | "programs"
+  | "contact"
+  | "profile"
+  | "progress"
+  | "training"
+  | "analytics";
+
+type AdminListFilter = { from: string; to: string; search: string };
+type AdminListFilterKey = "part2" | "sunday" | "daily" | "workouts";
+
+type InboxNotification = {
+  id?: string;
+  title?: string;
+  desc?: string;
+  time?: string;
+  link?: string | null;
+};
 
 type Session = FitbaseSession;
+
+function escapeCsvCell(val: unknown): string {
+  const s = val == null ? "" : String(val);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function downloadCsvFile(filename: string, columns: { key: string; header: string }[], rows: Record<string, unknown>[]) {
+  const header = columns.map((c) => escapeCsvCell(c.header)).join(",");
+  const lines = rows.map((row) => columns.map((c) => escapeCsvCell((row as any)[c.key])).join(","));
+  const csv = "\uFEFF" + [header, ...lines].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 function getSession(): Session | null {
   if (typeof window === "undefined") return null;
@@ -66,9 +106,9 @@ export default function DashboardPage() {
   const apiBase = useMemo(() => getApiSiteBase(), []);
   const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
+  const [staffMeetings, setStaffMeetings] = useState<any[]>([]);
   const [threads, setThreads] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
-  const [forms, setForms] = useState<any[]>([]);
   const [dailyCheckins, setDailyCheckins] = useState<any[]>([]);
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
@@ -83,7 +123,6 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("home");
   const [error, setError] = useState("");
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
-  const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [selectedCheckin, setSelectedCheckin] = useState<any | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
@@ -95,17 +134,18 @@ export default function DashboardPage() {
     email: "",
     phone: "",
     city: "",
+    country: "",
+    timezone: "",
     password: ""
   });
   const [trainerReferral, setTrainerReferral] = useState<{ code: string; join_path: string } | null>(null);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [isMeetingUpdating, setIsMeetingUpdating] = useState(false);
   const [todayLabel, setTodayLabel] = useState("");
-  const [trainerClientsView, setTrainerClientsView] = useState<"hub" | "roster" | "pending" | "tribe" | "progress">("hub");
-  const [trainerFormsView, setTrainerFormsView] = useState<"hub" | "audits" | "part2" | "sunday" | "daily">("hub");
+  const [trainerClientsView, setTrainerClientsView] = useState<"hub" | "roster" | "pending" | "progress" | "addClient">("hub");
+  const [trainerFormsView, setTrainerFormsView] = useState<"hub" | "part2" | "sunday" | "daily">("hub");
   const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads">("hub");
   const [sundayCheckinsApi, setSundayCheckinsApi] = useState<any[]>([]);
-  const [part2Submissions, setPart2Submissions] = useState<any[]>([]);
   const [trainerRequests, setTrainerRequests] = useState<any[]>([]);
   const [clientLeadRequests, setClientLeadRequests] = useState<any[]>([]);
   const [trainerClientOverview, setTrainerClientOverview] = useState<any[]>([]);
@@ -122,6 +162,12 @@ export default function DashboardPage() {
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
   const [staffOverlay, setStaffOverlay] = useState<StaffOverlay>(null);
+  const [trainerAnalyticsSub, setTrainerAnalyticsSub] = useState<null | "insights" | "campaigns">(null);
+  const [trainerNavOpen, setTrainerNavOpen] = useState(false);
+  const [trainerScheduleUserId, setTrainerScheduleUserId] = useState("");
+  const [trainerMeetingDate, setTrainerMeetingDate] = useState("");
+  const [trainerMeetingTime, setTrainerMeetingTime] = useState("");
+  const [trainerMeetingSubmitting, setTrainerMeetingSubmitting] = useState(false);
   const [staffAiOpen, setStaffAiOpen] = useState(false);
   const [perfInsights, setPerfInsights] = useState<{ summary?: Record<string, number>; data?: any[] } | null>(null);
   const [perfInsightsLoading, setPerfInsightsLoading] = useState(false);
@@ -130,6 +176,7 @@ export default function DashboardPage() {
   const [assignProgramId, setAssignProgramId] = useState("");
   const [isAssigningProgram, setIsAssigningProgram] = useState(false);
   const [selectedSunday, setSelectedSunday] = useState<any | null>(null);
+  const [part2Submissions, setPart2Submissions] = useState<any[]>([]);
   const [selectedPart2, setSelectedPart2] = useState<any | null>(null);
   const [userCheckinView, setUserCheckinView] = useState<"hub" | "daily" | "sunday" | "progress">("hub");
   const [userToday, setUserToday] = useState<any | null>(null);
@@ -183,6 +230,16 @@ export default function DashboardPage() {
   });
   const [progressSaving, setProgressSaving] = useState(false);
   const [progressSuccess, setProgressSuccess] = useState(false);
+  const [trainerListFilters, setTrainerListFilters] = useState<Record<AdminListFilterKey, AdminListFilter>>({
+    part2: { from: "", to: "", search: "" },
+    sunday: { from: "", to: "", search: "" },
+    daily: { from: "", to: "", search: "" },
+    workouts: { from: "", to: "", search: "" }
+  });
+  const [inboxItems, setInboxItems] = useState<InboxNotification[]>([]);
+  const [inboxLoading, setInboxLoading] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifWrapRef = useRef<HTMLDivElement | null>(null);
 
   const displayName = useMemo(() => {
     const u = session?.user;
@@ -198,8 +255,9 @@ export default function DashboardPage() {
   }, [session, role]);
 
   const isStaff = role !== "user";
+  const isTrainer = role === "admin";
 
-  const tribeMembers = useMemo(() => {
+  const activeClients = useMemo(() => {
     return clients.filter((u: any) => String(u.approval_status || "").toLowerCase() !== "pending");
   }, [clients]);
 
@@ -357,7 +415,6 @@ export default function DashboardPage() {
           pending_signups: Number(statObj.pending_signups || 0),
           messages: Number(statObj.messages || 0)
         });
-        setForms(Array.isArray(s?.audit) ? s.audit : []);
         const fromRecent =
           recentActRes.ok && Array.isArray(recentActRes.data) ? (recentActRes.data as any[]) : [];
         const fromMeetings = (Array.isArray(s?.meetings) ? s.meetings : []).map((m: any) => ({
@@ -444,6 +501,44 @@ export default function DashboardPage() {
       setError(`Unexpected error while loading: ${crash}`);
     }
   }, [apiBase, role, session?.token]);
+
+  const loadInbox = useCallback(async () => {
+    if (!session?.token) return;
+    setInboxLoading(true);
+    try {
+      const r = await fetch(`${apiBase}/api/notifications`, {
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => []);
+      setInboxItems(Array.isArray(data) ? data : []);
+    } catch {
+      setInboxItems([]);
+    } finally {
+      setInboxLoading(false);
+    }
+  }, [session?.token, apiBase]);
+
+  useEffect(() => {
+    if (!session?.token) return;
+    void loadInbox();
+    const id = window.setInterval(() => void loadInbox(), 120000);
+    return () => window.clearInterval(id);
+  }, [session?.token, loadInbox]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    void loadInbox();
+  }, [notifOpen, loadInbox]);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const close = (e: MouseEvent) => {
+      const w = notifWrapRef.current;
+      if (w && !w.contains(e.target as Node)) setNotifOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [notifOpen]);
 
   const refreshUserTodayAndStreak = useCallback(() => {
     if (!session?.token || role !== "user") return;
@@ -561,7 +656,6 @@ export default function DashboardPage() {
           setActivity(Array.isArray(m) ? m : []);
           setThreads(Array.isArray(t) ? t : []);
           setClients([]);
-          setForms([]);
           setDailyCheckins([]);
           setPendingUsers([]);
           if (todayData && !todayData.error) setUserToday(todayData);
@@ -576,25 +670,25 @@ export default function DashboardPage() {
       fetch(`${apiBase}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/admin/users`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/audit-requests`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/admin/daily-checkins`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/admin/workouts`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/admin/pending-signups`, { headers }).then((r) => r.json()).catch(() => []),
       fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => [])
+      fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => []),
+      fetch(`${apiBase}/api/meetings`, { headers }).then((r) => r.json()).catch(() => [])
     ])
-      .then(([s, a, t, u, f, d, w, p, sun, p2]) => {
+      .then(([s, a, t, u, d, w, p, sun, p2, mt]) => {
         if (s?.error) setError(s.error);
         setStats(s || null);
         setActivity(Array.isArray(a) ? a : []);
         setThreads(Array.isArray(t) ? t : []);
         setClients(Array.isArray(u) ? u : []);
-        setForms(Array.isArray(f) ? f : []);
         setDailyCheckins(Array.isArray(d) ? d : []);
         setWorkouts(Array.isArray(w) ? w : []);
         setPendingUsers(Array.isArray(p) ? p : []);
         setSundayCheckinsApi(Array.isArray(sun) ? sun : []);
         setPart2Submissions(Array.isArray(p2) ? p2 : []);
+        setStaffMeetings(Array.isArray(mt) ? mt : []);
       })
       .catch(() => setError("Failed to load dashboard data."));
   }, [session?.token, role, apiBase]);
@@ -635,7 +729,10 @@ export default function DashboardPage() {
   }, [role, activeTab, threads, selectedThreadId]);
 
   useEffect(() => {
-    if (!session?.token || staffOverlay !== "insights" || !isStaff) return;
+    const wantInsights =
+      staffOverlay === "insights" ||
+      (isTrainer && activeTab === "analytics" && trainerAnalyticsSub === "insights");
+    if (!session?.token || !wantInsights || !isStaff) return;
     const headers = { Authorization: `Bearer ${session.token}` };
     setPerfInsightsLoading(true);
     fetch(`${apiBase}/api/admin/performance-insights`, { headers })
@@ -646,16 +743,17 @@ export default function DashboardPage() {
       })
       .catch(() => setPerfInsights(null))
       .finally(() => setPerfInsightsLoading(false));
-  }, [session, staffOverlay, isStaff]);
+  }, [session, staffOverlay, isStaff, isTrainer, activeTab, trainerAnalyticsSub, apiBase]);
 
   useEffect(() => {
-    if (!session?.token || staffOverlay !== "programs" || !isStaff) return;
+    const wantCatalog = staffOverlay === "programs" || (isTrainer && activeTab === "programs");
+    if (!session?.token || !wantCatalog || !isStaff) return;
     const headers = { Authorization: `Bearer ${session.token}` };
     fetch(`${apiBase}/api/admin/program-catalog`, { headers })
       .then((r) => r.json())
       .then((rows) => setProgramCatalog(Array.isArray(rows) ? rows : []))
       .catch(() => setProgramCatalog([]));
-  }, [session, staffOverlay, isStaff]);
+  }, [session, staffOverlay, isStaff, isTrainer, activeTab, apiBase]);
 
   async function sendAi() {
     const text = aiPrompt.trim();
@@ -799,13 +897,24 @@ export default function DashboardPage() {
           first_name: newClient.first_name.trim(),
           last_name: newClient.last_name.trim(),
           phone: newClient.phone.trim(),
-          city: newClient.city.trim()
+          city: newClient.city.trim(),
+          country: newClient.country.trim(),
+          timezone: newClient.timezone.trim()
         })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data?.error) throw new Error(data?.error || "Failed to create client.");
       setClients((prev) => [data, ...prev]);
-      setNewClient({ first_name: "", last_name: "", email: "", phone: "", city: "", password: "" });
+      setNewClient({
+        first_name: "",
+        last_name: "",
+        email: "",
+        phone: "",
+        city: "",
+        country: "",
+        timezone: "",
+        password: ""
+      });
     } catch (e: any) {
       setError(e?.message || "Failed to create client.");
     } finally {
@@ -836,6 +945,45 @@ export default function DashboardPage() {
     }
   }
 
+  async function submitTrainerMeeting() {
+    if (!session?.token || role === "user") return;
+    const uid = trainerScheduleUserId.trim();
+    if (!uid || !trainerMeetingDate || !trainerMeetingTime) {
+      setError("Select a client, date, and time.");
+      return;
+    }
+    const client = activeClients.find((x: any) => String(x.id) === uid) || clients.find((x: any) => String(x.id) === uid);
+    const user_name = [client?.first_name, client?.last_name].filter(Boolean).join(" ").trim();
+    setTrainerMeetingSubmitting(true);
+    setError("");
+    try {
+      const r = await fetch(`${apiBase}/api/meetings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token}` },
+        body: JSON.stringify({
+          user_id: uid,
+          user_name,
+          user_email: client?.email || "",
+          user_phone: client?.phone || "",
+          meeting_date: trainerMeetingDate,
+          time_slot: trainerMeetingTime
+        })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data?.error) throw new Error(data?.error || "Failed to schedule.");
+      const rows = await fetch(`${apiBase}/api/meetings`, { headers: { Authorization: `Bearer ${session.token}` } })
+        .then((res) => res.json())
+        .catch(() => []);
+      setStaffMeetings(Array.isArray(rows) ? rows : []);
+      setTrainerMeetingDate("");
+      setTrainerMeetingTime("");
+    } catch (e: any) {
+      setError(e?.message || "Failed to schedule meeting.");
+    } finally {
+      setTrainerMeetingSubmitting(false);
+    }
+  }
+
   async function updateMeetingStatus(status: "cancelled" | "completed" | "scheduled") {
     if (!session?.token || !selectedMeeting?.id) return;
     setIsMeetingUpdating(true);
@@ -851,6 +999,12 @@ export default function DashboardPage() {
       setActivity((prev) =>
         prev.map((m: any) => (String(m.id || "") === String(selectedMeeting.id) ? { ...m, status } : m))
       );
+      if (session?.token && isStaff) {
+        const rows = await fetch(`${apiBase}/api/meetings`, { headers: { Authorization: `Bearer ${session.token}` } })
+          .then((r) => r.json())
+          .catch(() => []);
+        setStaffMeetings(Array.isArray(rows) ? rows : []);
+      }
     } catch (e: any) {
       setError(e?.message || "Failed to update meeting.");
     } finally {
@@ -1221,6 +1375,8 @@ export default function DashboardPage() {
   function goTab(id: DashboardTab) {
     setStaffAiOpen(false);
     setStaffOverlay(null);
+    setTrainerAnalyticsSub(null);
+    setTrainerNavOpen(false);
     if (id !== activeTab) {
       setTrainerMessagesView("hub");
       if (id === "clients") {
@@ -1236,6 +1392,52 @@ export default function DashboardPage() {
     }
     if (role === "user" && id === "forms") setUserCheckinView("hub");
     setActiveTab(id);
+  }
+
+  function applyInboxLink(link: string | null | undefined) {
+    setNotifOpen(false);
+    const l = String(link || "");
+    if (!l) return;
+    if (l === "messages" || l === "messages-meetings" || l === "meetings") {
+      goTab("messages");
+      setTrainerMessagesView("threads");
+      return;
+    }
+    if (l === "signups" || l === "requests") {
+      goTab("clients");
+      setTrainerClientsView("pending");
+      return;
+    }
+    if (l === "sundaycheckin") {
+      goTab("forms");
+      setTrainerFormsView("sunday");
+      return;
+    }
+    if (l === "dailycheckin") {
+      goTab("forms");
+      setTrainerFormsView("daily");
+      return;
+    }
+    if (l === "clientprogress") {
+      goTab("clients");
+      setTrainerClientsView("progress");
+      return;
+    }
+    if (l === "workouts") {
+      if (role === "admin") goTab("training");
+      else goTab("home");
+      return;
+    }
+    if (l === "programs") {
+      goTab("programs");
+      return;
+    }
+    if (l === "part2") {
+      goTab("forms");
+      setTrainerFormsView("part2");
+      return;
+    }
+    goTab("home");
   }
 
   function tabButton(id: DashboardTab, label: string, icon: string) {
@@ -1280,22 +1482,147 @@ export default function DashboardPage() {
     ai: "AI",
     contact: "SCHEDULE A MEETING",
     profile: "MY PROFILE",
-    progress: "MY PROGRESS"
+    progress: "MY PROGRESS",
+    training: "TRAINING",
+    analytics: "ANALYTICS"
   };
 
+  async function refetchAdminList(path: string, f: AdminListFilter, setRows: (rows: any[]) => void) {
+    if (!session?.token) return;
+    const q = new URLSearchParams();
+    if (f.from.trim()) q.set("from", f.from.trim());
+    if (f.to.trim()) q.set("to", f.to.trim());
+    if (f.search.trim()) q.set("search", f.search.trim());
+    const url = `${apiBase}${path}${q.toString() ? `?${q.toString()}` : ""}`;
+    const data = await fetch(url, { headers: { Authorization: `Bearer ${session.token}` } }).then((r) => r.json());
+    setRows(Array.isArray(data) ? data : []);
+  }
+
+  function AdminListFiltersBar(props: {
+    filter: AdminListFilter;
+    onPatch: (p: Partial<AdminListFilter>) => void;
+    onApply: () => void;
+    onClear: () => void;
+    onCsv?: () => void;
+    searchPlaceholder: string;
+  }) {
+    const f = props.filter;
+    return (
+      <div
+        className="bb-admin-filter-bar"
+        style={{
+          marginBottom: 14,
+          padding: 12,
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          background: "color-mix(in srgb, var(--text-primary) 4%, var(--bg-primary))"
+        }}
+      >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, alignItems: "end" }}>
+          <div>
+            <span className="bb-list-row-sub" style={{ display: "block", marginBottom: 4 }}>
+              From
+            </span>
+            <input type="date" className="bb-input" value={f.from} onChange={(e) => props.onPatch({ from: e.target.value })} />
+          </div>
+          <div>
+            <span className="bb-list-row-sub" style={{ display: "block", marginBottom: 4 }}>
+              To
+            </span>
+            <input type="date" className="bb-input" value={f.to} onChange={(e) => props.onPatch({ to: e.target.value })} />
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span className="bb-list-row-sub" style={{ display: "block", marginBottom: 4 }}>
+              Search
+            </span>
+            <input
+              type="search"
+              className="bb-input"
+              placeholder={props.searchPlaceholder}
+              value={f.search}
+              onChange={(e) => props.onPatch({ search: e.target.value })}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+          <button type="button" className="bb-btn-primary" onClick={props.onApply}>
+            Apply
+          </button>
+          <button type="button" className="bb-back-btn" style={{ marginBottom: 0 }} onClick={props.onClear}>
+            Clear
+          </button>
+          {props.onCsv ? (
+            <button type="button" className="bb-back-btn" style={{ marginBottom: 0 }} onClick={props.onCsv}>
+              Download CSV
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  function downloadPerfInsightsCsv() {
+    const rows = perfInsights?.data;
+    const day = new Date().toISOString().slice(0, 10);
+    if (Array.isArray(rows) && rows.length) {
+      const keys = Object.keys(rows[0] as object);
+      downloadCsvFile(
+        `performance-insights-${day}.csv`,
+        keys.map((k) => ({ key: k, header: k })),
+        rows as Record<string, unknown>[]
+      );
+      return;
+    }
+    if (perfInsights?.summary && Object.keys(perfInsights.summary).length) {
+      downloadCsvFile(
+        `performance-insights-summary-${day}.csv`,
+        [
+          { key: "metric", header: "Metric" },
+          { key: "value", header: "Value" }
+        ],
+        Object.entries(perfInsights.summary).map(([metric, value]) => ({ metric, value: String(value) }))
+      );
+    }
+  }
+
+  const trainerNavDefs: { t: DashboardTab; label: string; ic: string }[] = [
+    { t: "home", label: "Dashboard", ic: String.fromCodePoint(0x1f4ca) },
+    { t: "clients", label: "Clients", ic: String.fromCodePoint(0x1f465) },
+    { t: "training", label: "Training", ic: String.fromCodePoint(0x1f3cb) },
+    { t: "programs", label: "Programs", ic: String.fromCodePoint(0x1f3af) },
+    { t: "forms", label: "Forms", ic: String.fromCodePoint(0x1f4cb) },
+    { t: "analytics", label: "Analytics", ic: String.fromCodePoint(0x1f4c8) },
+    { t: "messages", label: "Messages", ic: String.fromCodePoint(0x1f4ac) }
+  ];
+
   return (
-    <main className="bb-dash-root" style={{ minHeight: "100dvh", background: s.bg, color: s.text }}>
+    <main
+      className={`bb-dash-root${isTrainer ? " bb-trainer-shell" : ""}`}
+      style={{ minHeight: "100dvh", background: s.bg, color: s.text, display: "flex", flexDirection: "column" }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=Rajdhani:wght@600;700&display=swap');
         .bb-dash-header{padding-top:max(12px, env(safe-area-inset-top, 0px));padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-bottom:12px}
         .bb-dash-main{padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-top:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
         .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer}
         .bb-header-badge{position:absolute;top:-7px;right:-6px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.4}
+        .bb-notif-wrap{position:relative}
+        .bb-notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 28px));max-height:min(420px,70vh);overflow:auto;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:50;padding:10px 0}
+        .bb-notif-row{width:100%;text-align:left;padding:10px 14px;border:none;background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit;font-size:13px;line-height:1.45;border-bottom:1px solid var(--border)}
+        .bb-notif-row:last-child{border-bottom:none}
+        .bb-notif-row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+        .bb-notif-title{font-weight:600;display:block;margin-bottom:2px}
+        .bb-notif-desc{color:var(--text-secondary);font-size:12px;display:block}
+        .bb-notif-time{font-size:11px;color:var(--text-secondary);margin-top:4px}
+        .bb-notif-empty{padding:16px 14px;color:var(--text-secondary);font-size:13px;margin:0}
         .bb-admin-welcome-card{background:linear-gradient(135deg,var(--bg-surface),color-mix(in srgb,var(--accent) 9%,var(--bg-card)));border-radius:14px;border-left:5px solid var(--accent);padding:18px 20px;margin-bottom:16px;box-sizing:border-box;width:100%;box-shadow:var(--shadow-md),inset 0 0 0 1px var(--accent-border)}
         .bb-admin-welcome-title{font-size:clamp(17px,4.2vw,24px);font-weight:700;color:var(--olive);margin:0 0 8px;line-height:1.32;letter-spacing:.04em}
         .bb-admin-welcome-role{font-weight:800;letter-spacing:.03em}
         .bb-admin-welcome-date{font-size:13px;color:var(--text-secondary);margin:0;line-height:1.45}
         .bb-dash-root{font-family:'Outfit',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
+        .bb-trainer-shell{display:flex;flex-direction:column;min-height:100dvh}
+        @media(min-width:900px){.bb-trainer-shell .bb-dash-main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}}
         .bb-dashboard-title{margin:0 0 12px;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,44px);letter-spacing:3px;line-height:1;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 32%,var(--accent-light) 62%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bb-admin-section-page-title{font-size:28px;letter-spacing:2px;margin-bottom:6px}
         .bb-admin-hub-cards{display:grid;grid-template-columns:1fr;gap:10px}
@@ -1335,6 +1662,12 @@ export default function DashboardPage() {
         .bb-admin-la-list-wrap{display:flex;flex-direction:column;gap:0}
         .bb-admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-section-page{padding:4px 0 8px}
+        .bb-admin-filter-bar label,.bb-admin-filter-bar span.bb-list-row-sub{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary)}
+        .bb-admin-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px;border-radius:10px;border:1px solid var(--border)}
+        .bb-admin-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+        .bb-admin-table th,.bb-admin-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
+        .bb-admin-table th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgb(var(--accent-rgb) / 0.06)}
+        .bb-admin-table tbody tr:hover{background:rgb(var(--accent-rgb) / 0.06)}
         .bb-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;min-height:40px}
         .bb-back-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
         .bb-section-h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;background:linear-gradient(95deg,var(--olive) 0%,var(--accent) 38%,var(--accent-light) 78%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 16px;text-transform:uppercase}
@@ -1363,6 +1696,29 @@ export default function DashboardPage() {
         .bb-nav-btn:hover,.bb-nav-btn:focus{color:var(--text-primary);outline:none}
         .bb-nav-btn-active{color:var(--accent)}
         .bb-nav-tabbar{position:absolute;top:0;left:50%;transform:translateX(-50%);height:3px;width:32px;background:linear-gradient(90deg,var(--accent),var(--accent-light),var(--accent-bright));border-radius:2px;box-shadow:0 0 12px rgb(var(--accent-rgb) / 0.45)}
+        .bb-trainer-with-sidebar{display:flex;flex:1;align-items:stretch;min-height:0;min-width:0}
+        .bb-trainer-sidebar{display:none;flex-direction:column;width:228px;flex-shrink:0;border-right:1px solid var(--border);background:color-mix(in srgb,var(--bg-primary) 97%,transparent);padding:12px 0 24px;gap:2px}
+        .bb-trainer-side-link{display:flex;align-items:center;gap:10px;padding:11px 16px;border:none;background:transparent;color:var(--text-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;width:100%;box-sizing:border-box;border-radius:0}
+        .bb-trainer-side-link:hover,.bb-trainer-side-link:focus{background:var(--accent-dim);color:var(--accent);outline:none}
+        .bb-trainer-side-link-active{color:var(--accent);background:rgb(var(--accent-rgb) / 0.1);box-shadow:inset 3px 0 0 var(--accent)}
+        .bb-trainer-main-wrap{flex:1;min-width:0;display:flex;flex-direction:column}
+        .bb-trainer-ham{display:none;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:20px;cursor:pointer;flex-shrink:0}
+        .bb-trainer-ham:hover{border-color:var(--accent);color:var(--accent)}
+        .bb-trainer-drawer-overlay{position:fixed;inset:0;z-index:34;background:rgba(0,0,0,0.5)}
+        .bb-trainer-drawer{position:fixed;left:0;top:0;bottom:0;width:min(280px,90vw);z-index:36;background:var(--bg-card);border-right:1px solid var(--border);padding:max(12px,env(safe-area-inset-top,0px)) 0 24px;overflow-y:auto;transform:translateX(-100%);transition:transform 0.22s ease;box-shadow:var(--shadow-lg)}
+        .bb-trainer-drawer-open{transform:translateX(0)}
+        .bb-trainer-drawer-close{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 16px;border-bottom:1px solid var(--border);margin-bottom:8px}
+        .bb-trainer-drawer-close button{border:none;background:transparent;color:var(--text-secondary);font-size:22px;cursor:pointer;line-height:1}
+        @media(min-width:900px){
+          .bb-trainer-shell .bb-trainer-sidebar{display:flex}
+          .bb-trainer-shell .bb-nav-dock{display:none!important}
+          .bb-trainer-shell .bb-trainer-ham{display:none!important}
+          .bb-trainer-drawer,.bb-trainer-drawer-overlay{display:none!important}
+        }
+        @media(max-width:899px){
+          .bb-trainer-shell .bb-trainer-ham{display:inline-flex}
+        }
+        .bb-trainer-drawer:not(.bb-trainer-drawer-open){pointer-events:none}
         .bb-staff-overlay{position:fixed;left:0;right:0;top:calc(58px + env(safe-area-inset-top,0px));bottom:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));z-index:25;background:var(--dark);color:var(--text-on-dark);overflow-y:auto;padding:14px 14px 20px;-webkit-overflow-scrolling:touch}
         .bb-staff-overlay .bb-section-h2{color:var(--text-on-dark)}
         .bb-staff-overlay .bb-back-btn{border-color:rgba(255,255,255,0.45);color:rgba(255,255,255,0.9)}
@@ -1569,12 +1925,54 @@ export default function DashboardPage() {
           WebkitBackdropFilter: "blur(12px)"
         }}
       >
-        <img src={`${apiBase}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button className="bb-header-btn" aria-label="Notifications">
-            🔔
-            <span className="bb-header-badge">99+</span>
-          </button>
+          {isTrainer ? (
+            <button type="button" className="bb-trainer-ham" onClick={() => setTrainerNavOpen(true)} aria-label="Open menu">
+              &#9776;
+            </button>
+          ) : null}
+          <img src={`${apiBase}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="bb-notif-wrap" ref={notifWrapRef}>
+            <button
+              type="button"
+              className="bb-header-btn"
+              aria-label="Notifications"
+              aria-expanded={notifOpen}
+              onClick={() => setNotifOpen((o) => !o)}
+            >
+              🔔
+              {inboxItems.length > 0 ? (
+                <span className="bb-header-badge">{inboxItems.length > 99 ? "99+" : inboxItems.length}</span>
+              ) : null}
+            </button>
+            {notifOpen ? (
+              <div className="bb-notif-panel" role="menu">
+                {inboxLoading && inboxItems.length === 0 ? (
+                  <p className="bb-notif-empty">Loading…</p>
+                ) : inboxItems.length === 0 ? (
+                  <p className="bb-notif-empty">No notifications yet.</p>
+                ) : (
+                  inboxItems.map((n, idx) => (
+                    <button
+                      key={String(n.id ?? idx)}
+                      type="button"
+                      className="bb-notif-row"
+                      role="menuitem"
+                      onClick={() => applyInboxLink(n.link)}
+                    >
+                      <span className="bb-notif-title">{n.title || "Update"}</span>
+                      {n.desc ? <span className="bb-notif-desc">{n.desc}</span> : null}
+                      {n.time ? (
+                        <span className="bb-notif-time">{new Date(String(n.time)).toLocaleString()}</span>
+                      ) : null}
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : null}
+          </div>
           <button
             className="bb-header-btn"
             aria-label="Refresh"
@@ -1606,7 +2004,77 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <section className="bb-dash-main">
+      {isTrainer && trainerNavOpen ? (
+        <button type="button" className="bb-trainer-drawer-overlay" aria-label="Close menu" onClick={() => setTrainerNavOpen(false)} />
+      ) : null}
+      {isTrainer ? (
+        <aside
+          className={`bb-trainer-drawer${trainerNavOpen ? " bb-trainer-drawer-open" : ""}`}
+          aria-hidden={!trainerNavOpen}
+        >
+          <div className="bb-trainer-drawer-close">
+            <strong style={{ fontSize: 14, color: "var(--text-primary)" }}>Menu</strong>
+            <button type="button" onClick={() => setTrainerNavOpen(false)} aria-label="Close">
+              ×
+            </button>
+          </div>
+          {trainerNavDefs.map(({ t, label, ic }) => (
+            <button
+              key={t}
+              type="button"
+              className={`bb-trainer-side-link${activeTab === t ? " bb-trainer-side-link-active" : ""}`}
+              onClick={() => goTab(t)}
+            >
+              <span aria-hidden>{ic}</span> {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className={`bb-trainer-side-link${staffAiOpen ? " bb-trainer-side-link-active" : ""}`}
+            onClick={() => {
+              setStaffAiOpen(true);
+              setTrainerNavOpen(false);
+            }}
+          >
+            <span aria-hidden>{String.fromCodePoint(0x1f4a1)}</span> AI Assist
+          </button>
+        </aside>
+      ) : null}
+
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          flexDirection: isTrainer ? "row" : "column"
+        }}
+      >
+        {isTrainer ? (
+          <aside className="bb-trainer-sidebar" aria-label="Trainer navigation">
+            {trainerNavDefs.map(({ t, label, ic }) => (
+              <button
+                key={t}
+                type="button"
+                className={`bb-trainer-side-link${activeTab === t ? " bb-trainer-side-link-active" : ""}`}
+                onClick={() => goTab(t)}
+              >
+                <span aria-hidden>{ic}</span> {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`bb-trainer-side-link${staffAiOpen ? " bb-trainer-side-link-active" : ""}`}
+              onClick={() => {
+                setStaffAiOpen(true);
+                setTrainerNavOpen(false);
+              }}
+            >
+              <span aria-hidden>{String.fromCodePoint(0x1f4a1)}</span> AI Assist
+            </button>
+          </aside>
+        ) : null}
+        <section className="bb-dash-main" style={{ flex: 1, minWidth: 0 }}>
         <h1
           className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
             role === "user" && activeTab === "home" ? " bb-client-home-title" : ""
@@ -1620,7 +2088,17 @@ export default function DashboardPage() {
                 : "DASHBOARD"
               : activeTab === "forms"
                 ? "FORMS"
-                : activeTab.toUpperCase()}
+                : activeTab === "programs" && isTrainer
+                  ? "PROGRAMS"
+                  : activeTab === "training"
+                    ? "TRAINING"
+                    : activeTab === "analytics"
+                      ? trainerAnalyticsSub === "insights"
+                        ? "PERFORMANCE INSIGHTS"
+                        : trainerAnalyticsSub === "campaigns"
+                          ? "CAMPAIGNS"
+                          : "ANALYTICS"
+                      : activeTab.toUpperCase()}
         </h1>
 
         {error ? <p style={{ color: "var(--red)", marginTop: 12 }}>{error}</p> : null}
@@ -1640,7 +2118,7 @@ export default function DashboardPage() {
                     <span className="welcome-label">Welcome back</span>
                     <span className="welcome-name">{displayName}</span>
                   </h1>
-                  <p className="user-welcome-tag">Tribe Elite Member</p>
+                  <p className="user-welcome-tag">FitBase member</p>
 
                   <div className="today-dash">
                     <div className="today-row">
@@ -1940,12 +2418,12 @@ export default function DashboardPage() {
                     className="bb-admin-summary-card"
                     onClick={() => {
                       goTab("forms");
-                      setTrainerFormsView("audits");
+                      setTrainerFormsView("sunday");
                     }}
                   >
-                    <span className="bb-admin-summary-lbl">AUDITS PENDING</span>
+                    <span className="bb-admin-summary-lbl">SUNDAY CHECK-INS</span>
                     <span className="bb-admin-summary-num num-gold">
-                      {Number(superadminSnapshot?.stats?.pending_requests ?? 0)}
+                      {Number(superadminSnapshot?.stats?.sunday_checkins ?? 0)}
                     </span>
                   </button>
                   <button
@@ -2441,35 +2919,40 @@ export default function DashboardPage() {
                       }
                     },
                     {
-                      label: "Workouts",
-                      icon: String.fromCodePoint(0x1f3c3),
+                      label: "Part 2",
+                      icon: String.fromCodePoint(0x1f4dd),
                       onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("workouts");
+                        goTab("forms");
+                        setTrainerFormsView("part2");
                       }
                     },
                     {
-                      label: "Audits",
+                      label: "Workouts",
+                      icon: String.fromCodePoint(0x1f3c3),
+                      onClick: () => {
+                        goTab("training");
+                      }
+                    },
+                    {
+                      label: "Daily logs",
                       icon: String.fromCodePoint(0x1f4d1),
                       onClick: () => {
                         goTab("forms");
-                        setTrainerFormsView("audits");
+                        setTrainerFormsView("daily");
                       }
                     },
                     {
                       label: "Programs",
                       icon: String.fromCodePoint(0x1f3af),
                       onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("programs");
+                        goTab("programs");
                       }
                     },
                     {
                       label: "Analytics",
                       icon: String.fromCodePoint(0x1f4ca),
                       onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("analytics");
+                        goTab("analytics");
                       }
                     }
                   ].map((x) => (
@@ -2699,10 +3182,10 @@ export default function DashboardPage() {
                       onClick={() => setTrainerClientsView("pending")}
                     />
                     <HubCard
-                      icon={String.fromCodePoint(0x1f465)}
-                      title="Tribe"
-                      desc="Manage active tribe members"
-                      onClick={() => setTrainerClientsView("tribe")}
+                      icon={String.fromCodePoint(0x2795)}
+                      title="Add client"
+                      desc="Create a client account on your roster"
+                      onClick={() => setTrainerClientsView("addClient")}
                     />
                     <HubCard
                       icon={String.fromCodePoint(0x1f4c8)}
@@ -2773,6 +3256,9 @@ export default function DashboardPage() {
                             <li key={id} className="bb-list-row bb-list-row-static">
                               <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "User"}</div>
                               <p className="bb-list-row-sub">{u.email || "No email"}</p>
+                              <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                Signed up: {u.created_at ? new Date(u.created_at).toLocaleString() : "—"}
+                              </p>
                               {u.city || u.date_of_birth || u.gender || u.whatsapp ? (
                                 <p className="bb-list-row-sub" style={{ marginTop: 6, fontSize: 12, lineHeight: 1.45 }}>
                                   {[u.city && `City: ${u.city}`, u.date_of_birth && `DOB: ${u.date_of_birth}`, u.gender && `Gender: ${u.gender}`, u.whatsapp && `WhatsApp: ${u.whatsapp}`]
@@ -2809,11 +3295,14 @@ export default function DashboardPage() {
                     )}
                   </div>
                 ) : null}
-                {trainerClientsView === "tribe" ? (
+                {trainerClientsView === "addClient" ? (
                   <>
                     {role === "admin" ? (
-                      <div className="bb-panel" style={{ marginBottom: 12 }}>
+                      <div className="bb-panel">
                         <span className="bb-inline-label">ADD NEW CLIENT</span>
+                        <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
+                          Creates an approved client on your roster. They can sign in with the email and temporary password you set.
+                        </p>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                           <input
                             className="bb-input"
@@ -2846,6 +3335,18 @@ export default function DashboardPage() {
                             placeholder="City"
                             style={{ gridColumn: "1 / -1" }}
                           />
+                          <input
+                            className="bb-input"
+                            value={newClient.country}
+                            onChange={(e) => setNewClient((p) => ({ ...p, country: e.target.value }))}
+                            placeholder="Country (optional)"
+                          />
+                          <input
+                            className="bb-input"
+                            value={newClient.timezone}
+                            onChange={(e) => setNewClient((p) => ({ ...p, timezone: e.target.value }))}
+                            placeholder="Timezone (optional)"
+                          />
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, marginTop: 8 }}>
                           <input
@@ -2859,39 +3360,21 @@ export default function DashboardPage() {
                           </button>
                         </div>
                       </div>
-                    ) : null}
-                    <div className="bb-panel">
-                      <span className="bb-inline-label">
-                        TRIBE · <strong style={{ color: "var(--accent)" }}>{tribeMembers.length}</strong>
-                      </span>
-                      {tribeMembers.length ? (
-                        <ul className="bb-list-rows">
-                          {tribeMembers.slice(0, 40).map((u: any) => (
-                            <li key={u.id} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                                <div>
-                                  <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}</div>
-                                  <p className="bb-list-row-sub">{u.email}</p>
-                                </div>
-                                <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 12 }}>VIEW</span>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="bb-live-empty">No active members yet.</p>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="bb-panel">
+                        <p className="bb-live-empty">Super admins manage clients via the platform roster and coach assignments.</p>
+                      </div>
+                    )}
                   </>
                 ) : null}
                 {trainerClientsView === "progress" ? (
                   <div className="bb-panel">
                     <span className="bb-inline-label">
-                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{tribeMembers.length}</strong>
+                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{activeClients.length}</strong>
                     </span>
-                    {tribeMembers.length ? (
+                    {activeClients.length ? (
                       <ul className="bb-list-rows">
-                        {tribeMembers.slice(0, 40).map((u: any) => (
+                        {activeClients.slice(0, 40).map((u: any) => (
                           <li key={u.id} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                               <div>
@@ -3349,7 +3832,6 @@ export default function DashboardPage() {
                       [
                         ["daily", "Daily"],
                         ["sunday", "Sunday"],
-                        ["audits", "Audits"],
                         ["part2", "Part 2"]
                       ] as const
                     ).map(([id, label]) => (
@@ -3379,22 +3861,16 @@ export default function DashboardPage() {
                 {trainerFormsView === "hub" && role !== "superadmin" ? (
                   <div className="bb-admin-hub-cards">
                     <HubCard
-                      icon={String.fromCodePoint(0x1f4cb)}
-                      title="Audit Forms"
-                      desc="Create and review client audits"
-                      onClick={() => setTrainerFormsView("audits")}
-                    />
-                    <HubCard
-                      icon={String.fromCodePoint(0x1f4dd)}
-                      title="Part-2 Form"
-                      desc="Client questionnaire form"
-                      onClick={() => setTrainerFormsView("part2")}
-                    />
-                    <HubCard
                       icon={String.fromCodePoint(0x1f4c5)}
                       title="Sunday Check-In"
                       desc="Weekly client progress check-in"
                       onClick={() => setTrainerFormsView("sunday")}
+                    />
+                    <HubCard
+                      icon={String.fromCodePoint(0x1f4dd)}
+                      title="Part-2 Form"
+                      desc="Client questionnaire submissions"
+                      onClick={() => setTrainerFormsView("part2")}
                     />
                     <HubCard
                       icon={String.fromCodePoint(0x1f4cc)}
@@ -3404,53 +3880,62 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : null}
-                {trainerFormsView === "audits" ? (
-                  <div className="bb-panel">
-                    <span className="bb-inline-label">
-                      AUDITS · <strong style={{ color: "var(--accent)" }}>{forms.length}</strong>
-                    </span>
-                    {forms.length ? (
-                      <ul className="bb-list-rows">
-                        {forms.slice(0, 30).map((f: any) => (
-                          <li
-                            key={f.id || `${f.email}-${f.created_at}`}
-                            className="bb-list-row"
-                            onClick={() => setSelectedForm(f)}
-                            role="presentation"
-                          >
-                            <div className="bb-list-row-title">{[f.first_name, f.last_name].filter(Boolean).join(" ") || f.email || "Request"}</div>
-                            <p className="bb-list-row-sub">
-                              {f.city || "City not provided"} · {f.status || "pending"}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="bb-live-empty">No audit forms found.</p>
-                    )}
-                  </div>
-                ) : null}
                 {trainerFormsView === "part2" ? (
                   <div className="bb-panel">
                     <span className="bb-inline-label">
                       PART-2 SUBMISSIONS · <strong style={{ color: "var(--accent)" }}>{part2Submissions.length}</strong>
                     </span>
+                    {isStaff ? (
+                      <AdminListFiltersBar
+                        filter={trainerListFilters.part2}
+                        onPatch={(p) => setTrainerListFilters((prev) => ({ ...prev, part2: { ...prev.part2, ...p } }))}
+                        onApply={() => void refetchAdminList("/api/admin/part2-submissions", trainerListFilters.part2, setPart2Submissions)}
+                        onClear={() => {
+                          const z = { from: "", to: "", search: "" };
+                          setTrainerListFilters((prev) => ({ ...prev, part2: z }));
+                          void refetchAdminList("/api/admin/part2-submissions", z, setPart2Submissions);
+                        }}
+                        onCsv={() =>
+                          downloadCsvFile(
+                            `part2-submissions-${new Date().toISOString().slice(0, 10)}.csv`,
+                            [
+                              { key: "name", header: "Name" },
+                              { key: "email", header: "Email" },
+                              { key: "mobile", header: "Mobile" },
+                              { key: "activity_level", header: "Activity" },
+                              { key: "created_at", header: "Submitted" }
+                            ],
+                            part2Submissions as Record<string, unknown>[]
+                          )
+                        }
+                        searchPlaceholder="Name, email, or mobile"
+                      />
+                    ) : null}
                     {part2Submissions.length ? (
-                      <ul className="bb-list-rows">
-                        {part2Submissions.slice(0, 40).map((p: any) => (
-                          <li
-                            key={p.id}
-                            className="bb-list-row"
-                            onClick={() => setSelectedPart2(p)}
-                            role="presentation"
-                          >
-                            <div className="bb-list-row-title">{p.name || p.email || "Submission"}</div>
-                            <p className="bb-list-row-sub">
-                              {p.email || "—"} · {p.activity_level || "—"} · {p.created_at ? new Date(p.created_at).toLocaleString() : ""}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="bb-admin-table-wrap">
+                        <table className="bb-admin-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Mobile</th>
+                              <th>Activity</th>
+                              <th>Submitted</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {part2Submissions.slice(0, 250).map((p: any) => (
+                              <tr key={p.id} onClick={() => setSelectedPart2(p)} style={{ cursor: "pointer" }}>
+                                <td>{p.name || "—"}</td>
+                                <td>{p.email || "—"}</td>
+                                <td>{p.mobile || "—"}</td>
+                                <td>{p.activity_level || "—"}</td>
+                                <td>{p.created_at ? new Date(p.created_at).toLocaleString() : "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
                       <p className="bb-live-empty">No Part-2 submissions yet.</p>
                     )}
@@ -3461,29 +3946,68 @@ export default function DashboardPage() {
                     <span className="bb-inline-label">
                       SUNDAY CHECK-INS · <strong style={{ color: "var(--accent)" }}>{sundayCheckinsApi.length}</strong>
                     </span>
+                    {isStaff ? (
+                      <AdminListFiltersBar
+                        filter={trainerListFilters.sunday}
+                        onPatch={(p) => setTrainerListFilters((prev) => ({ ...prev, sunday: { ...prev.sunday, ...p } }))}
+                        onApply={() => void refetchAdminList("/api/admin/sunday-checkins", trainerListFilters.sunday, setSundayCheckinsApi)}
+                        onClear={() => {
+                          const z = { from: "", to: "", search: "" };
+                          setTrainerListFilters((prev) => ({ ...prev, sunday: z }));
+                          void refetchAdminList("/api/admin/sunday-checkins", z, setSundayCheckinsApi);
+                        }}
+                        onCsv={() =>
+                          downloadCsvFile(
+                            `sunday-checkins-${new Date().toISOString().slice(0, 10)}.csv`,
+                            [
+                              { key: "full_name", header: "Full name" },
+                              { key: "reply_email", header: "Reply email" },
+                              { key: "member_name", header: "Member (account)" },
+                              { key: "email", header: "Account email" },
+                              { key: "total_weight_loss", header: "Weight loss" },
+                              { key: "trainer_first_name", header: "Coach first" },
+                              { key: "trainer_last_name", header: "Coach last" },
+                              { key: "trainer_email", header: "Coach email" },
+                              { key: "created_at", header: "Submitted" }
+                            ],
+                            sundayCheckinsApi.map((c: any) => ({
+                              ...c,
+                              member_name: [c.first_name, c.last_name].filter(Boolean).join(" ")
+                            })) as Record<string, unknown>[]
+                          )
+                        }
+                        searchPlaceholder="Name or email"
+                      />
+                    ) : null}
                     {sundayCheckinsApi.length ? (
-                      <ul className="bb-list-rows">
-                        {sundayCheckinsApi.slice(0, 40).map((c: any) => (
-                          <li
-                            key={c.id}
-                            className="bb-list-row"
-                            onClick={() => setSelectedSunday(c)}
-                            role="presentation"
-                          >
-                            <div className="bb-list-row-title">{c.full_name || c.reply_email || "Member"}</div>
-                            <p className="bb-list-row-sub">
-                              {c.total_weight_loss != null ? `Weight loss: ${c.total_weight_loss} · ` : ""}
-                              {c.created_at ? new Date(c.created_at).toLocaleString() : ""}
-                            </p>
-                            {role === "superadmin" && (c.trainer_first_name || c.trainer_last_name || c.trainer_email) ? (
-                              <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                Coach:{" "}
-                                {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
-                              </p>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="bb-admin-table-wrap">
+                        <table className="bb-admin-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Weight loss</th>
+                              {role === "superadmin" ? <th>Coach</th> : null}
+                              <th>Submitted</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sundayCheckinsApi.slice(0, 250).map((c: any) => (
+                              <tr key={c.id} onClick={() => setSelectedSunday(c)} style={{ cursor: "pointer" }}>
+                                <td>{c.full_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.reply_email || "—"}</td>
+                                <td>{c.reply_email || c.email || "—"}</td>
+                                <td>{c.total_weight_loss != null ? String(c.total_weight_loss) : "—"}</td>
+                                {role === "superadmin" ? (
+                                  <td>
+                                    {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
+                                  </td>
+                                ) : null}
+                                <td>{c.created_at ? new Date(c.created_at).toLocaleString() : "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
                       <p className="bb-live-empty">No Sunday check-ins yet.</p>
                     )}
@@ -3494,30 +4018,70 @@ export default function DashboardPage() {
                     <span className="bb-inline-label">
                       DAILY LOGS · <strong style={{ color: "var(--accent)" }}>{dailyCheckins.length}</strong>
                     </span>
+                    {isStaff ? (
+                      <AdminListFiltersBar
+                        filter={trainerListFilters.daily}
+                        onPatch={(p) => setTrainerListFilters((prev) => ({ ...prev, daily: { ...prev.daily, ...p } }))}
+                        onApply={() => void refetchAdminList("/api/admin/daily-checkins", trainerListFilters.daily, setDailyCheckins)}
+                        onClear={() => {
+                          const z = { from: "", to: "", search: "" };
+                          setTrainerListFilters((prev) => ({ ...prev, daily: z }));
+                          void refetchAdminList("/api/admin/daily-checkins", z, setDailyCheckins);
+                        }}
+                        onCsv={() =>
+                          downloadCsvFile(
+                            `daily-checkins-${new Date().toISOString().slice(0, 10)}.csv`,
+                            [
+                              { key: "checkin_date", header: "Date" },
+                              { key: "first_name", header: "First name" },
+                              { key: "last_name", header: "Last name" },
+                              { key: "email", header: "Email" },
+                              { key: "steps", header: "Steps" },
+                              { key: "water_ml", header: "Water ml" },
+                              { key: "protein_g", header: "Protein g" },
+                              { key: "sleep_hours", header: "Sleep h" },
+                              { key: "trainer_email", header: "Coach email" },
+                              { key: "created_at", header: "Saved at" }
+                            ],
+                            dailyCheckins as Record<string, unknown>[]
+                          )
+                        }
+                        searchPlaceholder="Name or email"
+                      />
+                    ) : null}
                     {dailyCheckins.length ? (
-                      <ul className="bb-list-rows">
-                        {dailyCheckins.slice(0, 50).map((c: any) => (
-                          <li
-                            key={c.id}
-                            className="bb-list-row"
-                            onClick={() => openCheckinDetail(c)}
-                            role="presentation"
-                          >
-                            <div className="bb-list-row-title">
-                              {[c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || "Member"}
-                            </div>
-                            <p className="bb-list-row-sub">
-                              {c.checkin_date || "—"} · Steps {c.steps ?? "—"} · Protein {c.protein_g ?? "—"} g · Sleep {c.sleep_hours ?? "—"} h
-                            </p>
-                            {role === "superadmin" && (c.trainer_first_name || c.trainer_last_name || c.trainer_email) ? (
-                              <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                Coach:{" "}
-                                {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
-                              </p>
-                            ) : null}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="bb-admin-table-wrap">
+                        <table className="bb-admin-table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Email</th>
+                              <th>Date</th>
+                              <th>Steps</th>
+                              <th>Protein</th>
+                              <th>Sleep</th>
+                              {role === "superadmin" ? <th>Coach</th> : null}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dailyCheckins.slice(0, 250).map((c: any) => (
+                              <tr key={c.id} onClick={() => openCheckinDetail(c)} style={{ cursor: "pointer" }}>
+                                <td>{[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}</td>
+                                <td>{c.email || "—"}</td>
+                                <td>{c.checkin_date || "—"}</td>
+                                <td>{c.steps ?? "—"}</td>
+                                <td>{c.protein_g ?? "—"}</td>
+                                <td>{c.sleep_hours ?? "—"}</td>
+                                {role === "superadmin" ? (
+                                  <td>
+                                    {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
+                                  </td>
+                                ) : null}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
                       <p className="bb-live-empty">No daily check-ins yet.</p>
                     )}
@@ -3525,6 +4089,192 @@ export default function DashboardPage() {
                 ) : null}
               </>
             )}
+          </div>
+        ) : null}
+
+        {isTrainer && activeTab === "training" ? (
+          <div className="bb-section-page">
+            <button type="button" className="bb-back-btn" onClick={() => goTab("home")}>
+              ← Back
+            </button>
+            <div className="bb-panel">
+              <span className="bb-inline-label">WORKOUT LOGS · {workouts.length}</span>
+              <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
+                Filters match BodyBank: date range, search (name, email, workout, notes), Apply / Clear, and CSV export.
+              </p>
+              <AdminListFiltersBar
+                filter={trainerListFilters.workouts}
+                onPatch={(p) => setTrainerListFilters((prev) => ({ ...prev, workouts: { ...prev.workouts, ...p } }))}
+                onApply={() => void refetchAdminList("/api/admin/workouts", trainerListFilters.workouts, setWorkouts)}
+                onClear={() => {
+                  const z = { from: "", to: "", search: "" };
+                  setTrainerListFilters((prev) => ({ ...prev, workouts: z }));
+                  void refetchAdminList("/api/admin/workouts", z, setWorkouts);
+                }}
+                onCsv={() =>
+                  downloadCsvFile(
+                    `workouts-${new Date().toISOString().slice(0, 10)}.csv`,
+                    [
+                      { key: "first_name", header: "First name" },
+                      { key: "last_name", header: "Last name" },
+                      { key: "email", header: "Email" },
+                      { key: "workout_name", header: "Workout" },
+                      { key: "duration_min", header: "Duration min" },
+                      { key: "feedback", header: "Feedback" },
+                      { key: "created_at", header: "Logged at" }
+                    ],
+                    workouts.map((w: any) => ({
+                      ...w,
+                      duration_min: String(Math.floor((Number(w.duration_seconds) || 0) / 60))
+                    })) as Record<string, unknown>[]
+                  )
+                }
+                searchPlaceholder="Name, email, or workout"
+              />
+              {workouts.length ? (
+                <div className="bb-admin-table-wrap">
+                  <table className="bb-admin-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Workout</th>
+                        <th>Duration</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workouts.slice(0, 250).map((w: any) => (
+                        <tr key={w.id} onClick={() => openWorkoutDetail(w)} style={{ cursor: "pointer" }}>
+                          <td>{[w.first_name, w.last_name].filter(Boolean).join(" ") || "—"}</td>
+                          <td>{w.email || "—"}</td>
+                          <td>{w.workout_name || "—"}</td>
+                          <td>{Math.floor((Number(w.duration_seconds) || 0) / 60)} min</td>
+                          <td>{w.created_at ? new Date(w.created_at).toLocaleString() : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="bb-live-empty">No workouts logged yet.</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {isTrainer && activeTab === "programs" ? (
+          <div className="bb-section-page">
+            <button type="button" className="bb-back-btn" onClick={() => goTab("home")}>
+              ← Back
+            </button>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div className="bb-panel">
+                <span className="bb-inline-label">ASSIGN PROGRAM (MAX 4 PER CLIENT)</span>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <select className="bb-input" value={assignUserId} onChange={(e) => setAssignUserId(e.target.value)} style={{ cursor: "pointer" }}>
+                    <option value="">Select client</option>
+                    {activeClients.map((u: any) => (
+                      <option key={u.id} value={u.id}>
+                        {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="bb-input" value={assignProgramId} onChange={(e) => setAssignProgramId(e.target.value)} style={{ cursor: "pointer" }}>
+                    <option value="">Select program</option>
+                    {programCatalog.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" className="bb-btn-primary" onClick={assignProgramToUser} disabled={isAssigningProgram}>
+                    {isAssigningProgram ? "..." : "Assign"}
+                  </button>
+                </div>
+              </div>
+              <div className="bb-panel">
+                <span className="bb-inline-label">CATALOG · {programCatalog.length}</span>
+                {programCatalog.length ? (
+                  <ul className="bb-list-rows">
+                    {programCatalog.map((p: any) => (
+                      <li key={p.id} className="bb-list-row bb-list-row-static">
+                        <div className="bb-list-row-title">{p.name}</div>
+                        {p.pdf_url ? (
+                          <a href={p.pdf_url} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontSize: 12 }}>
+                            PDF
+                          </a>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="bb-live-empty">Loading programs…</p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isTrainer && activeTab === "analytics" ? (
+          <div className="bb-section-page">
+            <button
+              type="button"
+              className="bb-back-btn"
+              onClick={() => {
+                if (trainerAnalyticsSub) setTrainerAnalyticsSub(null);
+                else goTab("home");
+              }}
+            >
+              ← Back
+            </button>
+            {trainerAnalyticsSub === null ? (
+              <div className="bb-admin-hub-cards">
+                <HubCard
+                  icon={String.fromCodePoint(0x1f4ca)}
+                  title="Performance Insights"
+                  desc="Filters, charts, and CSV export"
+                  onClick={() => setTrainerAnalyticsSub("insights")}
+                />
+                <HubCard
+                  icon={String.fromCodePoint(0x1f4e4)}
+                  title="Campaigns"
+                  desc="Scheduled broadcast messages to all users"
+                  onClick={() => setTrainerAnalyticsSub("campaigns")}
+                />
+              </div>
+            ) : null}
+            {trainerAnalyticsSub === "insights" ? (
+              <div className="bb-panel">
+                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+                  <button type="button" className="bb-back-btn" style={{ marginBottom: 0 }} onClick={() => downloadPerfInsightsCsv()}>
+                    Download CSV
+                  </button>
+                </div>
+                {perfInsightsLoading ? (
+                  <p className="bb-live-empty">Loading insights…</p>
+                ) : perfInsights?.summary ? (
+                  <ul className="bb-list-rows">
+                    {Object.entries(perfInsights.summary).map(([k, v]) => (
+                      <li key={k} className="bb-list-row bb-list-row-static">
+                        <div className="bb-list-row-title">{k.replace(/_/g, " ")}</div>
+                        <p className="bb-list-row-sub">{String(v)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="bb-live-empty">No insight data available.</p>
+                )}
+              </div>
+            ) : null}
+            {trainerAnalyticsSub === "campaigns" ? (
+              <div className="bb-panel">
+                <span className="bb-inline-label">BROADCAST CAMPAIGNS</span>
+                <p className="bb-live-empty" style={{ marginTop: 8 }}>
+                  Campaign scheduling matches BodyBank&rsquo;s broadcast tool. Wire this view to your notifications/campaign API when it is available.
+                </p>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -3919,6 +4669,82 @@ export default function DashboardPage() {
                         </>
                       )}
                     </div>
+
+                    <div className="bb-panel">
+                      <span className="bb-inline-label">MEETINGS</span>
+                      <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
+                        Schedule a call or view upcoming meetings — same flow as BodyBank Messages &amp; Meetings.
+                      </p>
+                      {isStaff && role !== "user" ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
+                          <select
+                            className="bb-input"
+                            style={{ minWidth: 160, flex: "1 1 160px", cursor: "pointer" }}
+                            value={trainerScheduleUserId}
+                            onChange={(e) => setTrainerScheduleUserId(e.target.value)}
+                          >
+                            <option value="">Select client</option>
+                            {activeClients.map((u: any) => (
+                              <option key={u.id} value={u.id}>
+                                {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}
+                              </option>
+                            ))}
+                          </select>
+                          <div>
+                            <span className="bb-list-row-sub" style={{ display: "block", marginBottom: 4 }}>
+                              Date
+                            </span>
+                            <input
+                              type="date"
+                              className="bb-input"
+                              value={trainerMeetingDate}
+                              onChange={(e) => setTrainerMeetingDate(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <span className="bb-list-row-sub" style={{ display: "block", marginBottom: 4 }}>
+                              Time
+                            </span>
+                            <input
+                              type="time"
+                              className="bb-input"
+                              value={trainerMeetingTime}
+                              onChange={(e) => setTrainerMeetingTime(e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            className="bb-btn-primary"
+                            onClick={() => void submitTrainerMeeting()}
+                            disabled={trainerMeetingSubmitting}
+                          >
+                            {trainerMeetingSubmitting ? "…" : "Schedule"}
+                          </button>
+                        </div>
+                      ) : null}
+                      {staffMeetings.length ? (
+                        <ul className="bb-list-rows">
+                          {staffMeetings.map((m: any) => (
+                            <li
+                              key={String(m.id)}
+                              className="bb-list-row"
+                              onClick={() => setSelectedMeeting(m)}
+                              role="presentation"
+                            >
+                              <div className="bb-list-row-title">
+                                {String(m.user_name || "").trim() || m.user_email || "Client"}
+                              </div>
+                              <p className="bb-list-row-sub">
+                                {m.meeting_date || "—"} · {m.time_slot || "—"}
+                                {m.user_email ? ` · ${m.user_email}` : ""}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="bb-live-empty">No upcoming scheduled meetings.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </>
@@ -4027,7 +4853,7 @@ export default function DashboardPage() {
                   <div style={{ display: "grid", gap: 8 }}>
                     <select className="bb-input" value={assignUserId} onChange={(e) => setAssignUserId(e.target.value)} style={{ cursor: "pointer" }}>
                       <option value="">Select client</option>
-                      {tribeMembers.map((u: any) => (
+                      {activeClients.map((u: any) => (
                         <option key={u.id} value={u.id}>
                           {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}
                         </option>
@@ -4116,7 +4942,6 @@ export default function DashboardPage() {
         ) : null}
 
         {(selectedClient ||
-          selectedForm ||
           selectedCheckin ||
           selectedWorkout ||
           selectedMeeting ||
@@ -4133,7 +4958,6 @@ export default function DashboardPage() {
                 style={{ marginBottom: 0, minHeight: 36, padding: "6px 12px" }}
                 onClick={() => {
                   setSelectedClient(null);
-                  setSelectedForm(null);
                   setSelectedCheckin(null);
                   setSelectedWorkout(null);
                   setSelectedMeeting(null);
@@ -4188,15 +5012,6 @@ export default function DashboardPage() {
                     Open progress report
                   </a>
                 ) : null}
-              </div>
-            ) : null}
-            {selectedForm ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                <div><strong>Request:</strong> {[selectedForm.first_name, selectedForm.last_name].filter(Boolean).join(" ") || selectedForm.email || "Request"}</div>
-                <div><strong>Email:</strong> {selectedForm.email || "-"}</div>
-                <div><strong>City:</strong> {selectedForm.city || "-"}</div>
-                <div><strong>Status:</strong> {selectedForm.status || "pending"}</div>
-                <div><strong>Created:</strong> {selectedForm.created_at ? new Date(selectedForm.created_at).toLocaleString() : "-"}</div>
               </div>
             ) : null}
             {selectedCheckin ? (
@@ -4256,7 +5071,7 @@ export default function DashboardPage() {
                 <div><strong>Meeting date:</strong> {selectedMeeting.meeting_date || "-"}</div>
                 <div><strong>Slot:</strong> {selectedMeeting.time_slot || "-"}</div>
                 <div><strong>Status:</strong> {selectedMeeting.status || "-"}</div>
-                <div><strong>Message:</strong> {selectedMeeting.message || "-"}</div>
+                <div><strong>Notes:</strong> {selectedMeeting.notes || selectedMeeting.message || "-"}</div>
                 {role === "user" || role === "admin" || role === "superadmin" ? (
                   <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
                     <button
@@ -4286,7 +5101,8 @@ export default function DashboardPage() {
             ) : null}
           </div>
         ) : null}
-      </section>
+        </section>
+      </div>
 
       {isStaff ? (
         <div className="bb-ai-assist-panel" style={{ display: staffAiOpen ? "flex" : "none" }} role="dialog" aria-label="AI Assist">
@@ -4321,12 +5137,12 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p style={{ margin: 0 }}>
-                  Platform-wide context: trainer applications, website coaching requests, audits, daily/Sunday check-ins, and roster health. Ask for a morning briefing, bottleneck analysis, or &ldquo;which coaches have suspended accounts?&rdquo;
+                  Platform-wide context: trainer applications, website coaching requests, Part-2 forms, daily/Sunday check-ins, and roster health. Ask for a morning briefing, bottleneck analysis, or &ldquo;which coaches have suspended accounts?&rdquo;
                 </p>
               </>
             ) : (
               <p style={{ margin: 0 }}>
-                Ask about pending audits, check-ins, or clients. Try &ldquo;Quick summary&rdquo; or &ldquo;How many pending audit forms?&rdquo;
+                Ask about Part-2 submissions, check-ins, sign-ups, or clients. Try &ldquo;Quick summary&rdquo; or &ldquo;How many pending sign-ups?&rdquo;
               </p>
             )}
           </div>
