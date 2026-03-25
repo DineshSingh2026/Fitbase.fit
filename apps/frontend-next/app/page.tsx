@@ -109,6 +109,7 @@ export default function FitBaseLandingPage() {
         .reveal.is-visible{opacity:1;transform:translateY(0)}
         @keyframes floatCard1{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
         @keyframes floatCard2{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+        @keyframes fbHeroFloat1Mob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-7px)}}
         @keyframes badgePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
         .fb-hero{position:relative;overflow:hidden;background:#faf7f2}
         .fb-hero-dotgrid{position:absolute;top:0;right:0;width:320px;height:320px;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(201,168,76,0.18) 1.2px,transparent 1.2px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%);mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%)}
@@ -130,15 +131,35 @@ export default function FitBaseLandingPage() {
           .mobile-login{display:inline-flex !important}
           .pad{padding-left:max(20px, env(safe-area-inset-left, 0px)) !important;padding-right:max(20px, env(safe-area-inset-right, 0px)) !important}
           .hero{padding-top:max(120px, calc(96px + env(safe-area-inset-top, 0px))) !important}
-          .fb-hero-dotgrid,.fb-hero-glow,.fb-hero-screens-wrap{display:none !important}
-          .fb-hero-row{flex-direction:column;align-items:stretch;gap:0}
-          .fb-hero-left{max-width:100%}
-          .fb-hero-h1{font-size:clamp(48px,10vw,68px)!important}
-          .fb-hero-stats{flex-direction:column;gap:0}
-          .fb-hero-stat{border-right:none!important;padding-right:0!important;margin-right:0!important;padding-top:14px;padding-bottom:14px;border-bottom:1px solid #e8e0d0;width:100%}
-          .fb-hero-stat:first-child{padding-top:0}
-          .fb-hero-stat:last-child{border-bottom:none;padding-bottom:0}
-          .fb-hero{padding-top:max(120px,calc(32px + env(safe-area-inset-top,0px)))!important;padding-left:20px!important;padding-right:20px!important;padding-bottom:56px!important}
+          .fb-hero{display:flex!important;flex-direction:column!important;align-items:center!important;overflow:visible!important;padding:100px max(20px, env(safe-area-inset-left, 0px)) 60px max(20px, env(safe-area-inset-right, 0px))!important;padding-top:max(100px,calc(72px + env(safe-area-inset-top, 0px)))!important}
+          .fb-hero-dotgrid{width:200px!important;height:200px!important}
+          .fb-hero-glow{background:radial-gradient(ellipse at center,rgba(201,168,76,0.045) 0%,transparent 70%)!important}
+          .fb-hero-row{flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:0!important;width:100%!important;max-width:100%!important}
+          .fb-hero-left{width:100%!important;max-width:100%!important;text-align:left!important;margin-bottom:48px!important;align-self:stretch!important}
+          .fb-hero-h1{font-size:clamp(44px,10vw,64px)!important}
+          .fb-hero-sub{max-width:100%!important}
+          .fb-hero-btns{gap:10px!important}
+          .fb-hero-stats{flex-direction:row!important;flex-wrap:wrap!important;gap:24px!important;align-items:flex-start!important}
+          .fb-hero-stat{border-right:none!important;border-bottom:none!important;padding:0!important;margin:0!important;padding-right:0!important;margin-right:0!important;width:auto!important}
+          .fb-hero-screens-wrap{display:block!important;width:100%!important;max-width:360px!important;height:320px!important;margin:0 auto 32px!important;position:relative!important;flex-shrink:0!important;overflow:visible!important}
+          .fb-hero-back{width:160px!important;right:0!important;left:auto!important;top:24px!important;transform:rotate(-6deg)!important}
+          .fb-hero-main{width:220px!important;left:50%!important;right:auto!important;top:0!important;transform:translateX(-50%)!important}
+          .fb-hero-main .fb-hero-dash-title{font-size:13px!important;margin-bottom:10px!important}
+          .fb-hero-main .fb-hero-welcome-name{font-size:10px!important}
+          .fb-hero-main .fb-hero-welcome-date{font-size:8px!important}
+          .fb-hero-main .fb-hero-metric-lbl{font-size:7px!important}
+          .fb-hero-main .fb-hero-m-val{font-size:18px!important;line-height:1.1!important}
+          .fb-hero-main .fb-hero-qa-head{font-size:7px!important;margin-bottom:6px!important}
+          .fb-hero-main .fb-hero-qa-ic{font-size:12px!important;margin-bottom:2px!important}
+          .fb-hero-main .fb-hero-qa-txt{font-size:7px!important}
+          .fb-hero-main .fb-hero-main-body{padding:12px!important}
+          .fb-hero-main .fb-hero-metric-card{padding:7px 9px!important}
+          .fb-hero-float1{bottom:-10px!important;left:50%!important;right:auto!important;padding:8px 12px!important;white-space:nowrap!important;animation:fbHeroFloat1Mob 4s ease-in-out infinite!important}
+          .fb-hero-float1 .fb-hero-f1-title{font-size:10px!important}
+          .fb-hero-float1 .fb-hero-f1-sub{font-size:9px!important}
+          .fb-hero-float2{top:8px!important;right:10px!important;left:auto!important}
+          .fb-hero-float2 .fb-hero-f2-val{font-size:20px!important}
+          .fb-hero-float2 .fb-hero-f2-lbl{font-size:8px!important}
         }
         @keyframes fbCpFloat1{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
         @keyframes fbCpFloat2{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
@@ -315,6 +336,7 @@ export default function FitBaseLandingPage() {
                 <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "var(--accent)" }}>Modern Trainers</span>
               </h1>
               <p
+                className="fb-hero-sub"
                 style={{
                   margin: "18px 0 24px",
                   color: "var(--text-secondary)",
@@ -326,7 +348,7 @@ export default function FitBaseLandingPage() {
               >
                 Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
               </p>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div className="fb-hero-btns" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <a
                   href="#apply"
                   style={{
@@ -373,6 +395,7 @@ export default function FitBaseLandingPage() {
           <div className="fb-hero-screens-wrap" aria-hidden>
             {/* Back screen — Forms */}
             <div
+              className="fb-hero-back"
               style={{
                 position: "absolute",
                 right: -10,
@@ -441,6 +464,7 @@ export default function FitBaseLandingPage() {
             </div>
             {/* Main screen — Dashboard */}
             <div
+              className="fb-hero-main"
               style={{
                 position: "absolute",
                 left: 0,
@@ -468,8 +492,9 @@ export default function FitBaseLandingPage() {
                   <span key={c} style={{ width: 8, height: 8, borderRadius: "50%", background: c }} />
                 ))}
               </div>
-              <div style={{ padding: 16 }}>
+              <div className="fb-hero-main-body" style={{ padding: 16 }}>
                 <div
+                  className="fb-hero-dash-title"
                   style={{
                     fontFamily: "'Bebas Neue',sans-serif",
                     fontSize: 16,
@@ -481,10 +506,15 @@ export default function FitBaseLandingPage() {
                   Dashboard
                 </div>
                 <div style={{ background: "#f8f4ee", borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
-                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>
+                  <div
+                    className="fb-hero-welcome-name"
+                    style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}
+                  >
                     Welcome back Idris Kurnooli
                   </div>
-                  <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#9a8a70" }}>Monday · 23 March 2026</div>
+                  <div className="fb-hero-welcome-date" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#9a8a70" }}>
+                    Monday · 23 March 2026
+                  </div>
                 </div>
                 <div
                   style={{
@@ -500,8 +530,9 @@ export default function FitBaseLandingPage() {
                     ["PENDING", "3", "#0f1f3d"],
                     ["MESSAGES", "7", "#0f1f3d"]
                   ].map(([label, val, col]) => (
-                    <div key={label} style={{ background: "#f8f4ee", borderRadius: 8, padding: "9px 11px" }}>
+                    <div key={label} className="fb-hero-metric-card" style={{ background: "#f8f4ee", borderRadius: 8, padding: "9px 11px" }}>
                       <div
+                        className="fb-hero-metric-lbl"
                         style={{
                           fontFamily: "'DM Sans',sans-serif",
                           fontSize: 8,
@@ -513,11 +544,14 @@ export default function FitBaseLandingPage() {
                       >
                         {label}
                       </div>
-                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: col, lineHeight: 1.1 }}>{val}</div>
+                      <div className="fb-hero-m-val" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: col, lineHeight: 1.1 }}>
+                        {val}
+                      </div>
                     </div>
                   ))}
                 </div>
                 <div
+                  className="fb-hero-qa-head"
                   style={{
                     fontFamily: "'DM Sans',sans-serif",
                     fontSize: 8,
@@ -537,8 +571,12 @@ export default function FitBaseLandingPage() {
                     ["📊", "Analytics"]
                   ].map(([ic, lab]) => (
                     <div key={lab} style={{ background: "#f8f4ee", borderRadius: 8, padding: "9px 6px", textAlign: "center" }}>
-                      <div style={{ fontSize: 14, marginBottom: 3 }}>{ic}</div>
-                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 8, color: "#6a7a8a" }}>{lab}</div>
+                      <div className="fb-hero-qa-ic" style={{ fontSize: 14, marginBottom: 3 }}>
+                        {ic}
+                      </div>
+                      <div className="fb-hero-qa-txt" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 8, color: "#6a7a8a" }}>
+                        {lab}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -578,8 +616,12 @@ export default function FitBaseLandingPage() {
                 📈
               </div>
               <div>
-                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>Client check-in logged</div>
-                <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#4caf7d", marginTop: 1 }}>✓ 94% weekly compliance</div>
+                <div className="fb-hero-f1-title" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 11, fontWeight: 600, color: "#0f1f3d" }}>
+                  Client check-in logged
+                </div>
+                <div className="fb-hero-f1-sub" style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 9, color: "#4caf7d", marginTop: 1 }}>
+                  ✓ 94% weekly compliance
+                </div>
               </div>
             </div>
             <div
@@ -599,8 +641,11 @@ export default function FitBaseLandingPage() {
                 alignItems: "flex-start"
               }}
             >
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: "#c9a84c", lineHeight: 1 }}>3×</div>
+              <div className="fb-hero-f2-val" style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: "#c9a84c", lineHeight: 1 }}>
+                3×
+              </div>
               <div
+                className="fb-hero-f2-lbl"
                 style={{
                   fontFamily: "'DM Sans',sans-serif",
                   fontSize: 9,
