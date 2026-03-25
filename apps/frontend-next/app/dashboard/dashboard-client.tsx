@@ -554,6 +554,16 @@ export default function DashboardPage() {
     daily: { from: "", to: "", search: "" },
     workouts: { from: "", to: "", search: "" }
   });
+  const [clientProgressFilterDraft, setClientProgressFilterDraft] = useState<AdminListFilter>({
+    from: "",
+    to: "",
+    search: ""
+  });
+  const [clientProgressFilterApplied, setClientProgressFilterApplied] = useState<AdminListFilter>({
+    from: "",
+    to: "",
+    search: ""
+  });
   const [inboxItems, setInboxItems] = useState<InboxNotification[]>([]);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -641,6 +651,35 @@ export default function DashboardPage() {
   const activeClients = useMemo(() => {
     return clients.filter((u: any) => String(u.approval_status || "").toLowerCase() !== "pending");
   }, [clients]);
+
+  const clientProgressFiltered = useMemo(() => {
+    let list = activeClients;
+    const f = clientProgressFilterApplied;
+    const q = f.search.trim().toLowerCase();
+    if (q) {
+      list = list.filter((u: any) => {
+        const name = [u.first_name, u.last_name].filter(Boolean).join(" ").toLowerCase();
+        const em = String(u.email || "").toLowerCase();
+        const phone = String(u.phone || "").toLowerCase();
+        const city = String(u.city || "").toLowerCase();
+        return name.includes(q) || em.includes(q) || phone.includes(q) || city.includes(q);
+      });
+    }
+    const fromD = f.from.trim();
+    const toD = f.to.trim();
+    if (fromD || toD) {
+      const fromMs = fromD ? new Date(fromD + "T00:00:00").getTime() : -Infinity;
+      const toMs = toD ? new Date(toD + "T23:59:59.999").getTime() : Infinity;
+      list = list.filter((u: any) => {
+        const raw = u.created_at;
+        if (!raw) return false;
+        const t = new Date(String(raw)).getTime();
+        if (!Number.isFinite(t)) return false;
+        return t >= fromMs && t <= toMs;
+      });
+    }
+    return list;
+  }, [activeClients, clientProgressFilterApplied]);
 
   const superadminRosterRows = useMemo(() => {
     const rows: { client: any; trainer: any }[] = [];
@@ -4881,6 +4920,14 @@ export default function DashboardPage() {
                       onClick: () => {
                         goTab("profile");
                       }
+                    },
+                    {
+                      label: "Meetings",
+                      icon: String.fromCodePoint(0x1f4f9),
+                      onClick: () => {
+                        goTab("messages");
+                        setTrainerMessagesView("meetings");
+                      }
                     }
                   ].map((x) => (
                     <button key={x.label} type="button" className="bb-admin-qa-btn" onClick={x.onClick}>
@@ -5544,11 +5591,48 @@ export default function DashboardPage() {
                 {trainerClientsView === "progress" ? (
                   <div className="bb-panel">
                     <span className="bb-inline-label">
-                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{activeClients.length}</strong>
+                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{clientProgressFiltered.length}</strong>
                     </span>
-                    {activeClients.length ? (
+                    <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
+                      Date range (by account created date), search (name, email, phone, city), Apply / Clear, and CSV export.
+                    </p>
+                    <AdminListFiltersBar
+                      filter={clientProgressFilterDraft}
+                      onPatch={(p) => setClientProgressFilterDraft((prev) => ({ ...prev, ...p }))}
+                      onApply={() => setClientProgressFilterApplied({ ...clientProgressFilterDraft })}
+                      onClear={() => {
+                        const z = { from: "", to: "", search: "" };
+                        setClientProgressFilterDraft(z);
+                        setClientProgressFilterApplied(z);
+                      }}
+                      onCsv={() =>
+                        downloadCsvFile(
+                          `client-progress-${new Date().toISOString().slice(0, 10)}.csv`,
+                          [
+                            { key: "first_name", header: "First name" },
+                            { key: "last_name", header: "Last name" },
+                            { key: "email", header: "Email" },
+                            { key: "phone", header: "Phone" },
+                            { key: "city", header: "City" },
+                            { key: "created_at", header: "Account created" }
+                          ],
+                          clientProgressFiltered.map((u: any) => ({
+                            first_name: u.first_name ?? "",
+                            last_name: u.last_name ?? "",
+                            email: u.email ?? "",
+                            phone: u.phone ?? "",
+                            city: u.city ?? "",
+                            created_at: u.created_at
+                              ? new Date(String(u.created_at)).toLocaleString()
+                              : ""
+                          })) as Record<string, unknown>[]
+                        )
+                      }
+                      searchPlaceholder="Name, email, phone, or city"
+                    />
+                    {clientProgressFiltered.length ? (
                       <ul className="bb-list-rows">
-                        {activeClients.slice(0, 40).map((u: any) => (
+                        {clientProgressFiltered.slice(0, 250).map((u: any) => (
                           <li key={u.id} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                               <div>
@@ -5561,7 +5645,9 @@ export default function DashboardPage() {
                         ))}
                       </ul>
                     ) : (
-                      <p className="bb-live-empty">No clients to show.</p>
+                      <p className="bb-live-empty">
+                        {activeClients.length === 0 ? "No clients to show." : "No clients match these filters."}
+                      </p>
                     )}
                   </div>
                 ) : null}

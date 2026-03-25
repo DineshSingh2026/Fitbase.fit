@@ -2924,7 +2924,7 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
 app.get('/api/admin/users', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    let sql = "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended, trainer_id FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.fitbase.fit') AND (LOWER(first_name) NOT LIKE '%e2e%')";
+    let sql = "SELECT id, first_name, last_name, email, phone, country, city, timezone, COALESCE(suspended, false) as suspended, trainer_id, approval_status, created_at FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.fitbase.fit') AND (LOWER(first_name) NOT LIKE '%e2e%')";
     const params = [];
     if (isAdminUser(req.user)) {
       sql += " AND trainer_id = ?";
