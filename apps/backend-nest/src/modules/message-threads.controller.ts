@@ -76,8 +76,13 @@ export class MessageThreadsController {
       }
       const rows = await this.safeRows(
         `SELECT t.id, t.user_id, t.subject, t.created_at, t.updated_at,
-                (SELECT body FROM thread_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) AS last_message
+                (SELECT body FROM thread_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+                coach.first_name AS trainer_first_name,
+                coach.last_name AS trainer_last_name,
+                coach.email AS trainer_email
          FROM message_threads t
+         LEFT JOIN users client ON client.id::text = t.user_id::text
+         LEFT JOIN users coach ON coach.id::text = client.trainer_id::text
          WHERE t.user_id = $1
          ORDER BY t.updated_at DESC
          LIMIT 1`,
@@ -119,7 +124,16 @@ export class MessageThreadsController {
         await this.pool.query("UPDATE message_threads SET updated_at = now() WHERE id = $1", [thread.id]);
       }
       const fresh = await this.safeRows(
-        "SELECT id, user_id, subject, created_at, updated_at FROM message_threads WHERE id = $1 LIMIT 1",
+        `SELECT t.id, t.user_id, t.subject, t.created_at, t.updated_at,
+                (SELECT body FROM thread_messages WHERE thread_id = t.id ORDER BY created_at DESC LIMIT 1) AS last_message,
+                coach.first_name AS trainer_first_name,
+                coach.last_name AS trainer_last_name,
+                coach.email AS trainer_email
+         FROM message_threads t
+         LEFT JOIN users client ON client.id::text = t.user_id::text
+         LEFT JOIN users coach ON coach.id::text = client.trainer_id::text
+         WHERE t.id = $1
+         LIMIT 1`,
         [thread.id]
       );
       return res.status(existing[0] ? 200 : 201).json(fresh[0] || thread);

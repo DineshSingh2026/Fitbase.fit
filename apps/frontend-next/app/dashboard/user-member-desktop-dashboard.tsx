@@ -11,6 +11,8 @@ type Props = {
   meetings: any[];
   userToday: any | null;
   userStreak: any | null;
+  /** Assigned trainer display name for chat copy (from API). */
+  trainerChatName?: string;
   onNavigate: (target: UserDesktopNavTarget) => void;
 };
 
@@ -21,7 +23,15 @@ function fmtShortDate(s: string | undefined | null) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export function UserMemberDesktopDashboard({ displayName, workouts, meetings, userToday, userStreak, onNavigate }: Props) {
+export function UserMemberDesktopDashboard({
+  displayName,
+  workouts,
+  meetings,
+  userToday,
+  userStreak,
+  trainerChatName = "",
+  onNavigate
+}: Props) {
   const chartWRef = useRef<Chart | null>(null);
   const chartGRef = useRef<Chart | null>(null);
   const c1 = useRef<HTMLCanvasElement>(null);
@@ -277,7 +287,13 @@ export function UserMemberDesktopDashboard({ displayName, workouts, meetings, us
           <div className="udesk-stat-card">
             <div className="sl">Last Message</div>
             <div className="sn">{data.lastMsgShort}</div>
-            <div className="ss">{data.lastMsg ? "Most recent Lifestyle Manager reply" : "No messages yet"}</div>
+            <div className="ss">
+              {data.lastMsg
+                ? trainerChatName.trim()
+                  ? `Most recent reply from ${trainerChatName.trim()}`
+                  : "Most recent reply from your coach"
+                : "No messages yet"}
+            </div>
           </div>
         </div>
 

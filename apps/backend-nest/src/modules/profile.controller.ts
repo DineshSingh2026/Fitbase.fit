@@ -44,8 +44,10 @@ export class ProfileController {
 
   private canAccess(req: { user?: { id?: string; role?: string } }, targetId: string): boolean {
     const role = String(req.user?.role || "");
-    if (role === "admin" || role === "superadmin") return true;
-    return String(req.user?.id || "") === String(targetId);
+    const uid = String(req.user?.id || "");
+    if (!uid) return false;
+    if (role === "superadmin") return true;
+    return uid === String(targetId);
   }
 
   @Get("profile/:id")
@@ -79,6 +81,7 @@ export class ProfileController {
     if (!this.pool) throw new ServiceUnavailableException("Database unavailable");
     if (!this.canAccess(req, id)) throw new ForbiddenException();
 
+    const role = String(req.user?.role || "");
     const {
       first_name,
       last_name,
@@ -92,13 +95,15 @@ export class ProfileController {
     const updates: string[] = [];
     const values: unknown[] = [];
 
-    if (first_name !== undefined) {
-      updates.push(`first_name = $${values.length + 1}`);
-      values.push(String(first_name));
-    }
-    if (last_name !== undefined) {
-      updates.push(`last_name = $${values.length + 1}`);
-      values.push(String(last_name));
+    if (role !== "admin") {
+      if (first_name !== undefined) {
+        updates.push(`first_name = $${values.length + 1}`);
+        values.push(String(first_name));
+      }
+      if (last_name !== undefined) {
+        updates.push(`last_name = $${values.length + 1}`);
+        values.push(String(last_name));
+      }
     }
     if (phone !== undefined) {
       updates.push(`phone = $${values.length + 1}`);

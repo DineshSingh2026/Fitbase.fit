@@ -317,6 +317,7 @@ export class SuperadminController {
            t.last_name,
            t.phone,
            t.referral_code,
+           t.created_at AS trainer_onboarded_at,
            COALESCE(t.suspended, FALSE) AS suspended,
            COALESCE(
              json_agg(
@@ -327,7 +328,24 @@ export class SuperadminController {
                  'last_name', u.last_name,
                  'phone', u.phone,
                  'approval_status', u.approval_status,
-                 'suspended', COALESCE(u.suspended, FALSE)
+                 'suspended', COALESCE(u.suspended, FALSE),
+                 'created_at', u.created_at,
+                 'last_workout_at', (SELECT MAX(wl.created_at) FROM workout_logs wl WHERE wl.user_id = u.id::text),
+                 'workouts_7d', COALESCE(
+                   (SELECT COUNT(*)::int FROM workout_logs wl WHERE wl.user_id = u.id::text AND wl.created_at >= (now() - interval '7 days')),
+                   0
+                 ),
+                 'daily_checkins_7d', COALESCE(
+                   (
+                     SELECT COUNT(DISTINCT dc.checkin_date)::int
+                     FROM daily_checkins dc
+                     WHERE dc.user_id = u.id::text AND dc.checkin_date >= (CURRENT_DATE - 7)
+                   ),
+                   0
+                 ),
+                 'last_checkin_date', (
+                   SELECT MAX(dc.checkin_date)::text FROM daily_checkins dc WHERE dc.user_id = u.id::text
+                 )
                )
                ORDER BY u.created_at DESC
              ) FILTER (WHERE u.id IS NOT NULL),
@@ -336,7 +354,7 @@ export class SuperadminController {
          FROM users t
          LEFT JOIN users u ON u.trainer_id = t.id AND u.role = 'user'
          WHERE t.role = 'admin'
-         GROUP BY t.id
+         GROUP BY t.id, t.email, t.first_name, t.last_name, t.phone, t.referral_code, t.created_at, t.suspended
          ORDER BY t.created_at DESC`
       );
       return res.json(rows.rows);

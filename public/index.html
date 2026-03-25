@@ -459,18 +459,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .wa-float-user:focus{outline:2px solid var(--gold);outline-offset:3px}
 .user-panel.open .wa-float-user{display:flex}
 
-/* Elite card */
-.elite-card-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:linear-gradient(135deg,rgba(200,164,78,0.2),rgba(200,164,78,0.08));border:1.5px solid rgba(200,164,78,0.5);border-radius:8px;color:var(--gold);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;cursor:pointer;transition:all .3s}
-.elite-card-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.2)}
-.elite-card-btn svg{flex-shrink:0}
-#eliteCardModal.modal-overlay{align-items:flex-start;padding-top:max(16px,5vh);padding-bottom:max(24px,5vh);overflow-y:auto}
-#eliteCardModal .modal{max-height:none;margin:auto 0}
-#eliteCardModal .modal h2{margin-bottom:14px}
-.elite-card-modal-body{text-align:center;padding:0}
-.elite-card-wrap{display:inline-block;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);max-width:100%}
-.elite-card-wrap canvas{display:block;max-width:100%;height:auto;max-height:min(320px,45vh)}
-.elite-card-actions{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap}
-
 @keyframes fsu{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 .rv{opacity:0;transform:translateY(32px);transition:opacity .8s ease,transform .8s ease}
 .rv.v{opacity:1;transform:translateY(0)}
@@ -2979,7 +2967,7 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome back</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
-        <p class="user-welcome-tag">Tribe Elite Member</p>
+        <p class="user-welcome-tag">Fitbase Elite Member</p>
 
         <!-- Today dashboard -->
         <div class="today-dash" id="todayDash">
@@ -3083,13 +3071,6 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
       <div style="display:flex;gap:14px;justify-content:center;margin-top:24px">
         <button class="nav-login" style="padding:12px 32px" onclick="loadProfile()">Discard</button>
         <button class="form-submit" style="width:auto;padding:12px 40px" onclick="saveProfile()">Update</button>
-      </div>
-      <div class="form-divider"></div>
-      <div style="text-align:center;margin-top:20px">
-        <button type="button" class="elite-card-btn" onclick="openEliteCardModal()">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 4v16"/></svg>
-          View my Elite Card
-        </button>
       </div>
       </div>
     </div>
@@ -4525,23 +4506,6 @@ body.admin-dashboard-open .admin-cp-user-list .admin-cp-user-item:hover{
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminWorkoutViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Workout log</h2>
     <div class="view-detail-body" id="adminWorkoutViewBody"></div>
-  </div>
-</div>
-
-<!-- USER: Elite card modal -->
-<div class="modal-overlay view-detail-modal" id="eliteCardModal" onclick="if(event.target===this)closeModal('eliteCardModal')">
-  <div class="modal elite-card-modal" style="max-width:480px">
-    <button type="button" class="modal-close" onclick="closeModal('eliteCardModal')" aria-label="Close">×</button>
-    <h2 class="sunday-checkin-title">Your Elite Member Card</h2>
-    <div class="elite-card-modal-body">
-      <div class="elite-card-wrap" id="eliteCardWrap">
-        <canvas id="eliteCardCanvas"></canvas>
-      </div>
-      <div class="elite-card-actions">
-        <button type="button" class="form-submit" onclick="saveEliteCard()">Save card</button>
-        <button type="button" class="nav-login" style="padding:12px 24px" onclick="shareEliteCard()">Share</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -6389,7 +6353,6 @@ function logoutAdmin() {
   closeModal('part2ViewModal');
   closeModal('signupViewModal');
   closeModal('sundayCheckinViewModal');
-  closeModal('eliteCardModal');
   closePopup('popupSuccess');
   closePopup('forgotModal');
   closePopup('resetModal');
@@ -8215,105 +8178,6 @@ async function loadProfile() {
   if (window.currentUser) {
     window.currentUser.profile_picture = data.profile_picture || '';
     persistCurrentSession();
-  }
-}
-
-var _eliteCardBlob = null;
-
-function getEliteCardFullName() {
-  var f = document.getElementById('profFirstName');
-  var l = document.getElementById('profLastName');
-  var fn = (f && f.value) ? f.value.trim() : '';
-  var ln = (l && l.value) ? l.value.trim() : '';
-  if (fn || ln) return (fn + ' ' + ln).trim();
-  if (window.currentUser) {
-    return ((window.currentUser.first_name || '') + ' ' + (window.currentUser.last_name || '')).trim();
-  }
-  return '';
-}
-
-async function openEliteCardModal() {
-  var fullName = getEliteCardFullName();
-  if (!fullName) {
-    showPopup('Name required', 'Please add your first and last name in your profile, then try again.', '', 'OK', null, 'error');
-    return;
-  }
-  var canvas = document.getElementById('eliteCardCanvas');
-  var wrap = document.getElementById('eliteCardWrap');
-  if (!canvas || !wrap) return;
-  wrap.style.opacity = '0.5';
-  try {
-    var img = new Image();
-    await new Promise(function(resolve, reject) {
-      img.onload = resolve;
-      img.onerror = function() { reject(new Error('Could not load card image')); };
-      img.src = '/Elite%20card%204.png';
-    });
-    var w = img.naturalWidth;
-    var h = img.naturalHeight;
-    if (!w || !h) { w = 900; h = 540; }
-    canvas.width = w;
-    canvas.height = h;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    var nameX = w * 0.065;
-    var nameY = h * 0.52;
-    var maxW = w * 0.7;
-    var fontSize = Math.round(w * 0.055);
-    if (fontSize < 28) fontSize = 28;
-    ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
-    if (ctx.measureText(fullName).width > maxW) {
-      fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
-      ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
-    }
-    ctx.fillStyle = '#0a0a0a';
-    ctx.shadowColor = 'rgba(0,0,0,0.15)';
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 1;
-    ctx.fillText(fullName, nameX, nameY);
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    _eliteCardBlob = null;
-    canvas.toBlob(function(blob) { _eliteCardBlob = blob; }, 'image/png', 1);
-    openModal('eliteCardModal');
-  } catch (e) {
-    showPopup('Error', (e && e.message) || 'Could not generate Elite card.', '', 'OK', null, 'error');
-  }
-  wrap.style.opacity = '1';
-}
-
-async function saveEliteCard() {
-  var blob = _eliteCardBlob;
-  if (!blob) {
-    var canvas = document.getElementById('eliteCardCanvas');
-    if (canvas && canvas.width) blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png', 1); });
-  }
-  if (!blob) return;
-  var a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'fitbase-elite-card.png';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-async function shareEliteCard() {
-  var blob = _eliteCardBlob;
-  if (!blob) {
-    var canvas = document.getElementById('eliteCardCanvas');
-    if (canvas && canvas.width) blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png', 1); });
-  }
-  if (!blob) return;
-  var file = new File([blob], 'fitbase-elite-card.png', { type: 'image/png' });
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ title: 'My FitBase Elite Card', files: [file] });
-      closeModal('eliteCardModal');
-    } catch (e) { if (e.name !== 'AbortError') saveEliteCard(); }
-  } else {
-    saveEliteCard();
   }
 }
 
