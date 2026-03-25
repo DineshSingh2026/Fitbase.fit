@@ -138,7 +138,7 @@ export default function JoinTrainerPage() {
                 border: "none",
                 borderRadius: 8,
                 background: "var(--accent)",
-                color: "#0f0f0f",
+                color: "var(--on-accent)",
                 padding: "12px 18px",
                 fontWeight: 700,
                 cursor: "pointer"
@@ -239,7 +239,7 @@ export default function JoinTrainerPage() {
                   border: "none",
                   borderRadius: 8,
                   background: "var(--accent)",
-                  color: "#0f0f0f",
+                  color: "var(--on-accent)",
                   padding: 14,
                   fontWeight: 700,
                   cursor: busy ? "wait" : "pointer"

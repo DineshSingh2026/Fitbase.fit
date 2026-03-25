@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "dev:local": "concurrently -k -n api,web -c blue,magenta \"npm run dev\" \"npm --prefix apps/frontend-next run dev:stack\"",
-    "dev:nest-next": "concurrently -k -n nest,web -c cyan,magenta \"npm run dev:backend-nest\" \"npm --prefix apps/frontend-next run dev -- -p 3102\"",
+    "dev:nest-next": "concurrently -k -n nest,web -c cyan,magenta \"npm run dev:backend-nest\" \"npm --prefix apps/frontend-next run dev:stack\"",
     "dev:frontend-next": "npm --prefix apps/frontend-next run dev",
     "dev:backend-nest": "npm --prefix apps/backend-nest run dev",
     "setup:google": "node scripts/setup-google-signin.js",

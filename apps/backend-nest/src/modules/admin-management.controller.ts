@@ -339,19 +339,23 @@ export class AdminManagementController {
       const params: any[] = [];
       if (from) {
         params.push(from);
-        where.push(`date(created_at) >= date($${params.length})`);
+        where.push(`date(s.created_at) >= date($${params.length})`);
       }
       if (to) {
         params.push(to);
-        where.push(`date(created_at) <= date($${params.length})`);
+        where.push(`date(s.created_at) <= date($${params.length})`);
       }
       let sql =
-        "SELECT id, user_id, full_name, reply_email, total_weight_loss, achievements, created_at FROM sunday_checkins";
+        "SELECT s.id, s.user_id, s.full_name, s.reply_email, s.total_weight_loss, s.achievements, s.created_at, " +
+        "u.trainer_id, tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
+        "FROM sunday_checkins s " +
+        "LEFT JOIN users u ON u.id::text = s.user_id::text " +
+        "LEFT JOIN users tr ON tr.id::text = u.trainer_id::text AND tr.role = 'admin'";
       if (where.length) sql += " WHERE " + where.join(" AND ");
-      sql += " ORDER BY created_at DESC LIMIT 300";
+      sql += " ORDER BY s.created_at DESC LIMIT 300";
       let rows = await this.safeRows(sql, params);
       if (isAdmin(req.user)) {
-        rows = rows.filter((r: any) => !r.user_id || String(r.user_id) === String(req.user.id));
+        rows = rows.filter((r: any) => String(r.trainer_id || "") === String(req.user.id));
       }
       return res.json(rows);
     } catch {
@@ -376,7 +380,12 @@ export class AdminManagementController {
         where.push(`date(dc.checkin_date) <= date($${params.length})`);
       }
       let sql =
-        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id::text = dc.user_id::text";
+        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, " +
+        "u.first_name, u.last_name, u.email, u.trainer_id, " +
+        "tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
+        "FROM daily_checkins dc " +
+        "LEFT JOIN users u ON u.id::text = dc.user_id::text " +
+        "LEFT JOIN users tr ON tr.id::text = u.trainer_id::text AND tr.role = 'admin'";
       if (where.length) sql += " WHERE " + where.join(" AND ");
       sql += " ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 400";
       let rows = await this.safeRows(sql, params);
@@ -394,7 +403,13 @@ export class AdminManagementController {
     if (!this.pool) return res.status(500).json({ error: "Not found" });
     try {
       const rows = await this.safeRows(
-        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email, u.trainer_id FROM daily_checkins dc LEFT JOIN users u ON u.id::text = dc.user_id::text WHERE dc.id = $1 LIMIT 1",
+        "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, " +
+          "u.first_name, u.last_name, u.email, u.trainer_id, " +
+          "tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
+          "FROM daily_checkins dc " +
+          "LEFT JOIN users u ON u.id::text = dc.user_id::text " +
+          "LEFT JOIN users tr ON tr.id::text = u.trainer_id::text AND tr.role = 'admin' " +
+          "WHERE dc.id = $1 LIMIT 1",
         [id]
       );
       const row = rows[0];

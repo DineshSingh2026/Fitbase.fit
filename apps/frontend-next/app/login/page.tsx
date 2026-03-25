@@ -59,7 +59,7 @@ export default function LoginPage() {
           border: "1px solid var(--border)",
           borderRadius: 14,
           padding: 20,
-          boxShadow: "0 20px 45px rgba(0,0,0,.45)"
+          boxShadow: "var(--shadow-lg)"
         }}
       >
         <div style={{ textAlign: "center", marginBottom: 14 }}>
@@ -110,7 +110,7 @@ export default function LoginPage() {
             border: "none",
             borderRadius: 8,
             background: "var(--accent)",
-            color: "#0f0f0f",
+            color: "var(--on-accent)",
             fontWeight: 700,
             padding: "11px 12px",
             cursor: "pointer"

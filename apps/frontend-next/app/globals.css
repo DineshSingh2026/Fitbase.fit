@@ -1,23 +1,52 @@
 :root {
-  --bg-primary: #0f0f0f;
-  --bg-surface: #181818;
-  --bg-card: #222222;
-  --bg-card-hover: #2a2a2a;
-  --border: #2e2e2e;
-  --border-hover: #3e3e3e;
+  /* Chalk & Midnight — luxury light */
+  --bg-primary: #ffffff;
+  --bg-surface: #f5f5f5;
+  --bg-card: #fafafa;
+  --bg-card-hover: #f0f0f0;
+  --border: #e8e8e8;
+  --border-hover: #d8d8d8;
 
-  --accent: #2dd4bf;
-  --accent-light: #5eead4;
-  --accent-dim: rgba(45, 212, 191, 0.12);
-  --accent-border: rgba(45, 212, 191, 0.3);
+  --accent: #c9a84c;
+  --accent-light: #e0c070;
+  --accent-dark: #b8922a;
+  --accent-dim: rgba(201, 168, 76, 0.1);
+  --accent-border: rgba(201, 168, 76, 0.3);
 
-  --text-primary: #f2ece4;
-  --text-secondary: #888888;
-  --text-muted: #555555;
+  --text-primary: #0f1f3d;
+  --text-secondary: #6a7a8a;
+  --text-muted: #9aaabb;
+  --text-on-accent: #ffffff;
+  --text-on-dark: #ffffff;
 
-  --green: #52c87a;
-  --green-dim: rgba(82, 200, 122, 0.1);
-  --red: #e05252;
+  --dark: #0f1f3d;
+  --dark-surface: #162240;
+  --dark-border: #253552;
+
+  --green: #2d8a5e;
+  --green-dim: rgba(45, 138, 94, 0.1);
+  --green-border: rgba(45, 138, 94, 0.25);
+  --red: #c0392b;
+  --red-dim: rgba(192, 57, 43, 0.1);
+
+  --shadow-sm: 0 1px 4px rgba(15, 31, 61, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 31, 61, 0.08);
+  --shadow-lg: 0 12px 40px rgba(15, 31, 61, 0.1);
+
+  /* RGB channels for color-mix / rgb() in components */
+  --accent-rgb: 201 168 76;
+  --shadow-rgb: 15 31 61;
+  --red-rgb: 192 57 43;
+
+  /* Legacy names used across TSX inline styles */
+  --accent-bright: var(--accent-light);
+  --on-accent: var(--text-on-accent);
+  --olive: var(--text-primary);
+  --olive-light: var(--text-secondary);
+  --olive-rgb: 15 31 61;
+  --olive-dim: rgba(15, 31, 61, 0.08);
+
+  --header-bg: color-mix(in srgb, var(--bg-primary) 93%, transparent);
 }
 
 html {
@@ -34,15 +63,19 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
-  background: var(--bg-primary);
   color: var(--text-primary);
+  background:
+    radial-gradient(980px 640px at -8% -8%, rgb(var(--accent-rgb) / 0.08), transparent 55%),
+    radial-gradient(760px 520px at 108% 4%, rgb(var(--shadow-rgb) / 0.04), transparent 50%),
+    radial-gradient(640px 420px at 48% 108%, rgb(var(--accent-rgb) / 0.06), transparent 52%),
+    radial-gradient(500px 380px at 85% 55%, rgb(var(--accent-rgb) / 0.04), transparent 45%),
+    linear-gradient(168deg, var(--bg-surface) 0%, var(--bg-primary) 45%, var(--bg-card) 100%);
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* iOS Safari / Chrome on Android: avoid auto-zoom on focus (keep ≥16px on small screens). */
 @media (max-width: 640px) {
   input:not([type="checkbox"]):not([type="radio"]),
   textarea,
@@ -51,7 +84,6 @@ body {
   }
 }
 
-/* Touch devices: calmer tap feedback; does not block scrolling. */
 @media (hover: none) and (pointer: coarse) {
   a,
   button {

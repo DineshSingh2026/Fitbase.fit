@@ -3,28 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#f5f2eb" />
+  <meta name="theme-color" content="#c9a84c" />
   <title>FitBase Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
     :root{
-      --bg:#f5f2eb;
-      --panel:#fbf8f1;
-      --text:#20170f;
-      --muted:rgba(32,23,15,0.62);
-      --line:rgba(126,95,55,0.28);
-      --accent:#c9a24a;
-      --accent-2:#9b7648;
-      --brand:#7e5f37;
+      --bg:#ffffff;
+      --panel:#fafafa;
+      --text:#0f1f3d;
+      --muted:#9aaabb;
+      --line:#e8e8e8;
+      --accent:#c9a84c;
+      --accent-light:#e0c070;
+      --accent-dark:#b8922a;
+      --accent-border:rgba(201,168,76,0.3);
+      --on-accent:#ffffff;
+      --red:#c0392b;
+      --shadow-lg:0 12px 40px rgba(15,31,61,0.1);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     body{
       min-height:100vh;
       display:grid;
       place-items:center;
-      background:linear-gradient(180deg,#faf8f2 0%,#f3efe6 100%);
+      background:linear-gradient(180deg,#ffffff 0%,#f5f5f5 100%);
       color:var(--text);
       font-family:'DM Sans',system-ui,sans-serif;
       padding:24px;
@@ -55,7 +59,7 @@
       font-size:13px;
       font-weight:700;
       margin-bottom:8px;
-      color:#32434b;
+      color:var(--text);
     }
     .group{margin-bottom:14px}
     input{
@@ -64,13 +68,13 @@
       border-radius:10px;
       padding:12px 14px;
       font-size:15px;
-      background:#fff;
-      color:#1f2a30;
+      background:var(--panel);
+      color:var(--text);
       outline:none;
     }
     input:focus{
       border-color:var(--accent);
-      box-shadow:0 0 0 3px rgba(92,124,137,0.14);
+      box-shadow:0 0 0 3px rgba(201,168,76,0.15);
     }
     button{
       width:100%;
@@ -81,15 +85,15 @@
       font-weight:700;
       letter-spacing:.04em;
       text-transform:uppercase;
-      color:#1f2a30;
-      background:linear-gradient(135deg,var(--accent-2),var(--accent) 55%,#b98d33);
+      color:var(--on-accent);
+      background:linear-gradient(135deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));
       cursor:pointer;
     }
     button:disabled{opacity:.6;cursor:not-allowed}
     .msg{
       margin-top:12px;
       font-size:13px;
-      color:#b3261e;
+      color:var(--red);
       min-height:18px;
     }
     .back{
@@ -97,7 +101,7 @@
       text-align:center;
       font-size:13px;
     }
-    .back a{color:var(--brand);text-decoration:none}
+    .back a{color:var(--accent-dark);text-decoration:none}
   </style>
 </head>
 <body>

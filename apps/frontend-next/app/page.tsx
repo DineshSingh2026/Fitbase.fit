@@ -87,7 +87,7 @@ export default function FitBaseLandingPage() {
   return (
     <main style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box}
         html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth;background:var(--bg-primary);color:var(--text-primary)}
         #apply input,#apply textarea{color:var(--text-primary)}
@@ -128,8 +128,9 @@ export default function FitBaseLandingPage() {
           alignItems: "center",
           justifyContent: "space-between",
           borderBottom: `1px solid ${scrolled ? "var(--border)" : "transparent"}`,
-          background: scrolled ? "color-mix(in srgb, var(--bg-surface) 92%, transparent)" : "color-mix(in srgb, var(--bg-primary) 78%, transparent)",
+          background: "color-mix(in srgb, var(--bg-primary) 93%, transparent)",
           backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           transition: "all .25s ease"
         }}
       >
@@ -146,7 +147,16 @@ export default function FitBaseLandingPage() {
           <button
             type="button"
             onClick={() => applyRef.current?.scrollIntoView({ behavior: "smooth" })}
-            style={{ border: "none", background: "var(--accent)", color: "#0f0f0f", padding: "10px 16px", borderRadius: 8, fontWeight: 600, cursor: "pointer" }}
+            style={{
+              border: "none",
+              background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+              color: "var(--on-accent)",
+              padding: "10px 18px",
+              borderRadius: 10,
+              fontWeight: 600,
+              cursor: "pointer",
+              boxShadow: "0 6px 22px rgb(var(--accent-rgb) / 0.38)"
+            }}
           >
             Get Access
           </button>
@@ -157,12 +167,13 @@ export default function FitBaseLandingPage() {
           style={{
             display: "none",
             textDecoration: "none",
-            background: "var(--accent)",
-            color: "#0f0f0f",
+            background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+            color: "var(--on-accent)",
             padding: "9px 14px",
-            borderRadius: 8,
+            borderRadius: 10,
             fontWeight: 600,
-            fontSize: 13
+            fontSize: 13,
+            boxShadow: "0 4px 18px rgb(var(--accent-rgb) / 0.34)"
           }}
         >
           Login
@@ -181,12 +192,47 @@ export default function FitBaseLandingPage() {
               THE PLATFORM THAT POWERS{" "}
               <span style={{ fontFamily: "'Instrument Serif',serif", fontStyle: "italic", color: "var(--accent)" }}>Modern Trainers</span>
             </h1>
-            <p style={{ margin: "18px 0 24px", color: "var(--text-secondary)", maxWidth: 560, lineHeight: 1.7 }}>
+            <p
+              style={{
+                margin: "18px 0 24px",
+                color: "var(--text-secondary)",
+                maxWidth: 560,
+                lineHeight: 1.75,
+                fontFamily: "'Cormorant Garamond',serif",
+                fontSize: "clamp(18px,2.2vw,22px)"
+              }}
+            >
               Professional coaching infrastructure for onboarding, tracking, communication, and measurable results
             </p>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <a href="#apply" style={{ textDecoration: "none", background: "var(--accent)", color: "#0f0f0f", padding: "12px 16px", borderRadius: 8, fontWeight: 600 }}>Request Trainer Access</a>
-              <a href="#dashboard" style={{ textDecoration: "none", background: "transparent", color: "var(--text-primary)", padding: "12px 16px", borderRadius: 8, border: "1px solid var(--border)", fontWeight: 600 }}>See the Dashboard</a>
+              <a
+                href="#apply"
+                style={{
+                  textDecoration: "none",
+                  background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+                  color: "var(--on-accent)",
+                  padding: "12px 18px",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  boxShadow: "0 8px 28px rgb(var(--accent-rgb) / 0.4)"
+                }}
+              >
+                Request Trainer Access
+              </a>
+              <a
+                href="#dashboard"
+                style={{
+                  textDecoration: "none",
+                  background: "transparent",
+                  color: "var(--olive)",
+                  padding: "12px 16px",
+                  borderRadius: 10,
+                  border: "1px solid var(--accent-border)",
+                  fontWeight: 600
+                }}
+              >
+                See the Dashboard
+              </a>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 24 }}>
               {["500+ Active Trainers", "12K+ Clients Managed", "4.9/5 Platform Rating"].map((t) => (
@@ -195,7 +241,7 @@ export default function FitBaseLandingPage() {
             </div>
           </div>
           <div className="reveal" data-reveal style={{ position: "relative" }}>
-            <div style={{ border: "1px solid var(--border)", borderRadius: 18, background: "var(--bg-card)", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,.35)" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: 18, background: "var(--bg-card)", overflow: "hidden", boxShadow: "var(--shadow-lg)" }}>
               <div style={{ display: "flex", gap: 8, padding: "12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
@@ -203,10 +249,10 @@ export default function FitBaseLandingPage() {
               </div>
               <img src="/img/dashboard.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
             </div>
-            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "var(--shadow-md)" }}>
               Client check-in logged ✓<br />94% weekly compliance
             </div>
-            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "0 8px 24px rgba(0,0,0,.4)" }}>
+            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow-md)" }}>
               3× Revenue growth
             </div>
           </div>
@@ -331,7 +377,7 @@ export default function FitBaseLandingPage() {
             border: "1px solid var(--accent-border)",
             borderRadius: 24,
             padding: "24px",
-            boxShadow: "0 26px 70px rgba(0,0,0,.35)"
+            boxShadow: "var(--shadow-lg)"
           }}
         >
           <div
@@ -342,7 +388,7 @@ export default function FitBaseLandingPage() {
               border: "1px solid var(--border)",
               borderRadius: 18,
               overflow: "hidden",
-              boxShadow: "0 18px 42px rgba(0,0,0,.4)"
+              boxShadow: "var(--shadow-lg)"
             }}
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
@@ -443,7 +489,7 @@ export default function FitBaseLandingPage() {
                 border: "1px solid var(--accent)",
                 borderRadius: 14,
                 padding: 20,
-                boxShadow: "0 18px 42px rgba(0,0,0,.35)"
+                boxShadow: "var(--shadow-md)"
               }}
             >
               <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 18, textAlign: "center" }}>Client results on FitBase</div>
@@ -465,7 +511,7 @@ export default function FitBaseLandingPage() {
                   textAlign: "center",
                   textDecoration: "none",
                   background: "var(--accent)",
-                  color: "#0f0f0f",
+                  color: "var(--on-accent)",
                   padding: "12px 16px",
                   borderRadius: 8,
                   fontWeight: 600,
@@ -535,7 +581,7 @@ export default function FitBaseLandingPage() {
             border: "1px solid var(--accent)",
             background:
               "radial-gradient(circle at top right, var(--accent-dim), transparent 45%), linear-gradient(180deg, var(--bg-card), var(--bg-surface))",
-            boxShadow: "0 24px 64px rgba(0,0,0,.4)"
+            boxShadow: "var(--shadow-lg)"
           }}
         >
           <div className="reveal" data-reveal>
@@ -678,14 +724,57 @@ export default function FitBaseLandingPage() {
           <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Invest in your growth</h2>
           <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 16 }}>
             {plans.map((p) => (
-              <div key={p.name} className="reveal" data-reveal style={{ background: "var(--bg-card)", border: `1px solid ${p.featured ? "var(--accent)" : "var(--border)"}`, borderRadius: 12, padding: 16 }}>
-                {p.badge ? <div style={{ display: "inline-block", background: "var(--accent)", color: "#0f0f0f", borderRadius: 999, fontSize: 11, padding: "4px 8px", marginBottom: 8 }}>{p.badge}</div> : null}
-                <h3 style={{ margin: "0 0 4px" }}>{p.name}</h3>
+              <div
+                key={p.name}
+                className="reveal"
+                data-reveal
+                style={{
+                  background: p.featured ? "linear-gradient(168deg, var(--bg-surface), var(--bg-card))" : "var(--bg-card)",
+                  border: p.featured ? "2px solid var(--accent)" : "1px solid var(--border)",
+                  borderRadius: p.featured ? 16 : 12,
+                  padding: p.featured ? 20 : 16,
+                  boxShadow: p.featured ? "var(--shadow-lg)" : undefined,
+                  transform: p.featured ? "translateY(-4px)" : undefined
+                }}
+              >
+                {p.badge ? (
+                  <div
+                    style={{
+                      display: "inline-block",
+                      background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+                      color: "var(--on-accent)",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      padding: "5px 10px",
+                      marginBottom: 8,
+                      fontWeight: 600,
+                      letterSpacing: 0.3
+                    }}
+                  >
+                    {p.badge}
+                  </div>
+                ) : null}
+                <h3 style={{ margin: "0 0 4px", color: p.featured ? "var(--olive)" : undefined }}>{p.name}</h3>
                 <div style={{ color: "var(--accent)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 40 }}>{p.price}</div>
                 <ul style={{ paddingLeft: 18, margin: "10px 0", color: "var(--text-secondary)" }}>
                   {p.features.map((f) => <li key={f} style={{ marginBottom: 6 }}>{f}</li>)}
                 </ul>
-                <a href="#apply" style={{ display: "block", textAlign: "center", textDecoration: "none", background: "var(--accent)", color: "#0f0f0f", padding: "10px 12px", borderRadius: 8, fontWeight: 600 }}>Get Access</a>
+                <a
+                  href="#apply"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    textDecoration: "none",
+                    background: "linear-gradient(145deg, var(--accent-bright) 0%, var(--accent-light) 42%, var(--accent) 100%)",
+                    color: "var(--on-accent)",
+                    padding: "11px 12px",
+                    borderRadius: 10,
+                    fontWeight: 600,
+                    boxShadow: "0 6px 22px rgb(var(--accent-rgb) / 0.38)"
+                  }}
+                >
+                  Get Access
+                </a>
               </div>
             ))}
           </div>
@@ -817,7 +906,7 @@ export default function FitBaseLandingPage() {
                   border: "none",
                   borderRadius: 8,
                   background: "var(--accent)",
-                  color: "#0f0f0f",
+                  color: "var(--on-accent)",
                   padding: 14,
                   fontWeight: 600,
                   cursor: clientSubmitting ? "wait" : "pointer"
@@ -926,7 +1015,7 @@ export default function FitBaseLandingPage() {
                   border: "none",
                   borderRadius: 8,
                   background: "var(--accent)",
-                  color: "#0f0f0f",
+                  color: "var(--on-accent)",
                   padding: 12,
                   fontWeight: 600,
                   cursor: applySubmitting ? "wait" : "pointer",

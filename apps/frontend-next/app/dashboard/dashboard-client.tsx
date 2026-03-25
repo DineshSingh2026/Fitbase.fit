@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [isMeetingUpdating, setIsMeetingUpdating] = useState(false);
   const [todayLabel, setTodayLabel] = useState("");
-  const [trainerClientsView, setTrainerClientsView] = useState<"hub" | "pending" | "tribe" | "progress">("hub");
+  const [trainerClientsView, setTrainerClientsView] = useState<"hub" | "roster" | "pending" | "tribe" | "progress">("hub");
   const [trainerFormsView, setTrainerFormsView] = useState<"hub" | "audits" | "part2" | "sunday" | "daily">("hub");
   const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads">("hub");
   const [sundayCheckinsApi, setSundayCheckinsApi] = useState<any[]>([]);
@@ -117,6 +117,8 @@ export default function DashboardPage() {
     lastLoadedLabel: string | null;
     issues: string[];
   }>({ loading: false, lastLoadedLabel: null, issues: [] });
+  const [superadminSyncOpen, setSuperadminSyncOpen] = useState(false);
+  const [superadminRosterQ, setSuperadminRosterQ] = useState("");
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
   const [staffOverlay, setStaffOverlay] = useState<StaffOverlay>(null);
@@ -201,6 +203,53 @@ export default function DashboardPage() {
     return clients.filter((u: any) => String(u.approval_status || "").toLowerCase() !== "pending");
   }, [clients]);
 
+  const superadminRosterRows = useMemo(() => {
+    const rows: { client: any; trainer: any }[] = [];
+    for (const row of trainerClientOverview) {
+      let clientsNested: any[] = [];
+      try {
+        const raw = row.clients;
+        if (Array.isArray(raw)) clientsNested = raw;
+        else if (typeof raw === "string") clientsNested = JSON.parse(raw || "[]");
+      } catch {
+        clientsNested = [];
+      }
+      const trainer = {
+        id: row.id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        email: row.email,
+        suspended: row.suspended,
+        referral_code: row.referral_code
+      };
+      const tname = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.email || "Coach";
+      for (const c of clientsNested) {
+        if (!c || c.id == null) continue;
+        rows.push({
+          trainer,
+          client: {
+            ...c,
+            _coachName: tname,
+            _coachEmail: row.email || ""
+          }
+        });
+      }
+    }
+    return rows;
+  }, [trainerClientOverview]);
+
+  const superadminRosterFiltered = useMemo(() => {
+    const q = superadminRosterQ.trim().toLowerCase();
+    if (!q) return superadminRosterRows;
+    return superadminRosterRows.filter(({ client: c, trainer: t }) => {
+      const cn = [c.first_name, c.last_name].filter(Boolean).join(" ").toLowerCase();
+      const ce = String(c.email || "").toLowerCase();
+      const tn = [t.first_name, t.last_name].filter(Boolean).join(" ").toLowerCase();
+      const te = String(t.email || "").toLowerCase();
+      return cn.includes(q) || ce.includes(q) || tn.includes(q) || te.includes(q);
+    });
+  }, [superadminRosterRows, superadminRosterQ]);
+
   const microAlreadyFilled = useMemo(() => {
     const c = userToday?.checkin;
     return !!(c && (c.steps != null || c.water_ml != null || c.protein_g != null || c.sleep_hours != null));
@@ -261,8 +310,11 @@ export default function DashboardPage() {
 
     setSuperadminSync((s) => ({ ...s, loading: true }));
 
+    let snapshotDailyFallback: any[] = [];
+    let snapshotPendingFallback: any[] = [];
+
     try {
-      const [dash, reqsRes, clientRes, overviewRes, trainersRes, threadRes, sunRes, p2Res, recentActRes] =
+      const [dash, reqsRes, clientRes, overviewRes, trainersRes, threadRes, sunRes, p2Res, recentActRes, dailyRes, pendingRes] =
         await Promise.all([
           fetchFitbaseJson(apiBase, "/api/superadmin/dashboard", headers, "Platform overview"),
           fetchFitbaseJson(apiBase, "/api/superadmin/trainer-requests?status=all", headers, "Trainer applications"),
@@ -272,7 +324,9 @@ export default function DashboardPage() {
           fetchFitbaseJson(apiBase, "/api/threads", headers, "Message threads"),
           fetchFitbaseJson(apiBase, "/api/admin/sunday-checkins", headers, "Sunday check-ins"),
           fetchFitbaseJson(apiBase, "/api/admin/part2-submissions", headers, "Part 2 submissions"),
-          fetchFitbaseJson(apiBase, "/api/admin/recent-activity", headers, "Recent activity")
+          fetchFitbaseJson(apiBase, "/api/admin/recent-activity", headers, "Recent activity"),
+          fetchFitbaseJson(apiBase, "/api/admin/daily-checkins", headers, "Daily check-ins"),
+          fetchFitbaseJson(apiBase, "/api/admin/pending-signups", headers, "Pending sign-ups")
         ]);
 
       const listFrom = (res: FetchFitbaseJsonResult, label: string): any[] => {
@@ -314,11 +368,11 @@ export default function DashboardPage() {
         }));
         setActivity(fromRecent.length ? fromRecent.slice(0, 24) : fromMeetings.slice(0, 12));
         setClients(Array.isArray(s?.users) ? s.users : []);
-        setDailyCheckins(Array.isArray(s?.daily_checkins) ? s.daily_checkins : []);
+        snapshotDailyFallback = Array.isArray(s?.daily_checkins) ? s.daily_checkins : [];
         setWorkouts(Array.isArray(s?.workouts) ? s.workouts : []);
-        setPendingUsers(
-          Array.isArray(s?.users) ? s.users.filter((u: any) => String(u.approval_status || "").toLowerCase() === "pending") : []
-        );
+        snapshotPendingFallback = Array.isArray(s?.users)
+          ? s.users.filter((u: any) => String(u.approval_status || "").toLowerCase() === "pending")
+          : [];
       } else {
         issues.push("Platform overview: empty response");
         setSuperadminSnapshot(null);
@@ -344,6 +398,17 @@ export default function DashboardPage() {
       setThreads(listFrom(threadRes, "Message threads"));
       setSundayCheckinsApi(listFrom(sunRes, "Sunday check-ins"));
       setPart2Submissions(listFrom(p2Res, "Part 2 submissions"));
+
+      if (dailyRes.ok && Array.isArray(dailyRes.data)) {
+        setDailyCheckins(dailyRes.data);
+      } else {
+        setDailyCheckins(snapshotDailyFallback);
+      }
+      if (pendingRes.ok && Array.isArray(pendingRes.data)) {
+        setPendingUsers(pendingRes.data);
+      } else {
+        setPendingUsers(snapshotPendingFallback);
+      }
 
       const nowLabel = new Date().toLocaleTimeString(undefined, {
         hour: "2-digit",
@@ -682,7 +747,7 @@ export default function DashboardPage() {
     setSelectedClient(user || null);
     setClientProgress(null);
     setClientProgressLink("");
-    if (!session?.token || !user?.id || role === "user" || role === "superadmin") return;
+    if (!session?.token || !user?.id || role === "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     try {
       const [progress, linkData] = await Promise.all([
@@ -690,7 +755,8 @@ export default function DashboardPage() {
         fetch(`${apiBase}/api/admin/progress-report-link/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null)
       ]);
       setClientProgress(progress || null);
-      setClientProgressLink(String(linkData?.link || ""));
+      const url = linkData && typeof linkData === "object" ? (linkData as { url?: string; link?: string }).url || (linkData as { link?: string }).link : "";
+      setClientProgressLink(String(url || ""));
     } catch {
       setClientProgress(null);
       setClientProgressLink("");
@@ -699,7 +765,7 @@ export default function DashboardPage() {
 
   async function openCheckinDetail(checkin: any) {
     setSelectedCheckin(checkin || null);
-    if (!session?.token || !checkin?.id || role === "user" || role === "superadmin") return;
+    if (!session?.token || !checkin?.id || role === "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     const data = await fetch(`${apiBase}/api/admin/daily-checkins/${encodeURIComponent(String(checkin.id))}`, { headers }).then((r) => r.json()).catch(() => null);
     if (data && !data.error) setSelectedCheckin(data);
@@ -707,7 +773,7 @@ export default function DashboardPage() {
 
   async function openWorkoutDetail(workout: any) {
     setSelectedWorkout(workout || null);
-    if (!session?.token || !workout?.id || role === "user" || role === "superadmin") return;
+    if (!session?.token || !workout?.id || role === "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     const data = await fetch(`${apiBase}/api/admin/workouts/${encodeURIComponent(String(workout.id))}`, { headers }).then((r) => r.json()).catch(() => null);
     if (data && !data.error) setSelectedWorkout(data);
@@ -1134,7 +1200,7 @@ export default function DashboardPage() {
   const s = {
     bg: "var(--bg-primary)",
     panel: "var(--bg-surface)",
-    line: "var(--accent-border)",
+    line: "var(--border)",
     text: "var(--text-primary)",
     muted: "var(--text-secondary)",
     gold: "var(--accent)"
@@ -1156,9 +1222,17 @@ export default function DashboardPage() {
     setStaffAiOpen(false);
     setStaffOverlay(null);
     if (id !== activeTab) {
-      setTrainerClientsView("hub");
-      setTrainerFormsView("hub");
       setTrainerMessagesView("hub");
+      if (id === "clients") {
+        setTrainerClientsView(role === "superadmin" ? "roster" : "hub");
+        setTrainerFormsView("hub");
+      } else if (id === "forms") {
+        setTrainerClientsView("hub");
+        setTrainerFormsView(role === "superadmin" ? "daily" : "hub");
+      } else {
+        setTrainerClientsView("hub");
+        setTrainerFormsView("hub");
+      }
     }
     if (role === "user" && id === "forms") setUserCheckinView("hub");
     setActiveTab(id);
@@ -1215,31 +1289,31 @@ export default function DashboardPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=Rajdhani:wght@600;700&display=swap');
         .bb-dash-header{padding-top:max(12px, env(safe-area-inset-top, 0px));padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-bottom:12px}
         .bb-dash-main{padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-top:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
-        .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid rgba(45,212,191,.35);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer}
-        .bb-header-badge{position:absolute;top:-7px;right:-6px;background:var(--red);color:#0f0f0f;border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.4}
-        .bb-admin-welcome-card{background:var(--bg-surface);border-radius:12px;border-left:3px solid var(--accent);padding:16px 18px;margin-bottom:16px;box-sizing:border-box;width:100%}
-        .bb-admin-welcome-title{font-size:clamp(17px,4.2vw,24px);font-weight:700;color:var(--accent);margin:0 0 8px;line-height:1.32;letter-spacing:.02em}
+        .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer}
+        .bb-header-badge{position:absolute;top:-7px;right:-6px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.4}
+        .bb-admin-welcome-card{background:linear-gradient(135deg,var(--bg-surface),color-mix(in srgb,var(--accent) 9%,var(--bg-card)));border-radius:14px;border-left:5px solid var(--accent);padding:18px 20px;margin-bottom:16px;box-sizing:border-box;width:100%;box-shadow:var(--shadow-md),inset 0 0 0 1px var(--accent-border)}
+        .bb-admin-welcome-title{font-size:clamp(17px,4.2vw,24px);font-weight:700;color:var(--olive);margin:0 0 8px;line-height:1.32;letter-spacing:.04em}
         .bb-admin-welcome-role{font-weight:800;letter-spacing:.03em}
         .bb-admin-welcome-date{font-size:13px;color:var(--text-secondary);margin:0;line-height:1.45}
         .bb-dash-root{font-family:'Outfit',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
-        .bb-dashboard-title{margin:0 0 10px;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,42px);letter-spacing:1px;line-height:1;color:var(--accent)}
+        .bb-dashboard-title{margin:0 0 12px;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,44px);letter-spacing:3px;line-height:1;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 32%,var(--accent-light) 62%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bb-admin-section-page-title{font-size:28px;letter-spacing:2px;margin-bottom:6px}
         .bb-admin-hub-cards{display:grid;grid-template-columns:1fr;gap:10px}
         @media(min-width:480px){.bb-admin-hub-cards{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}}
-        .bb-admin-hub-card{display:flex;flex-direction:column;align-items:flex-start;padding:18px 20px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid rgba(45,212,191,0.2);border-radius:10px;cursor:pointer;transition:all .25s;color:inherit;text-align:left;width:100%;box-sizing:border-box;font:inherit}
-        .bb-admin-hub-card:hover{background:rgba(45,212,191,0.08);border-color:rgba(45,212,191,0.4);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.25)}
+        .bb-admin-hub-card{display:flex;flex-direction:column;align-items:flex-start;padding:18px 20px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .25s;color:inherit;text-align:left;width:100%;box-sizing:border-box;font:inherit}
+        .bb-admin-hub-card:hover{background:var(--accent-dim);border-color:var(--accent-border);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
         .bb-admin-hub-card-icon{font-size:22px;margin-bottom:12px;opacity:.9;line-height:1}
         .bb-admin-hub-card-title{font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:var(--text-primary);margin-bottom:8px;line-height:1.3}
         .bb-admin-hub-card-desc{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text-secondary);line-height:1.5;letter-spacing:.2px}
         .bb-admin-summary-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
-        .bb-admin-summary-card{background:var(--bg-surface);border-radius:12px;padding:14px;min-height:72px;display:flex;flex-direction:column;justify-content:center;border:none;cursor:pointer;text-align:left}
+        .bb-admin-summary-card{background:linear-gradient(172deg,var(--bg-surface),color-mix(in srgb,var(--accent) 6%,var(--bg-card)));border-radius:14px;padding:16px;min-height:76px;display:flex;flex-direction:column;justify-content:center;border:1px solid var(--border);cursor:pointer;text-align:left;box-shadow:var(--shadow-sm),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 65%,transparent);transition:transform .2s ease,box-shadow .2s ease}.bb-admin-summary-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 75%,transparent)}
         .bb-admin-summary-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin-bottom:8px}
         .bb-admin-summary-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;font-weight:700}
-        .bb-admin-summary-num.num-gold{color:var(--accent)}.bb-admin-summary-num.num-green{color:var(--green)}.bb-admin-summary-num.num-orange{color:var(--accent-light)}.bb-admin-summary-num.num-pink{color:var(--accent-light)}
+        .bb-admin-summary-num.num-gold{color:var(--accent)}.bb-admin-summary-num.num-green{color:var(--green)}.bb-admin-summary-num.num-orange{color:var(--accent-dark)}.bb-admin-summary-num.num-pink{color:var(--text-primary)}
         .bb-admin-qa-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-admin-qa-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-        .bb-admin-qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;background:var(--bg-surface);border-radius:12px;color:var(--text-primary);font-size:12px;font-weight:600;cursor:pointer;border:none}
-        .bb-admin-qa-btn:hover{background:var(--bg-card-hover)}
+        .bb-admin-qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;background:var(--bg-card);border-radius:12px;color:var(--text-primary);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border)}
+        .bb-admin-qa-btn:hover{background:var(--bg-card-hover);border-color:var(--accent-border)}
         .bb-admin-qa-ic{display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:22px;line-height:1;opacity:.9}
         .bb-user-welcome{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:22px 16px;text-align:center}
         .bb-user-welcome-label{display:block;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:7px}
@@ -1261,14 +1335,14 @@ export default function DashboardPage() {
         .bb-admin-la-list-wrap{display:flex;flex-direction:column;gap:0}
         .bb-admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-section-page{padding:4px 0 8px}
-        .bb-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(45,212,191,.4);color:var(--accent);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;min-height:40px}
-        .bb-back-btn:hover{background:rgba(45,212,191,.1);border-color:var(--accent)}
-        .bb-section-h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);margin:0 0 16px;text-transform:uppercase}
-        .bb-panel{background:var(--bg-surface);border:1px solid rgba(45,212,191,.2);border-radius:12px;padding:14px;box-sizing:border-box}
+        .bb-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--border);color:var(--text-primary);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;min-height:40px}
+        .bb-back-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+        .bb-section-h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;background:linear-gradient(95deg,var(--olive) 0%,var(--accent) 38%,var(--accent-light) 78%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 16px;text-transform:uppercase}
+        .bb-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;box-sizing:border-box;box-shadow:var(--shadow-sm)}
         .bb-list-rows{list-style:none;margin:0;padding:0;display:grid;gap:10px}
-        .bb-list-row{display:block;padding:14px 16px;background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.2);border-radius:8px;cursor:pointer;box-sizing:border-box}
+        .bb-list-row{display:block;padding:14px 16px;background:rgb(var(--accent-rgb) / 0.06);border:1px solid var(--border);border-radius:8px;cursor:pointer;box-sizing:border-box}
         .bb-list-row-static{cursor:default}
-        .bb-list-row-active{border-color:rgba(45,212,191,.55)!important;background:rgba(45,212,191,.1)!important}
+        .bb-list-row-active{border-color:rgb(var(--accent-rgb) / 0.55)!important;background:rgb(var(--accent-rgb) / 0.1)!important}
         .bb-msg-scroll{max-height:260px;overflow-y:auto;display:grid;gap:8px}
         .bb-msg-meta{margin-top:4px;color:var(--text-secondary);font-size:10px}
         .bb-list-row-title{font-size:14px;font-weight:700;color:var(--text-primary);margin:0 0 4px}
@@ -1277,28 +1351,32 @@ export default function DashboardPage() {
         .bb-input,.bb-textarea{background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);border-radius:8px;padding:10px 12px;font:inherit;width:100%;box-sizing:border-box}.bb-input:focus,.bb-textarea:focus{border-color:var(--accent);outline:none}
         @media(max-width:520px){.bb-input,.bb-textarea{font-size:16px;line-height:1.35}}
         .bb-input::placeholder,.bb-textarea::placeholder{color:var(--text-muted)}
-        .bb-btn-primary{border:none;background:var(--accent);color:#0f0f0f;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;font:inherit}
-        .bb-btn-primary:disabled{opacity:.55;cursor:not-allowed}
-        .bb-msg-bubble-user{align-self:end;max-width:88%;background:rgba(45,212,191,.14);border:1px solid rgba(45,212,191,.25);border-radius:10px;padding:10px}
-        .bb-msg-bubble-client{align-self:start;max-width:88%;background:var(--bg-surface);border:1px solid rgba(45,212,191,.2);border-radius:10px;padding:10px}
-        .bb-detail-panel{border-color:rgba(45,212,191,.45)!important}
-        .bb-nav-dock{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--bg-primary);border-top:1px solid rgba(45,212,191,0.15);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))}
+        .bb-btn-primary{border:1px solid var(--accent-border);background:linear-gradient(145deg,var(--accent-light) 0%,var(--accent) 52%,var(--accent-dark) 100%);color:var(--on-accent);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;font:inherit;box-shadow:0 6px 22px rgb(var(--accent-rgb) / 0.35),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 35%,transparent)}
+        .bb-btn-primary:hover{background:linear-gradient(145deg,var(--accent) 0%,var(--accent-dark) 100%);filter:none;box-shadow:0 8px 28px rgb(var(--accent-rgb) / 0.42),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 40%,transparent)}
+        .bb-btn-primary:disabled{opacity:.55;cursor:not-allowed;filter:none;box-shadow:none;border-color:var(--border)}
+        .bb-msg-bubble-user{align-self:end;max-width:88%;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:10px;padding:10px}
+        .bb-msg-bubble-client{align-self:start;max-width:88%;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:10px}
+        .bb-detail-panel{border-color:var(--accent-border)!important;border-width:1.5px!important}
+        .bb-nav-dock{position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb,var(--bg-primary) 93%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -10px 40px rgb(var(--shadow-rgb) / 0.08);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))}
         .bb-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));min-height:70px;align-items:center}
         .bb-nav-btn{border:none;background:transparent;color:var(--text-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.3px;position:relative;cursor:pointer;font:inherit;padding:9px 2px;font-family:'Outfit',sans-serif}
         .bb-nav-btn:hover,.bb-nav-btn:focus{color:var(--text-primary);outline:none}
         .bb-nav-btn-active{color:var(--accent)}
-        .bb-nav-tabbar{position:absolute;top:0;left:50%;transform:translateX(-50%);height:3px;width:24px;background:var(--accent);border-radius:2px}
-        .bb-staff-overlay{position:fixed;left:0;right:0;top:calc(58px + env(safe-area-inset-top,0px));bottom:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));z-index:25;background:var(--bg-primary);overflow-y:auto;padding:14px 14px 20px;-webkit-overflow-scrolling:touch}
-        .bb-ai-assist-panel{position:fixed;bottom:calc(70px + max(12px,env(safe-area-inset-bottom,0px)));right:max(16px,env(safe-area-inset-right,0px));left:auto;width:min(380px,calc(100vw - 32px));max-height:min(420px,65dvh);background:var(--bg-surface);border:1px solid rgba(45,212,191,0.2);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:40;display:flex;flex-direction:column;overflow:hidden}
+        .bb-nav-tabbar{position:absolute;top:0;left:50%;transform:translateX(-50%);height:3px;width:32px;background:linear-gradient(90deg,var(--accent),var(--accent-light),var(--accent-bright));border-radius:2px;box-shadow:0 0 12px rgb(var(--accent-rgb) / 0.45)}
+        .bb-staff-overlay{position:fixed;left:0;right:0;top:calc(58px + env(safe-area-inset-top,0px));bottom:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));z-index:25;background:var(--dark);color:var(--text-on-dark);overflow-y:auto;padding:14px 14px 20px;-webkit-overflow-scrolling:touch}
+        .bb-staff-overlay .bb-section-h2{color:var(--text-on-dark)}
+        .bb-staff-overlay .bb-back-btn{border-color:rgba(255,255,255,0.45);color:rgba(255,255,255,0.9)}
+        .bb-staff-overlay .bb-back-btn:hover{background:rgba(201,168,76,0.15);border-color:var(--accent);color:var(--accent)}
+        .bb-ai-assist-panel{position:fixed;bottom:calc(70px + max(12px,env(safe-area-inset-bottom,0px)));right:max(16px,env(safe-area-inset-right,0px));left:auto;width:min(380px,calc(100vw - 32px));max-height:min(420px,65dvh);background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);z-index:40;display:flex;flex-direction:column;overflow:hidden}
         .bb-ai-assist-panel[hidden]{display:none!important}
-        .bb-ai-assist-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(45,212,191,0.2);background:var(--accent-dim)}
+        .bb-ai-assist-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--accent-dim)}
         .bb-ai-assist-head strong{font-size:15px;color:var(--text-primary)}
         .bb-ai-assist-x{width:36px;height:36px;border:none;background:transparent;color:var(--text-secondary);font-size:22px;cursor:pointer;border-radius:8px}
         .bb-ai-assist-body{padding:12px 16px;font-size:12px;color:var(--text-secondary);line-height:1.5;border-bottom:1px solid var(--border)}
-        .bb-ai-assist-foot{padding:10px 12px;border-top:1px solid rgba(45,212,191,0.15);display:flex;flex-direction:column;gap:8px}
+        .bb-ai-assist-foot{padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
         .bb-user-welcome-card{background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start;text-align:left;cursor:pointer;width:100%;box-sizing:border-box}
-        .bb-user-welcome-card:hover{border-color:rgba(45,212,191,.28)}
-        .bb-user-wc-icon{width:44px;height:44px;border-radius:12px;background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.15);display:grid;place-items:center;font-size:20px;flex-shrink:0}
+        .bb-user-welcome-card:hover{border-color:var(--accent-border)}
+        .bb-user-wc-icon{width:44px;height:44px;border-radius:12px;background:var(--accent-dim);border:1px solid var(--border);display:grid;place-items:center;font-size:20px;flex-shrink:0}
         .bb-user-wc-copy{min-width:0}
         .bb-user-wc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--text-primary);text-transform:uppercase;margin:0 0 4px}
         .bb-user-wc-desc{font-size:12px;color:var(--text-secondary);margin:0;line-height:1.45}
@@ -1311,8 +1389,8 @@ export default function DashboardPage() {
         #usec-home .user-welcome .user-welcome-tag{font-size:16px;margin-bottom:28px}
         #usec-home .today-dash{max-width:none;margin:0;gap:24px}
         #usec-home .today-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-        #usec-home .today-card{min-height:100px;padding:20px;border-radius:14px;border:1px solid rgba(45,212,191,0.1);background:color-mix(in srgb, var(--text-primary) 4%, var(--bg-primary))}
-        #usec-home .micro-goals-wrap{padding:28px;border-radius:16px;border-color:rgba(45,212,191,0.12);background:color-mix(in srgb, var(--text-primary) 3%, var(--bg-primary))}
+        #usec-home .today-card{min-height:100px;padding:20px;border-radius:14px;border:1px solid var(--border);background:color-mix(in srgb, var(--text-primary) 4%, var(--bg-primary))}
+        #usec-home .micro-goals-wrap{padding:28px;border-radius:16px;border:1px solid var(--border);background:color-mix(in srgb, var(--text-primary) 3%, var(--bg-primary))}
         #usec-home .micro-goals-grid{grid-template-columns:repeat(4,1fr);gap:16px}
         #usec-home .weekly-recap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         #usec-home .weekly-recap-item{min-width:0;padding:14px;border-radius:10px}
@@ -1333,23 +1411,23 @@ export default function DashboardPage() {
           #usec-home .today-card{text-align:center}
         }
         .user-welcome{text-align:center;padding:56px 24px 64px;position:relative}
-        .user-welcome::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(480px,95%);height:320px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(45,212,191,0.08) 0%,transparent 70%);pointer-events:none}
-        .user-welcome-avatar-placeholder{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:3px solid rgba(45,212,191,0.55);background:radial-gradient(circle at 50% 30%,rgba(45,212,191,0.14),rgba(14,14,14,0.96) 68%);display:grid;place-items:center;color:var(--text-secondary);box-shadow:0 12px 40px rgba(0,0,0,0.4),0 0 0 4px rgba(45,212,191,0.1),0 0 24px rgba(45,212,191,0.18);flex-shrink:0}
+        .user-welcome::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:min(480px,95%);height:320px;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgb(var(--accent-rgb) / 0.08) 0%,transparent 70%);pointer-events:none}
+        .user-welcome-avatar-placeholder{position:relative;margin:0 auto 32px;width:100px;height:100px;border-radius:50%;border:3px solid rgb(var(--accent-rgb) / 0.55);background:radial-gradient(circle at 50% 30%,rgb(var(--accent-rgb) / 0.14),color-mix(in srgb, var(--bg-primary) 96%, transparent) 68%);display:grid;place-items:center;color:var(--text-secondary);box-shadow:0 12px 32px rgb(var(--shadow-rgb) / 0.08),0 0 0 4px rgb(var(--accent-rgb) / 0.12),0 0 20px rgb(var(--accent-rgb) / 0.15);flex-shrink:0}
         .user-welcome-avatar-placeholder svg{width:44px;height:44px;stroke:var(--text-secondary);fill:none;stroke-width:1.5}
         .user-welcome h1{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,56px);font-weight:800;letter-spacing:-0.02em;margin-bottom:12px;line-height:1.1}
         .user-welcome h1 .welcome-label{display:block;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--text-secondary);margin-bottom:8px;opacity:.9}
         .user-welcome h1 .welcome-name{background:linear-gradient(135deg,var(--text-primary) 0%,var(--accent-light) 45%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .user-welcome .user-welcome-tag{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:2.5px;color:var(--accent);margin-bottom:32px;opacity:1}
         .welcome-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:860px;margin:0 auto}
-        .welcome-card{position:relative;display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;text-align:left;cursor:pointer;transition:all .3s ease;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22);border:none;font:inherit;color:inherit;width:100%;box-sizing:border-box}
-        .welcome-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgba(45,212,191,0.95),rgba(45,212,191,0.18));border-radius:999px;opacity:.75;transition:opacity .3s}
-        .welcome-card::after{content:'›';margin-left:auto;color:rgba(45,212,191,0.9);font-size:22px;line-height:1;transition:transform .3s ease,color .3s ease}
-        .welcome-card:hover{border-color:rgba(45,212,191,0.28);transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,0.3)}
+        .welcome-card{position:relative;display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;text-align:left;cursor:pointer;transition:all .3s ease;overflow:hidden;box-shadow:var(--shadow-sm);font:inherit;color:inherit;width:100%;box-sizing:border-box}
+        .welcome-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgb(var(--accent-rgb) / 0.95),rgb(var(--accent-rgb) / 0.18));border-radius:999px;opacity:.75;transition:opacity .3s}
+        .welcome-card::after{content:'›';margin-left:auto;color:rgb(var(--accent-rgb) / 0.9);font-size:22px;line-height:1;transition:transform .3s ease,color .3s ease}
+        .welcome-card:hover{border-color:var(--accent-border);transform:translateY(-2px);box-shadow:var(--shadow-md)}
         .welcome-card:hover::before{opacity:1}
         .welcome-card:hover::after{transform:translateX(3px);color:var(--accent)}
-        .welcome-card .wc-icon-wrap{width:48px;height:48px;flex:0 0 48px;margin:0;border-radius:12px;background:rgba(45,212,191,0.06);border:1px solid rgba(45,212,191,0.12);display:grid;place-items:center;transition:all .3s}
+        .welcome-card .wc-icon-wrap{width:48px;height:48px;flex:0 0 48px;margin:0;border-radius:12px;background:var(--accent-dim);border:1px solid var(--border);display:grid;place-items:center;transition:all .3s}
         .welcome-card .wc-icon-wrap svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
-        .welcome-card:hover .wc-icon-wrap{background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.2)}
+        .welcome-card:hover .wc-icon-wrap{background:var(--accent-dim);border-color:var(--accent-border)}
         .welcome-card:hover .wc-icon-wrap svg{stroke:var(--accent-light)}
         .welcome-card .wc-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;text-align:left}
         .welcome-card .wc-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.2px;color:var(--text-primary);margin:0;text-transform:uppercase}
@@ -1358,23 +1436,23 @@ export default function DashboardPage() {
         .welcome-card .req{color:var(--red)}
         .today-dash{display:flex;flex-direction:column;gap:24px;max-width:640px;margin:0 auto}
         .today-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
-        .today-card{flex:1;min-width:200px;padding:20px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid rgba(45,212,191,0.2);border-radius:12px}
-        .today-card h3{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+        .today-card{flex:1;min-width:200px;padding:20px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid var(--border);border-radius:12px}
+        .today-card h3{font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--olive);margin-bottom:12px}
         .today-card p{margin:0;font-size:14px;color:var(--text-secondary);line-height:1.5}
         .today-card .val{font-weight:600;color:var(--text-primary);margin-top:6px}
         .today-card.action{cursor:pointer;transition:background .2s,border-color .2s}
-        .today-card.action:hover{background:rgba(45,212,191,0.06);border-color:var(--accent)}
-        .micro-goals-wrap{background:color-mix(in srgb, var(--text-primary) 3%, var(--bg-primary));border:1px solid rgba(45,212,191,0.2);border-radius:14px;padding:24px;margin:0}
-        .micro-goals-wrap h3{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-        .micro-goals-wrap .streak-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgba(45,212,191,0.2);border-radius:20px;font-size:13px;font-weight:700;color:var(--accent);transition:background .3s,box-shadow .3s,transform .15s}
-        .micro-goals-wrap .streak-badge[data-tier="fire"]{background:rgba(255,100,50,0.25);box-shadow:0 0 12px rgba(255,140,0,0.2)}
-        .micro-goals-wrap .streak-badge[data-tier="rocket"]{background:linear-gradient(135deg,rgba(45,212,191,0.3),rgba(255,180,50,0.15));box-shadow:0 0 16px rgba(45,212,191,0.25)}
-        .micro-goals-wrap .streak-badge[data-tier="diamond"]{background:linear-gradient(135deg,rgba(180,220,255,0.2),rgba(45,212,191,0.2));box-shadow:0 0 20px rgba(45,212,191,0.35)}
-        .micro-goals-wrap .streak-badge[data-tier="legend"]{background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(45,212,191,0.25));box-shadow:0 0 24px rgba(255,215,0,0.4);animation:bbStreakGlow 2s ease-in-out infinite alternate}
-        .micro-goals-wrap .streak-badge[data-at-risk="true"]{background:rgba(251,146,60,0.32);box-shadow:0 0 16px rgba(251,146,60,0.45);animation:bbStreakPulse 1.5s ease-in-out infinite}
-        @keyframes bbStreakGlow{from{box-shadow:0 0 20px rgba(255,215,0,0.3)}to{box-shadow:0 0 28px rgba(255,215,0,0.5)}}
+        .today-card.action:hover{background:rgb(var(--accent-rgb) / 0.06);border-color:var(--accent)}
+        .micro-goals-wrap{background:color-mix(in srgb, var(--text-primary) 3%, var(--bg-primary));border:1px solid var(--border);border-radius:14px;padding:24px;margin:0}
+        .micro-goals-wrap h3{font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--olive);margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .micro-goals-wrap .streak-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:rgb(var(--accent-rgb) / 0.2);border-radius:20px;font-size:13px;font-weight:700;color:var(--accent);transition:background .3s,box-shadow .3s,transform .15s}
+        .micro-goals-wrap .streak-badge[data-tier="fire"]{background:var(--accent-dim);box-shadow:0 0 12px rgb(var(--accent-rgb) / 0.22)}
+        .micro-goals-wrap .streak-badge[data-tier="rocket"]{background:linear-gradient(135deg,rgb(var(--accent-rgb) / 0.28),var(--accent-dim));box-shadow:0 0 16px rgb(var(--accent-rgb) / 0.25)}
+        .micro-goals-wrap .streak-badge[data-tier="diamond"]{background:linear-gradient(135deg,rgb(var(--shadow-rgb) / 0.08),rgb(var(--accent-rgb) / 0.22));box-shadow:0 0 20px rgb(var(--accent-rgb) / 0.3)}
+        .micro-goals-wrap .streak-badge[data-tier="legend"]{background:linear-gradient(135deg,rgb(var(--accent-rgb) / 0.35),rgb(var(--accent-rgb) / 0.18));box-shadow:0 0 24px rgb(var(--accent-rgb) / 0.38);animation:bbStreakGlow 2s ease-in-out infinite alternate}
+        .micro-goals-wrap .streak-badge[data-at-risk="true"]{background:var(--red-dim);box-shadow:0 0 16px rgb(var(--red-rgb) / 0.35);animation:bbStreakPulse 1.5s ease-in-out infinite}
+        @keyframes bbStreakGlow{from{box-shadow:0 0 20px rgb(var(--accent-rgb) / 0.28)}to{box-shadow:0 0 28px rgb(var(--accent-rgb) / 0.45)}}
         @keyframes bbStreakPulse{0%,100%{opacity:1}50%{opacity:.85}}
-        .streak-at-risk-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(251,146,60,0.22),rgba(251,146,60,0.08));border:1px solid rgba(251,146,60,0.42);border-radius:10px;margin-bottom:16px}
+        .streak-at-risk-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--red-dim);border:1px solid rgb(var(--red-rgb) / 0.35);border-radius:10px;margin-bottom:16px}
         .streak-at-risk-banner .text{flex:1;font-size:13px;font-weight:600;color:var(--text-primary)}
         .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
         @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
@@ -1384,27 +1462,29 @@ export default function DashboardPage() {
         .micro-goal-field input:focus{border-color:var(--accent);outline:none}
         .micro-goal-field input::placeholder{color:var(--text-muted)}
         .micro-goal-field input:disabled{opacity:0.75}
-        .micro-goals-submit{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent-light),var(--accent));border:none;border-radius:8px;color:#0f0f0f;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s}
+        .micro-goals-submit{width:100%;padding:12px;background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));border:1px solid var(--accent-border);border-radius:10px;color:var(--on-accent);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s,filter .2s;box-shadow:0 6px 20px rgb(var(--accent-rgb) / 0.3),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 35%,transparent)}
+        .micro-goals-submit:hover{background:var(--accent-dark);color:var(--text-on-accent)}
         .micro-goals-submit:hover{opacity:.95}
         .micro-goals-submit:disabled{opacity:.5;cursor:not-allowed}
-        .weekly-recap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(45,212,191,0.2)}
+        .weekly-recap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
         .weekly-recap-item{flex:1;min-width:100px;text-align:center;padding:12px;background:var(--bg-card);border-radius:8px}
         .weekly-recap-item .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);margin-bottom:4px;display:block}
         .weekly-recap-item .num{font-size:18px;font-weight:700;color:var(--accent)}
-        .push-enable-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px;background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.35);border-radius:10px;margin-top:16px;text-align:center}
+        .push-enable-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px;background:rgb(var(--accent-rgb) / 0.1);border:1px solid rgb(var(--accent-rgb) / 0.35);border-radius:10px;margin-top:16px;text-align:center}
         .push-enable-wrap p{margin:0;min-width:0;font-size:13px;color:var(--text-secondary);max-width:320px}
-        .push-enable-btn{padding:10px 20px;background:linear-gradient(135deg,var(--accent-light),var(--accent));border:none;border-radius:8px;color:#0f0f0f;font-weight:700;font-size:12px;letter-spacing:.5px;cursor:pointer;box-shadow:0 6px 18px rgba(45,212,191,0.22)}
+        .push-enable-btn{padding:10px 20px;background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));border:1px solid var(--accent-border);border-radius:10px;color:var(--on-accent);font-weight:700;font-size:12px;letter-spacing:.5px;cursor:pointer;box-shadow:0 6px 20px rgb(var(--accent-rgb) / 0.3),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 35%,transparent)}
+        .push-enable-btn:hover{background:var(--accent-dark);color:var(--text-on-accent)}
         .ud-user-back{margin-bottom:16px}
-        .ud-back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(45,212,191,0.4);color:var(--accent);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
-        .ud-back-btn:hover{background:rgba(45,212,191,0.1);border-color:var(--accent)}
+        .ud-back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--border);color:var(--text-primary);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+        .ud-back-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
         .form-hint{font-size:14px;color:var(--text-secondary);margin:0 0 16px;line-height:1.5}
         .checkin-hub-back{margin-bottom:16px}
-        .checkin-back-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:transparent;border:1px solid rgba(45,212,191,0.4);color:var(--accent);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
-        .checkin-back-btn:hover{background:rgba(45,212,191,0.1);border-color:var(--accent)}
+        .checkin-back-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--text-primary);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+        .checkin-back-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
         .checkin-hub-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:720px}
-        .checkin-option-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:20px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all .3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.22);text-align:left;font:inherit;color:inherit;width:100%;box-sizing:border-box}
-        .checkin-option-card:hover{border-color:rgba(45,212,191,0.28);transform:translateY(-2px);box-shadow:0 14px 30px rgba(0,0,0,0.3)}
-        .checkin-option-card .checkin-card-icon{width:48px;height:48px;border-radius:12px;background:rgba(45,212,191,0.06);border:1px solid rgba(45,212,191,0.12);display:grid;place-items:center}
+        .checkin-option-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:20px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all .3s ease;box-shadow:var(--shadow-sm);text-align:left;font:inherit;color:inherit;width:100%;box-sizing:border-box}
+        .checkin-option-card:hover{border-color:var(--accent-border);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+        .checkin-option-card .checkin-card-icon{width:48px;height:48px;border-radius:12px;background:var(--accent-dim);border:1px solid var(--border);display:grid;place-items:center}
         .checkin-option-card .checkin-card-icon svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
         .checkin-option-card .checkin-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--text-primary);text-transform:uppercase;margin:0}
         .checkin-option-card .checkin-card-desc{font-size:12px;color:var(--text-secondary);line-height:1.45;margin:0}
@@ -1418,8 +1498,8 @@ export default function DashboardPage() {
         .ud-form-input:focus{border-color:var(--accent)}
         .ud-form-input::placeholder{color:var(--text-secondary)}
         textarea.ud-form-input{resize:vertical;min-height:80px}
-        .ud-form-submit{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent-light),var(--accent));border:none;border-radius:8px;color:#0f0f0f;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;margin-top:8px}
-        .ud-form-submit:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(45,212,191,0.3)}
+        .ud-form-submit{width:100%;padding:14px;background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));border:1px solid var(--accent-border);border-radius:10px;color:var(--on-accent);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;margin-top:8px;box-shadow:0 8px 24px rgb(var(--accent-rgb) / 0.32),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 35%,transparent)}
+        .ud-form-submit:hover{transform:translateY(-1px);background:var(--accent-dark);color:var(--text-on-accent);box-shadow:var(--shadow-md)}
         .ud-form-divider{height:1px;background:var(--border);margin:24px 0}
         .ud-form-hint-sm{font-size:11px;color:var(--text-secondary);margin-top:4px;display:block}
         .timer-display{text-align:center;margin:28px 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -1427,46 +1507,47 @@ export default function DashboardPage() {
         .timer-digits span{display:inline-flex;align-items:center;justify-content:center;min-width:2.2ch;padding:clamp(4px,1.2vw,8px) clamp(6px,2vw,12px);background:var(--bg-card);border-radius:8px;box-sizing:border-box;flex:0 0 auto}
         .timer-digits .timer-sep{min-width:auto;padding:clamp(2px,0.8vw,6px) clamp(2px,1vw,6px);font-size:0.65em;line-height:1;color:var(--accent);background:transparent}
         .timer-sep{color:var(--accent);vertical-align:middle}
-        .timer-btn{display:block;margin:16px auto;padding:14px 60px;border:1.5px solid var(--accent);border-radius:10px;background:rgba(45,212,191,0.05);color:var(--accent);font-size:28px;cursor:pointer;transition:all .3s;box-shadow:0 0 20px rgba(45,212,191,0.1);font-family:inherit}
-        .timer-btn:hover{background:rgba(45,212,191,0.15);box-shadow:0 0 30px rgba(45,212,191,0.2)}
+        .timer-btn{display:block;margin:16px auto;padding:14px 60px;border:1.5px solid var(--accent);border-radius:10px;background:rgb(var(--accent-rgb) / 0.05);color:var(--accent);font-size:28px;cursor:pointer;transition:all .3s;box-shadow:0 0 20px rgb(var(--accent-rgb) / 0.1);font-family:inherit}
+        .timer-btn:hover{background:rgb(var(--accent-rgb) / 0.15);box-shadow:0 0 30px rgb(var(--accent-rgb) / 0.2)}
         .timer-reset{display:block;margin:8px auto;padding:8px 20px;border:none;background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;letter-spacing:1px;text-transform:uppercase;font-family:'Outfit',sans-serif}
         .timer-reset:hover{color:var(--accent)}
         .workout-programs-box{margin-top:28px}
         .user-programs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
-        .prog-card{background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22);display:flex;flex-direction:column;min-width:0}
+        .prog-card{background:linear-gradient(180deg,var(--bg-surface),var(--bg-primary));border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;min-width:0}
         .prog-meta{padding:14px 16px;display:flex;flex-direction:column;gap:6px}
         .prog-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.6px;color:var(--text-primary);text-transform:uppercase;line-height:1.25}
         .prog-sub{font-size:12px;color:var(--text-secondary);line-height:1.4}
         .prog-actions{display:flex;gap:10px;flex-wrap:wrap;padding:0 16px 16px}
-        .prog-actions a{flex:1 1 0%;min-width:120px;text-align:center;padding:10px;border-radius:8px;background:rgba(45,212,191,0.12);color:var(--accent);font-weight:600;font-size:12px;text-decoration:none;border:1px solid rgba(45,212,191,0.25)}
-        .schedule-call-block{padding:24px;background:rgba(45,212,191,0.06);border:1px solid rgba(45,212,191,0.2);border-radius:14px;margin-bottom:24px;min-width:0;overflow:hidden}
+        .prog-actions a{flex:1 1 0%;min-width:120px;text-align:center;padding:10px;border-radius:8px;background:rgb(var(--accent-rgb) / 0.12);color:var(--accent);font-weight:600;font-size:12px;text-decoration:none;border:1px solid rgb(var(--accent-rgb) / 0.25)}
+        .schedule-call-block{padding:24px;background:rgb(var(--accent-rgb) / 0.06);border:1px solid var(--border);border-radius:14px;margin-bottom:24px;min-width:0;overflow:hidden}
         .ud-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         @media(max-width:520px){.ud-form-row{grid-template-columns:1fr}}
         .my-meetings{margin-top:24px}
-        .my-meeting-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 18px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid rgba(45,212,191,0.2);border-radius:10px;margin-bottom:10px}
+        .my-meeting-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 18px;background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
         .my-meeting-item .m-info{font-size:14px;color:var(--text-primary)}
         .my-meeting-item .m-date{color:var(--accent);font-weight:600}
         .chat-header-strip{margin-bottom:20px;text-align:center}
         .chat-header-desc{font-size:14px;color:var(--text-secondary);margin:0}
-        .chat-container{background:linear-gradient(180deg,rgba(0,0,0,0.2),rgba(0,0,0,0.08));border:1px solid rgba(45,212,191,0.2);border-radius:20px;padding:20px}
-        .thread-messages-box{display:flex;flex-direction:column;gap:10px;min-height:240px;max-height:420px;overflow-y:auto;padding:20px;background:linear-gradient(180deg,rgba(0,0,0,0.35) 0%,rgba(0,0,0,0.2) 100%);border:1px solid rgba(45,212,191,0.2);border-radius:16px;margin-bottom:20px;-webkit-overflow-scrolling:touch}
+        .chat-container{background:linear-gradient(180deg,var(--bg-card),var(--bg-surface));border:1px solid var(--border);border-radius:20px;padding:20px}
+        .thread-messages-box{display:flex;flex-direction:column;gap:10px;min-height:240px;max-height:420px;overflow-y:auto;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;margin-bottom:20px;-webkit-overflow-scrolling:touch}
         .thread-msg{display:flex;align-items:flex-end;gap:10px;max-width:82%}
         .thread-msg.user{align-self:flex-end;flex-direction:row-reverse;margin-left:auto}
         .thread-msg.admin{align-self:flex-start;flex-direction:row}
         .thread-msg-bubble{padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55;word-break:break-word}
-        .thread-msg.user .thread-msg-bubble{border-bottom-right-radius:4px;background:linear-gradient(135deg,rgba(45,212,191,0.28),rgba(45,212,191,0.12));border:1px solid rgba(45,212,191,0.45);color:var(--text-primary)}
-        .thread-msg.admin .thread-msg-bubble{border-bottom-left-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,0.1),color-mix(in srgb, var(--text-primary) 6%, var(--bg-card)));border:1px solid rgba(255,255,255,0.12);color:var(--text-primary)}
+        .thread-msg.user .thread-msg-bubble{border-bottom-right-radius:4px;background:linear-gradient(135deg,rgb(var(--accent-rgb) / 0.28),rgb(var(--accent-rgb) / 0.12));border:1px solid rgb(var(--accent-rgb) / 0.45);color:var(--text-primary)}
+        .thread-msg.admin .thread-msg-bubble{border-bottom-left-radius:4px;background:linear-gradient(180deg,var(--bg-surface),var(--bg-card));border:1px solid var(--border);color:var(--text-primary);box-shadow:0 1px 2px rgb(var(--shadow-rgb) / 0.04)}
         .thread-msg-meta{font-size:11px;color:var(--text-secondary);margin-top:6px;opacity:.9}
         .thread-reply-wrap{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-top:12px}
         .thread-reply-wrap .ud-form-input{flex:1;min-width:0;min-height:52px;resize:none;border-radius:14px}
-        .chat-send-btn{min-height:52px;padding:0 24px;border-radius:14px;font-weight:600;background:linear-gradient(135deg,var(--accent-light),var(--accent));color:#0f0f0f;border:none;cursor:pointer;font-family:'Outfit',sans-serif}
+        .chat-send-btn{min-height:52px;padding:0 24px;border-radius:14px;font-weight:600;background:linear-gradient(145deg,var(--accent-light),var(--accent) 45%,var(--accent-dark));color:var(--on-accent);border:1px solid var(--accent-border);cursor:pointer;font-family:'Outfit',sans-serif;box-shadow:0 6px 20px rgb(var(--accent-rgb) / 0.3),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 35%,transparent)}
+        .chat-send-btn:hover{background:var(--accent-dark);color:var(--text-on-accent)}
         .progress-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:24px}
         .progress-form-grid .ud-form-group{min-width:0}
-        .admin-cp-heading{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(45,212,191,0.7);margin-bottom:12px;font-family:'Outfit',sans-serif}
+        .admin-cp-heading{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgb(var(--accent-rgb) / 0.7);margin-bottom:12px;font-family:'Outfit',sans-serif}
         .progress-logs-list{background:color-mix(in srgb, var(--text-primary) 5%, var(--bg-primary));border:1px solid var(--border);border-radius:8px;overflow-x:auto}
         .progress-logs-list table{width:100%;min-width:320px;border-collapse:collapse;font-size:13px}
-        .progress-logs-list th{text-align:left;padding:10px 12px;color:var(--accent);font-weight:600;border-bottom:1px solid var(--border);background:rgba(45,212,191,0.06)}
-        .progress-logs-list td{padding:10px 12px;color:var(--text-secondary);border-bottom:1px solid rgba(255,255,255,0.04)}
+        .progress-logs-list th{text-align:left;padding:10px 12px;color:var(--accent);font-weight:600;border-bottom:1px solid var(--border);background:rgb(var(--accent-rgb) / 0.06)}
+        .progress-logs-list td{padding:10px 12px;color:var(--text-secondary);border-bottom:1px solid var(--border)}
         .progress-logs-list tr:last-child td{border-bottom:none}
         .admin-cp-placeholder{color:var(--text-secondary);padding:16px;text-align:center;font-size:14px;margin:0}
         .form-success{display:none}
@@ -1483,8 +1564,9 @@ export default function DashboardPage() {
           justifyContent: "space-between",
           gap: 12,
           borderBottom: `1px solid ${s.line}`,
-          background: "rgba(0,0,0,.94)",
-          backdropFilter: "blur(8px)"
+          background: "color-mix(in srgb, var(--bg-primary) 93%, transparent)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)"
         }}
       >
         <img src={`${apiBase}/img/Fitbase_logo2.png`} alt="FitBase" style={{ height: 52, width: "auto", objectFit: "contain" }} />
@@ -1795,9 +1877,9 @@ export default function DashboardPage() {
               <>
                 <div className="bb-admin-welcome-card" style={{ marginTop: 12 }}>
                   <h2 className="bb-admin-welcome-title">
-                    Welcome back <span className="bb-admin-welcome-role">super admin</span>
+                    Command center <span className="bb-admin-welcome-role">super admin</span>
                   </h2>
-                  <p className="bb-admin-welcome-date">Platform overview — trainers, clients, and requests</p>
+                  <p className="bb-admin-welcome-date">Trainers, clients, onboarding queues, and live signals — one screen.</p>
                   <p className="bb-admin-welcome-date" suppressHydrationWarning>
                     {todayLabel || "\u00a0"}
                   </p>
@@ -1808,7 +1890,7 @@ export default function DashboardPage() {
                     className="bb-admin-summary-card"
                     onClick={() => {
                       goTab("clients");
-                      setTrainerClientsView("progress");
+                      setTrainerClientsView("roster");
                     }}
                   >
                     <span className="bb-admin-summary-lbl">MEMBERS</span>
@@ -1827,13 +1909,27 @@ export default function DashboardPage() {
                     <span className="bb-admin-summary-lbl">PENDING SIGN-UPS</span>
                     <span className="bb-admin-summary-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
                   </button>
-                  <button type="button" className="bb-admin-summary-card" onClick={() => goTab("home")}>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      const el = typeof document !== "undefined" ? document.getElementById("sa-trainer-onboarding") : null;
+                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
                     <span className="bb-admin-summary-lbl">TRAINER APPS</span>
                     <span className="bb-admin-summary-num num-green">
                       {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
                     </span>
                   </button>
-                  <button type="button" className="bb-admin-summary-card" onClick={() => goTab("home")}>
+                  <button
+                    type="button"
+                    className="bb-admin-summary-card"
+                    onClick={() => {
+                      const el = typeof document !== "undefined" ? document.getElementById("sa-client-onboarding") : null;
+                      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                  >
                     <span className="bb-admin-summary-lbl">CLIENT REQUESTS</span>
                     <span className="bb-admin-summary-num num-green">
                       {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
@@ -1868,72 +1964,78 @@ export default function DashboardPage() {
                   className="bb-panel"
                   style={{
                     marginTop: 8,
-                    marginBottom: 16,
-                    padding: 14,
+                    marginBottom: 12,
+                    padding: 0,
                     border: `1px solid ${superadminSync.issues.length ? "var(--red)" : "var(--border)"}`,
-                    background: "var(--bg-card)"
+                    background: "var(--bg-card)",
+                    overflow: "hidden"
                   }}
                 >
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => setSuperadminSyncOpen((o) => !o)}
                     style={{
+                      width: "100%",
                       display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "flex-start",
+                      alignItems: "center",
                       justifyContent: "space-between",
-                      gap: 12
+                      gap: 12,
+                      padding: "12px 14px",
+                      border: "none",
+                      background: "transparent",
+                      color: "var(--text-primary)",
+                      cursor: "pointer",
+                      textAlign: "left"
                     }}
                   >
-                    <div>
-                      <p className="bb-inline-label" style={{ marginTop: 0 }}>
-                        API &amp; data sync
+                    <span className="bb-inline-label" style={{ margin: 0 }}>
+                      API &amp; data sync {superadminSyncOpen ? "▾" : "▸"}
+                    </span>
+                    <span className="bb-list-row-sub" style={{ margin: 0, fontSize: 11 }}>
+                      {superadminSync.lastLoadedLabel || "—"}
+                      {superadminSync.loading ? " · …" : ""}
+                    </span>
+                  </button>
+                  {superadminSyncOpen ? (
+                    <div style={{ padding: "0 14px 14px" }}>
+                      <p className="bb-list-row-sub" style={{ marginTop: 0, wordBreak: "break-word" }}>
+                        Endpoint <strong>{apiBase}</strong>
                       </p>
-                      <p className="bb-list-row-sub" style={{ marginTop: 4, wordBreak: "break-word" }}>
-                        Using <strong>{apiBase}</strong>
-                      </p>
-                      {superadminSync.lastLoadedLabel ? (
-                        <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
-                          Last loaded: {superadminSync.lastLoadedLabel}
-                          {superadminSync.loading ? " · refreshing…" : ""}
+                      <button
+                        type="button"
+                        disabled={superadminSync.loading}
+                        onClick={() => void loadSuperadminDashboard()}
+                        style={{
+                          marginTop: 10,
+                          border: "1px solid var(--accent)",
+                          background: "transparent",
+                          color: "var(--accent)",
+                          borderRadius: 8,
+                          padding: "8px 14px",
+                          fontWeight: 700,
+                          cursor: superadminSync.loading ? "wait" : "pointer",
+                          whiteSpace: "nowrap"
+                        }}
+                      >
+                        {superadminSync.loading ? "Loading…" : "Reload all data"}
+                      </button>
+                      {!superadminSync.issues.length ? (
+                        <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--green)" }}>
+                          All super admin endpoints responded OK. If counts stay at zero, confirm public forms post to this same
+                          site URL.
                         </p>
-                      ) : superadminSync.loading ? (
-                        <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
-                          Loading platform data…
-                        </p>
-                      ) : null}
+                      ) : (
+                        <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 13, lineHeight: 1.55 }}>
+                          {superadminSync.issues.map((msg, i) => (
+                            <li key={i}>{msg}</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      disabled={superadminSync.loading}
-                      onClick={() => void loadSuperadminDashboard()}
-                      style={{
-                        border: "1px solid var(--accent)",
-                        background: "transparent",
-                        color: "var(--accent)",
-                        borderRadius: 8,
-                        padding: "8px 14px",
-                        fontWeight: 700,
-                        cursor: superadminSync.loading ? "wait" : "pointer",
-                        whiteSpace: "nowrap"
-                      }}
-                    >
-                      {superadminSync.loading ? "Loading…" : "Reload all data"}
-                    </button>
-                  </div>
-                  {!superadminSync.issues.length ? (
-                    <p style={{ margin: "10px 0 0", fontSize: 13, color: "var(--green)" }}>
-                      All super admin endpoints responded OK. If trainer or client application counts stay at zero, the public
-                      forms must be submitted on this same site URL (check the address bar).
-                    </p>
-                  ) : (
-                    <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 13, lineHeight: 1.55 }}>
-                      {superadminSync.issues.map((msg, i) => (
-                        <li key={i}>{msg}</li>
-                      ))}
-                    </ul>
-                  )}
+                  ) : null}
                 </div>
-                    <h3 className="bb-admin-qa-title" style={{ marginTop: 4 }}>
-                      TRAINER ACCESS REQUESTS ·{" "}
+                    <h3 id="sa-trainer-onboarding" className="bb-admin-qa-title" style={{ marginTop: 4, scrollMarginTop: 24 }}>
+                      TRAINER ONBOARDING · ACCESS REQUESTS ·{" "}
                       <strong style={{ color: "var(--accent)" }}>
                         {trainerRequests.filter((r: any) => String(r.status) === "pending").length}
                       </strong>
@@ -1975,7 +2077,7 @@ export default function DashboardPage() {
                                       style={{
                                         border: "none",
                                         background: "var(--green)",
-                                        color: "#0f0f0f",
+                                        color: "var(--on-accent)",
                                         borderRadius: 8,
                                         padding: "8px 12px",
                                         fontWeight: 700,
@@ -1991,7 +2093,7 @@ export default function DashboardPage() {
                                       style={{
                                         border: "none",
                                         background: "var(--red)",
-                                        color: "#0f0f0f",
+                                        color: "var(--on-accent)",
                                         borderRadius: 8,
                                         padding: "8px 12px",
                                         fontWeight: 700,
@@ -2031,8 +2133,8 @@ export default function DashboardPage() {
                       ) : null}
                     </div>
 
-                    <h3 className="bb-admin-qa-title">
-                      CLIENT COACHING REQUESTS ·{" "}
+                    <h3 id="sa-client-onboarding" className="bb-admin-qa-title" style={{ scrollMarginTop: 24 }}>
+                      WEBSITE CLIENT ONBOARDING · COACHING REQUESTS ·{" "}
                       <strong style={{ color: "var(--accent)" }}>
                         {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}
                       </strong>
@@ -2127,7 +2229,7 @@ export default function DashboardPage() {
                                           style={{
                                             border: "none",
                                             background: "var(--green)",
-                                            color: "#0f0f0f",
+                                            color: "var(--on-accent)",
                                             borderRadius: 8,
                                             padding: "8px 12px",
                                             fontWeight: 700,
@@ -2143,7 +2245,7 @@ export default function DashboardPage() {
                                           style={{
                                             border: "none",
                                             background: "var(--red)",
-                                            color: "#0f0f0f",
+                                            color: "var(--on-accent)",
                                             borderRadius: 8,
                                             padding: "8px 12px",
                                             fontWeight: 700,
@@ -2164,11 +2266,11 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    <h3 className="bb-admin-qa-title">ROSTER · TRAINERS &amp; CLIENTS</h3>
+                    <h3 className="bb-admin-qa-title">ROSTER SNAPSHOT</h3>
                     <div className="bb-panel" style={{ marginBottom: 20 }}>
                       {trainerClientOverview.length ? (
                         <ul className="bb-list-rows">
-                          {trainerClientOverview.map((row: any) => {
+                          {trainerClientOverview.slice(0, 6).map((row: any) => {
                             let clients: any[] = [];
                             try {
                               const raw = row.clients;
@@ -2179,44 +2281,44 @@ export default function DashboardPage() {
                             }
                             const tname = [row.first_name, row.last_name].filter(Boolean).join(" ") || row.email || "Trainer";
                             return (
-                              <li key={String(row.id)} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+                              <li key={String(row.id)} className="bb-list-row bb-list-row-static" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
                                 <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
                                   <div className="bb-list-row-title">{tname}</div>
                                   <span style={{ fontSize: 11, color: row.suspended ? "var(--red)" : "var(--text-secondary)" }}>
-                                    {row.suspended ? "Suspended" : "Active"}
-                                    {row.referral_code ? ` · code ${row.referral_code}` : ""}
+                                    {clients.length} client{clients.length === 1 ? "" : "s"}
                                   </span>
                                 </div>
                                 <p className="bb-list-row-sub">{row.email}</p>
-                                <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                  Clients: {clients.length}
-                                  {clients.length
-                                    ? ` · ${clients.filter((u: any) => String(u.approval_status).toLowerCase() === "pending").length} pending approval`
-                                    : ""}
-                                </p>
-                                {clients.length ? (
-                                  <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)" }}>
-                                    {clients.slice(0, 12).map((u: any) => (
-                                      <li key={String(u.id)}>
-                                        {[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email} ({u.email}) — {u.approval_status || "—"}
-                                      </li>
-                                    ))}
-                                    {clients.length > 12 ? <li>…and {clients.length - 12} more</li> : null}
-                                  </ul>
-                                ) : (
-                                  <p className="bb-list-row-sub">No clients linked yet.</p>
-                                )}
                               </li>
                             );
                           })}
                         </ul>
                       ) : (
-                        <p className="bb-live-empty">No trainers yet. Approve trainer requests to build your roster.</p>
+                        <p className="bb-live-empty">No coaches on file yet.</p>
                       )}
+                      <button
+                        type="button"
+                        className="bb-btn-primary"
+                        style={{ width: "100%", marginTop: 12 }}
+                        onClick={() => {
+                          goTab("clients");
+                          setTrainerClientsView("roster");
+                        }}
+                      >
+                        Open full platform roster (search &amp; client 360°)
+                      </button>
                     </div>
-                <h3 className="bb-admin-qa-title">QUICK ACCESS</h3>
+                <h3 className="bb-admin-qa-title">SHORTCUTS</h3>
                 <div className="bb-admin-qa-grid">
                   {[
+                    {
+                      label: "Roster",
+                      icon: String.fromCodePoint(0x1f46a),
+                      onClick: () => {
+                        goTab("clients");
+                        setTrainerClientsView("roster");
+                      }
+                    },
                     {
                       label: "Sign-ups",
                       icon: String.fromCodePoint(0x1f464),
@@ -2226,43 +2328,19 @@ export default function DashboardPage() {
                       }
                     },
                     {
-                      label: "Check-Ins",
-                      icon: String.fromCodePoint(0x1f4c5),
+                      label: "Forms hub",
+                      icon: String.fromCodePoint(0x1f4cb),
                       onClick: () => {
                         goTab("forms");
-                        setTrainerFormsView("sunday");
+                        setTrainerFormsView("daily");
                       }
                     },
                     {
-                      label: "Workouts",
-                      icon: String.fromCodePoint(0x1f3c3),
+                      label: "Messages",
+                      icon: String.fromCodePoint(0x1f4ac),
                       onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("workouts");
-                      }
-                    },
-                    {
-                      label: "Audits",
-                      icon: String.fromCodePoint(0x1f4d1),
-                      onClick: () => {
-                        goTab("forms");
-                        setTrainerFormsView("audits");
-                      }
-                    },
-                    {
-                      label: "Programs",
-                      icon: String.fromCodePoint(0x1f3af),
-                      onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("programs");
-                      }
-                    },
-                    {
-                      label: "Analytics",
-                      icon: String.fromCodePoint(0x1f4ca),
-                      onClick: () => {
-                        goTab("home");
-                        setStaffOverlay("analytics");
+                        goTab("messages");
+                        setTrainerMessagesView("threads");
                       }
                     }
                   ].map((x) => (
@@ -2526,10 +2604,52 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   className="bb-back-btn"
-                  onClick={() => (trainerClientsView === "hub" ? setActiveTab("home") : setTrainerClientsView("hub"))}
+                  onClick={() => {
+                    if (trainerClientsView === "hub") {
+                      setActiveTab("home");
+                      return;
+                    }
+                    if (role === "superadmin") {
+                      if (trainerClientsView === "roster") setActiveTab("home");
+                      else setTrainerClientsView("roster");
+                      return;
+                    }
+                    setTrainerClientsView("hub");
+                  }}
                 >
                   ← Back
                 </button>
+                {role === "superadmin" ? (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                    {(
+                      [
+                        ["roster", "Platform roster"],
+                        ["pending", "Pending sign-ups"]
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setTrainerClientsView(id)}
+                        style={{
+                          borderRadius: 999,
+                          padding: "8px 14px",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          letterSpacing: 0.04,
+                          textTransform: "uppercase",
+                          cursor: "pointer",
+                          border:
+                            trainerClientsView === id ? "1px solid var(--accent)" : "1px solid var(--border)",
+                          background: trainerClientsView === id ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "transparent",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
                 {trainerClientsView === "hub" ? (
                   <div className="bb-admin-hub-cards">
                     {role === "admin" && trainerReferral ? (
@@ -2592,6 +2712,52 @@ export default function DashboardPage() {
                     />
                   </div>
                 ) : null}
+                {trainerClientsView === "roster" && role === "superadmin" ? (
+                  <div className="bb-panel">
+                    <span className="bb-inline-label">
+                      PLATFORM ROSTER · <strong style={{ color: "var(--accent)" }}>{superadminRosterFiltered.length}</strong>
+                      {superadminRosterQ.trim() ? (
+                        <span style={{ fontWeight: 400, color: "var(--text-secondary)", marginLeft: 8 }}>
+                          (filtered from {superadminRosterRows.length})
+                        </span>
+                      ) : null}
+                    </span>
+                    <input
+                      className="bb-input"
+                      value={superadminRosterQ}
+                      onChange={(e) => setSuperadminRosterQ(e.target.value)}
+                      placeholder="Search by client name, email, or coach…"
+                      style={{ marginTop: 10, marginBottom: 12 }}
+                    />
+                    {superadminRosterFiltered.length ? (
+                      <ul className="bb-list-rows">
+                        {superadminRosterFiltered.slice(0, 200).map(({ client: u, trainer: t }) => {
+                          const tname = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
+                          return (
+                            <li key={`${t.id}-${u.id}`} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
+                              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                                <div>
+                                  <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Client"}</div>
+                                  <p className="bb-list-row-sub">{u.email || "—"}</p>
+                                  <p className="bb-list-row-sub" style={{ marginTop: 6 }}>
+                                    Coach: {tname}
+                                    {t.suspended ? <span style={{ color: "var(--red)", marginLeft: 6 }}>(suspended)</span> : null}
+                                  </p>
+                                  <p className="bb-list-row-sub">Status: {u.approval_status || "—"}</p>
+                                </div>
+                                <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>360°</span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="bb-live-empty">
+                        {superadminRosterRows.length ? "No matches for that search." : "No clients linked to coaches yet."}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
                 {trainerClientsView === "pending" ? (
                   <div className="bb-panel">
                     <span className="bb-inline-label">
@@ -2620,7 +2786,7 @@ export default function DashboardPage() {
                                     type="button"
                                     onClick={() => updatePendingUser(id, "approve")}
                                     disabled={approveBusy || rejectBusy}
-                                    style={{ border: "none", background: "var(--green)", color: "#0f0f0f", borderRadius: 8, padding: "8px 10px", fontWeight: 700, cursor: "pointer" }}
+                                    style={{ border: "none", background: "var(--green)", color: "var(--on-accent)", borderRadius: 8, padding: "8px 10px", fontWeight: 700, cursor: "pointer" }}
                                   >
                                     {approveBusy ? "..." : "Approve"}
                                   </button>
@@ -2628,7 +2794,7 @@ export default function DashboardPage() {
                                     type="button"
                                     onClick={() => updatePendingUser(id, "reject")}
                                     disabled={approveBusy || rejectBusy}
-                                    style={{ border: "none", background: "var(--red)", color: "#0f0f0f", borderRadius: 8, padding: "8px 10px", fontWeight: 700, cursor: "pointer" }}
+                                    style={{ border: "none", background: "var(--red)", color: "var(--on-accent)", borderRadius: 8, padding: "8px 10px", fontWeight: 700, cursor: "pointer" }}
                                   >
                                     {rejectBusy ? "..." : "Reject"}
                                   </button>
@@ -3163,11 +3329,54 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   className="bb-back-btn"
-                  onClick={() => (trainerFormsView === "hub" ? setActiveTab("home") : setTrainerFormsView("hub"))}
+                  onClick={() => {
+                    if (trainerFormsView === "hub") {
+                      setActiveTab("home");
+                      return;
+                    }
+                    if (role === "superadmin") {
+                      setActiveTab("home");
+                      return;
+                    }
+                    setTrainerFormsView("hub");
+                  }}
                 >
                   ← Back
                 </button>
-                {trainerFormsView === "hub" ? (
+                {role === "superadmin" ? (
+                  <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+                    {(
+                      [
+                        ["daily", "Daily"],
+                        ["sunday", "Sunday"],
+                        ["audits", "Audits"],
+                        ["part2", "Part 2"]
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setTrainerFormsView(id)}
+                        style={{
+                          borderRadius: 999,
+                          padding: "8px 14px",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          letterSpacing: 0.04,
+                          textTransform: "uppercase",
+                          cursor: "pointer",
+                          border:
+                            trainerFormsView === id ? "1px solid var(--accent)" : "1px solid var(--border)",
+                          background: trainerFormsView === id ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "transparent",
+                          color: "var(--text-primary)"
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {trainerFormsView === "hub" && role !== "superadmin" ? (
                   <div className="bb-admin-hub-cards">
                     <HubCard
                       icon={String.fromCodePoint(0x1f4cb)}
@@ -3266,6 +3475,12 @@ export default function DashboardPage() {
                               {c.total_weight_loss != null ? `Weight loss: ${c.total_weight_loss} · ` : ""}
                               {c.created_at ? new Date(c.created_at).toLocaleString() : ""}
                             </p>
+                            {role === "superadmin" && (c.trainer_first_name || c.trainer_last_name || c.trainer_email) ? (
+                              <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                Coach:{" "}
+                                {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
+                              </p>
+                            ) : null}
                           </li>
                         ))}
                       </ul>
@@ -3294,6 +3509,12 @@ export default function DashboardPage() {
                             <p className="bb-list-row-sub">
                               {c.checkin_date || "—"} · Steps {c.steps ?? "—"} · Protein {c.protein_g ?? "—"} g · Sleep {c.sleep_hours ?? "—"} h
                             </p>
+                            {role === "superadmin" && (c.trainer_first_name || c.trainer_last_name || c.trainer_email) ? (
+                              <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
+                                Coach:{" "}
+                                {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
+                              </p>
+                            ) : null}
                           </li>
                         ))}
                       </ul>
@@ -3931,7 +4152,37 @@ export default function DashboardPage() {
                 <div><strong>Email:</strong> {selectedClient.email || "-"}</div>
                 <div><strong>Phone:</strong> {selectedClient.phone || "-"}</div>
                 <div><strong>Status:</strong> {selectedClient.approval_status || "-"}</div>
-                {clientProgress ? <div><strong>Progress:</strong> {JSON.stringify(clientProgress)}</div> : null}
+                {selectedClient._coachName ? (
+                  <div>
+                    <strong>Coach:</strong> {selectedClient._coachName}
+                    {selectedClient._coachEmail ? ` (${selectedClient._coachEmail})` : ""}
+                  </div>
+                ) : null}
+                {clientProgress && typeof clientProgress === "object" ? (
+                  <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                    <div>
+                      <strong>Current weight:</strong> {clientProgress.currentWeight != null ? String(clientProgress.currentWeight) : "—"}
+                    </div>
+                    <div>
+                      <strong>Check-in streak (days logged):</strong>{" "}
+                      {clientProgress.activeStreak != null ? String(clientProgress.activeStreak) : "—"}
+                    </div>
+                    <div>
+                      <strong>Workout consistency:</strong>{" "}
+                      {clientProgress.workoutConsistencyPercent != null ? `${clientProgress.workoutConsistencyPercent}%` : "—"}
+                    </div>
+                    {clientProgress.suspended ? (
+                      <div style={{ color: "var(--red)", fontWeight: 700 }}>Account suspended</div>
+                    ) : null}
+                    {Array.isArray(clientProgress.logs) && clientProgress.logs.length ? (
+                      <p className="bb-list-row-sub" style={{ marginTop: 8 }}>
+                        {clientProgress.logs.length} progress log{clientProgress.logs.length === 1 ? "" : "s"} on file — use the report link for the full chart view.
+                      </p>
+                    ) : (
+                      <p className="bb-list-row-sub" style={{ marginTop: 8 }}>No progress logs yet.</p>
+                    )}
+                  </div>
+                ) : null}
                 {clientProgressLink ? (
                   <a href={clientProgressLink} target="_blank" rel="noreferrer" style={{ color: s.gold, fontWeight: 700 }}>
                     Open progress report
@@ -3952,6 +4203,14 @@ export default function DashboardPage() {
               <div style={{ display: "grid", gap: 6 }}>
                 <div><strong>Check-in date:</strong> {selectedCheckin.checkin_date || "-"}</div>
                 <div><strong>User:</strong> {[selectedCheckin.first_name, selectedCheckin.last_name].filter(Boolean).join(" ") || selectedCheckin.email || "-"}</div>
+                {(selectedCheckin.trainer_first_name || selectedCheckin.trainer_email) ? (
+                  <div>
+                    <strong>Coach:</strong>{" "}
+                    {[selectedCheckin.trainer_first_name, selectedCheckin.trainer_last_name].filter(Boolean).join(" ") ||
+                      selectedCheckin.trainer_email ||
+                      "—"}
+                  </div>
+                ) : null}
                 <div><strong>Steps:</strong> {selectedCheckin.steps ?? "-"}</div>
                 <div><strong>Water (ml):</strong> {selectedCheckin.water_ml ?? "-"}</div>
                 <div><strong>Protein (g):</strong> {selectedCheckin.protein_g ?? "-"}</div>
@@ -3962,6 +4221,14 @@ export default function DashboardPage() {
               <div style={{ display: "grid", gap: 6 }}>
                 <div><strong>Name:</strong> {selectedSunday.full_name || "-"}</div>
                 <div><strong>Email:</strong> {selectedSunday.reply_email || "-"}</div>
+                {(selectedSunday.trainer_first_name || selectedSunday.trainer_email) ? (
+                  <div>
+                    <strong>Coach:</strong>{" "}
+                    {[selectedSunday.trainer_first_name, selectedSunday.trainer_last_name].filter(Boolean).join(" ") ||
+                      selectedSunday.trainer_email ||
+                      "—"}
+                  </div>
+                ) : null}
                 <div><strong>Weight loss:</strong> {selectedSunday.total_weight_loss ?? "-"}</div>
                 <div><strong>Achievements:</strong> {selectedSunday.achievements || "-"}</div>
                 <div><strong>Submitted:</strong> {selectedSunday.created_at ? new Date(selectedSunday.created_at).toLocaleString() : "-"}</div>
@@ -3995,21 +4262,21 @@ export default function DashboardPage() {
                     <button
                       onClick={() => updateMeetingStatus("scheduled")}
                       disabled={isMeetingUpdating}
-                      style={{ border: "none", background: "var(--green)", color: "#0f0f0f", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                      style={{ border: "none", background: "var(--green)", color: "var(--on-accent)", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
                     >
                       {isMeetingUpdating ? "..." : "Mark Scheduled"}
                     </button>
                     <button
                       onClick={() => updateMeetingStatus("completed")}
                       disabled={isMeetingUpdating}
-                      style={{ border: "none", background: "var(--accent-light)", color: "#0f0f0f", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                      style={{ border: "none", background: "var(--accent-light)", color: "var(--on-accent)", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
                     >
                       {isMeetingUpdating ? "..." : "Mark Completed"}
                     </button>
                     <button
                       onClick={() => updateMeetingStatus("cancelled")}
                       disabled={isMeetingUpdating}
-                      style={{ border: "none", background: "var(--red)", color: "#0f0f0f", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
+                      style={{ border: "none", background: "var(--red)", color: "var(--on-accent)", borderRadius: 8, padding: "7px 10px", fontWeight: 700 }}
                     >
                       {isMeetingUpdating ? "..." : "Cancel"}
                     </button>
@@ -4030,9 +4297,38 @@ export default function DashboardPage() {
             </button>
           </div>
           <div className="bb-ai-assist-body">
-            <p style={{ margin: 0 }}>
-              Ask about pending audits, check-ins, or clients. Try &ldquo;Quick summary&rdquo; or &ldquo;How many pending audit forms?&rdquo;
-            </p>
+            {role === "superadmin" ? (
+              <>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    marginBottom: 12,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--text-secondary)"
+                  }}
+                >
+                  <span style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px" }}>
+                    Trainers: {superadminTrainers.filter((t: any) => !t.suspended).length} active
+                  </span>
+                  <span style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px" }}>
+                    Roster links: {superadminRosterRows.length}
+                  </span>
+                  <span style={{ border: "1px solid var(--border)", borderRadius: 8, padding: "6px 10px" }}>
+                    Pending sign-ups: {pendingUsers.length}
+                  </span>
+                </div>
+                <p style={{ margin: 0 }}>
+                  Platform-wide context: trainer applications, website coaching requests, audits, daily/Sunday check-ins, and roster health. Ask for a morning briefing, bottleneck analysis, or &ldquo;which coaches have suspended accounts?&rdquo;
+                </p>
+              </>
+            ) : (
+              <p style={{ margin: 0 }}>
+                Ask about pending audits, check-ins, or clients. Try &ldquo;Quick summary&rdquo; or &ldquo;How many pending audit forms?&rdquo;
+              </p>
+            )}
           </div>
           <div className="bb-ai-assist-foot">
             <textarea
