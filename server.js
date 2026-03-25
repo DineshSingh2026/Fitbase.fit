@@ -319,6 +319,7 @@ async function initDB() {
     phone TEXT DEFAULT '',
     city TEXT DEFAULT '',
     goal_focus TEXT DEFAULT '',
+    training_format TEXT DEFAULT '',
     message TEXT DEFAULT '',
     heard_about TEXT DEFAULT '',
     status TEXT DEFAULT 'pending',
@@ -1097,11 +1098,15 @@ app.post('/api/trainer-requests', rateLimiter(5, 60000), async (req, res) => {
 
 app.post('/api/client-requests', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { full_name, email, phone, city, goal_focus, message, heard_about } = req.body || {};
+    const { full_name, email, phone, city, goal_focus, training_format, message, heard_about } = req.body || {};
     const name = String(full_name || '').trim();
     const emailNorm = String(email || '').trim().toLowerCase();
     if (!name || !emailNorm) {
       return res.status(400).json({ error: 'Full name and email are required' });
+    }
+    const trainingFormat = String(training_format || '').trim();
+    if (!trainingFormat) {
+      return res.status(400).json({ error: 'Please select your preferred coaching format' });
     }
     const existingUser = await queryOne('SELECT id FROM users WHERE LOWER(email) = ?', [emailNorm]);
     if (existingUser) {
@@ -1117,7 +1122,7 @@ app.post('/api/client-requests', rateLimiter(5, 60000), async (req, res) => {
       return res.status(409).json({ error: 'A coaching request with this email is already pending review.' });
     }
     await run(
-      `INSERT INTO client_requests (id, full_name, email, phone, city, goal_focus, message, heard_about, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+      `INSERT INTO client_requests (id, full_name, email, phone, city, goal_focus, training_format, message, heard_about, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
         uuidv4(),
         name,
@@ -1125,6 +1130,7 @@ app.post('/api/client-requests', rateLimiter(5, 60000), async (req, res) => {
         String(phone || '').trim(),
         String(city || '').trim(),
         String(goal_focus || '').trim(),
+        trainingFormat,
         String(message || '').trim(),
         String(heard_about || '').trim()
       ]
@@ -3910,7 +3916,7 @@ app.post('/api/superadmin/trainer-requests/:id/reject', verifyToken, requireSupe
 app.get('/api/superadmin/client-requests', verifyToken, requireSuperadmin, async (req, res) => {
   try {
     const status = String(req.query.status || 'pending').trim().toLowerCase();
-    let sql = `SELECT c.id, c.full_name, c.email, c.phone, c.city, c.goal_focus, c.message, c.heard_about,
+    let sql = `SELECT c.id, c.full_name, c.email, c.phone, c.city, c.goal_focus, c.training_format, c.message, c.heard_about,
       c.status, c.assigned_trainer_id, c.created_at, c.reviewed_at, c.reviewed_by,
       t.first_name AS trainer_first_name, t.last_name AS trainer_last_name, t.email AS trainer_email
       FROM client_requests c

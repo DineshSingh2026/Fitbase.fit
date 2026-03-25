@@ -56,6 +56,7 @@ export default function FitBaseLandingPage() {
     phone: "",
     city: "",
     goal_focus: "",
+    training_format: "",
     message: "",
     heard_about: ""
   });
@@ -1703,6 +1704,7 @@ export default function FitBaseLandingPage() {
                       phone: clientForm.phone.trim(),
                       city: clientForm.city.trim(),
                       goal_focus: clientForm.goal_focus.trim(),
+                      training_format: clientForm.training_format.trim(),
                       message: clientForm.message.trim(),
                       heard_about: clientForm.heard_about.trim()
                     })
@@ -1767,6 +1769,24 @@ export default function FitBaseLandingPage() {
                 <option value="Performance / sport">Performance / sport</option>
                 <option value="General health">General health</option>
                 <option value="Other">Other</option>
+              </select>
+              <select
+                required
+                value={clientForm.training_format}
+                onChange={(ev) => setClientForm((p) => ({ ...p, training_format: ev.target.value }))}
+                style={{
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: 12,
+                  background: "var(--bg-card)",
+                  color: "var(--text-primary)",
+                  gridColumn: "1 / -1",
+                  cursor: "pointer"
+                }}
+              >
+                <option value="">Preferred coaching format</option>
+                <option value="Remote coaching (virtual sessions)">Remote coaching (virtual sessions)</option>
+                <option value="In-person coaching (gym or studio)">In-person coaching (gym or studio)</option>
               </select>
               <textarea
                 placeholder="What are you looking for in coaching? (experience, timeline, constraints)"

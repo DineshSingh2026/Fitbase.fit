@@ -518,6 +518,7 @@ export class SuperadminController {
         phone text DEFAULT '',
         city text DEFAULT '',
         goal_focus text DEFAULT '',
+        training_format text DEFAULT '',
         message text DEFAULT '',
         heard_about text DEFAULT '',
         status text NOT NULL DEFAULT 'pending',
@@ -536,6 +537,7 @@ export class SuperadminController {
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS goal_focus text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS message text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS heard_about text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS training_format text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS assigned_trainer_id text`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
@@ -547,7 +549,7 @@ export class SuperadminController {
     try {
       await this.ensureClientRequestsTable();
       const status = String(req.query?.status || "pending").trim().toLowerCase();
-      let sql = `SELECT c.id, c.full_name, c.email, c.phone, c.city, c.goal_focus, c.message, c.heard_about,
+      let sql = `SELECT c.id, c.full_name, c.email, c.phone, c.city, c.goal_focus, c.training_format, c.message, c.heard_about,
           c.status, c.assigned_trainer_id, c.created_at, c.reviewed_at, c.reviewed_by,
           t.first_name AS trainer_first_name, t.last_name AS trainer_last_name, t.email AS trainer_email
         FROM client_requests c

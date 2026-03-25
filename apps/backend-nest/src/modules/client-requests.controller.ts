@@ -17,6 +17,7 @@ export class ClientRequestsController {
         phone text DEFAULT '',
         city text DEFAULT '',
         goal_focus text DEFAULT '',
+        training_format text DEFAULT '',
         message text DEFAULT '',
         heard_about text DEFAULT '',
         status text NOT NULL DEFAULT 'pending',
@@ -35,6 +36,7 @@ export class ClientRequestsController {
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS goal_focus text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS message text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS heard_about text DEFAULT ''`);
+    await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS training_format text DEFAULT ''`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS assigned_trainer_id text`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
     await this.pool.query(`ALTER TABLE client_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
@@ -49,6 +51,7 @@ export class ClientRequestsController {
       phone?: string;
       city?: string;
       goal_focus?: string;
+      training_format?: string;
       message?: string;
       heard_about?: string;
     },
@@ -62,6 +65,10 @@ export class ClientRequestsController {
       const emailNorm = String(body?.email || "").trim().toLowerCase();
       if (!name || !emailNorm) {
         return res.status(400).json({ error: "Full name and email are required" });
+      }
+      const trainingFormat = String(body?.training_format || "").trim();
+      if (!trainingFormat) {
+        return res.status(400).json({ error: "Please select your preferred coaching format" });
       }
 
       const existingUser = await this.pool.query(
@@ -85,8 +92,8 @@ export class ClientRequestsController {
       }
 
       await this.pool.query(
-        `INSERT INTO client_requests (id, full_name, email, phone, city, goal_focus, message, heard_about, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
+        `INSERT INTO client_requests (id, full_name, email, phone, city, goal_focus, training_format, message, heard_about, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')`,
         [
           randomUUID(),
           name,
@@ -94,6 +101,7 @@ export class ClientRequestsController {
           String(body?.phone || "").trim(),
           String(body?.city || "").trim(),
           String(body?.goal_focus || "").trim(),
+          trainingFormat,
           String(body?.message || "").trim(),
           String(body?.heard_about || "").trim()
         ]

@@ -179,7 +179,7 @@ const PERF_INSIGHT_TYPE_LABELS: Record<string, string> = {
   messages: "Message"
 };
 
-/** BodyBank admin insights tab: same card order as `loadPerformanceInsights` in public/index.html */
+/** FitBase admin insights tab: same card order as `loadPerformanceInsights` in public/index.html */
 const BB_PERF_INSIGHT_CARD_KEYS = [
   "users_approved",
   "workouts",
@@ -309,6 +309,28 @@ function getSession(): Session | null {
     return s;
   } catch {
     return null;
+  }
+}
+
+const FITBASE_INBOX_FLOOR_PREFIX = "fitbase_inbox_floor_";
+
+function readInboxShowAfterMs(userId: string): number {
+  if (typeof window === "undefined" || !userId) return 0;
+  try {
+    const v = localStorage.getItem(FITBASE_INBOX_FLOOR_PREFIX + userId);
+    const n = v ? parseInt(v, 10) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeInboxShowAfterMs(userId: string, ms: number) {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.setItem(FITBASE_INBOX_FLOOR_PREFIX + userId, String(ms));
+  } catch {
+    /* ignore */
   }
 }
 
@@ -868,19 +890,66 @@ export default function DashboardPage() {
 
   const loadInbox = useCallback(async () => {
     if (!session?.token) return;
+    const uid = String(session?.user?.id ?? "").trim();
     setInboxLoading(true);
     try {
       const r = await fetch(`${apiBase}/api/notifications`, {
         headers: { Authorization: `Bearer ${session.token}` }
       });
       const data = await r.json().catch(() => []);
-      setInboxItems(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      const floor = uid ? readInboxShowAfterMs(uid) : 0;
+      const filtered =
+        floor > 0
+          ? list.filter((n: InboxNotification) => {
+              const t = new Date(String(n.time ?? "")).getTime();
+              if (!Number.isFinite(t)) return true;
+              return t > floor;
+            })
+          : list;
+      setInboxItems(filtered);
     } catch {
       setInboxItems([]);
     } finally {
       setInboxLoading(false);
     }
-  }, [session?.token, apiBase]);
+  }, [session?.token, session?.user?.id, apiBase]);
+
+  const clearInboxNotifications = useCallback(async () => {
+    if (!session?.token) return;
+    const uid = String(session?.user?.id ?? "").trim();
+    if (!uid) return;
+    const snapshot = inboxItems.slice();
+    let floor = Date.now();
+    for (const n of snapshot) {
+      const t = new Date(String(n.time ?? "")).getTime();
+      if (Number.isFinite(t)) floor = Math.max(floor, t);
+    }
+    writeInboxShowAfterMs(uid, floor);
+    setInboxItems([]);
+
+    if (role === "user") {
+      const headers = { Authorization: `Bearer ${session.token}` };
+      try {
+        await fetch(`${apiBase}/api/inbox`, { method: "DELETE", headers });
+      } catch {
+        /* ignore */
+      }
+      const programIds = snapshot
+        .map((n) => String(n.id || ""))
+        .filter((id) => id.startsWith("program-"))
+        .map((id) => id.slice("program-".length))
+        .filter(Boolean);
+      await Promise.all(
+        programIds.map((rawId) =>
+          fetch(`${apiBase}/api/me/program-assignments/${encodeURIComponent(rawId)}/seen`, {
+            method: "POST",
+            headers
+          }).catch(() => null)
+        )
+      );
+    }
+  }, [session?.token, session?.user?.id, apiBase, role, inboxItems]);
 
   const loadCampaigns = useCallback(async () => {
     if (!session?.token) return;
@@ -3096,7 +3165,11 @@ export default function DashboardPage() {
         .bb-staff-detail-btn--danger:hover{border-color:var(--red)}
         .bb-header-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:2px 6px;font-size:10px;font-weight:700;line-height:1.15;min-width:18px;box-sizing:border-box;text-align:center;display:inline-flex;align-items:center;justify-content:center}
         .bb-notif-wrap{position:relative}
-        .bb-notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 28px));max-height:min(420px,70vh);overflow:auto;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:50;padding:10px 0}
+        .bb-notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 28px));max-height:min(420px,70vh);overflow:auto;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:50;padding:0 0 10px}
+        .bb-notif-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 10px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary)}
+        .bb-notif-clear{margin:0;border:none;background:transparent;color:var(--accent);font:inherit;font-size:12px;font-weight:600;letter-spacing:normal;text-transform:none;cursor:pointer;padding:4px 8px;border-radius:8px;white-space:nowrap}
+        .bb-notif-clear:hover{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+        .bb-notif-clear:disabled{opacity:.5;cursor:not-allowed}
         /* Mobile: wide panel + right:0 on ~42px bell wrap drew the menu across the full header (over logo/hamburger). Anchor to header + safe insets instead. */
         @media(max-width:640px){
           .bb-notif-wrap{position:static}
@@ -3631,6 +3704,23 @@ export default function DashboardPage() {
             </button>
             {notifOpen ? (
               <div className="bb-notif-panel" role="menu">
+                <div className="bb-notif-panel-head">
+                  <span>Notifications</span>
+                  {inboxItems.length > 0 ? (
+                    <button
+                      type="button"
+                      className="bb-notif-clear"
+                      disabled={inboxLoading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void clearInboxNotifications();
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  ) : null}
+                </div>
                 {inboxLoading && inboxItems.length === 0 ? (
                   <p className="bb-notif-empty">Loading…</p>
                 ) : inboxItems.length === 0 ? (
@@ -4428,7 +4518,12 @@ export default function DashboardPage() {
                                       </span>
                                     </div>
                                     <p className="bb-list-row-sub">
-                                      {[c.phone && `Phone: ${c.phone}`, c.city && `City: ${c.city}`, c.goal_focus && `Goal: ${c.goal_focus}`]
+                                      {[
+                                        c.phone && `Phone: ${c.phone}`,
+                                        c.city && `City: ${c.city}`,
+                                        c.goal_focus && `Goal: ${c.goal_focus}`,
+                                        c.training_format && `Format: ${c.training_format}`
+                                      ]
                                         .filter(Boolean)
                                         .join(" · ") || "—"}
                                     </p>
@@ -4770,6 +4865,14 @@ export default function DashboardPage() {
                       onClick: () => {
                         goTab("clients");
                         setTrainerClientsView("addClient");
+                      }
+                    },
+                    {
+                      label: "Invite link",
+                      icon: String.fromCodePoint(0x1f517),
+                      onClick: () => {
+                        goTab("clients");
+                        setTrainerClientsView("hub");
                       }
                     },
                     {
@@ -5934,7 +6037,7 @@ export default function DashboardPage() {
                     <div className="bb-panel" style={{ marginBottom: 14 }}>
                       <span className="bb-inline-label">PART-2 LINK FOR CLIENTS</span>
                       <p className="bb-list-row-sub" style={{ marginTop: 6, marginBottom: 10, lineHeight: 1.45 }}>
-                        Share this URL with clients so they can open and submit the Part-2 questionnaire (same as BodyBank).
+                        Share this URL with clients so they can open and submit the Part-2 questionnaire.
                       </p>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
                         <input
@@ -6233,7 +6336,7 @@ export default function DashboardPage() {
             <div className="bb-panel">
               <span className="bb-inline-label">WORKOUT LOGS · {workouts.length}</span>
               <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
-                Filters match BodyBank: date range, search (name, email, workout, notes), Apply / Clear, and CSV export.
+                Date range, search (name, email, workout, notes), Apply / Clear, and CSV export.
               </p>
               <AdminListFiltersBar
                 filter={trainerListFilters.workouts}
