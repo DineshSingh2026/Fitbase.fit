@@ -84,6 +84,17 @@ export default function FitBaseLandingPage() {
 
   const sectionBase: React.CSSProperties = { maxWidth: 1180, margin: "0 auto" };
 
+  const socialProofTickerItems: { emoji: string; text: string }[] = [
+    { emoji: "💪", text: "Ravi S. · Mumbai just completed Week 4 check-in" },
+    { emoji: "✅", text: "Pooja T. · Bangalore hit her 12-week fat loss goal" },
+    { emoji: "📋", text: "Coach Mehta onboarded 3 new clients today" },
+    { emoji: "🔥", text: "Deepak R. logged his 6th consecutive check-in streak" },
+    { emoji: "📈", text: "Coach Ananya's client down 3.2kg this month" },
+    { emoji: "✅", text: "Trainer Kiran crossed 30 active clients" },
+    { emoji: "💪", text: "Suresh M. · Delhi completed Sunday audit — Week 8" },
+    { emoji: "🔥", text: "Preethi R. hit protein target 14 days in a row" }
+  ];
+
   return (
     <main style={{ background: "var(--bg-primary)", color: "var(--text-primary)" }}>
       <style>{`
@@ -96,9 +107,7 @@ export default function FitBaseLandingPage() {
         a[href="#dashboard"]:hover{border-color:var(--accent)!important}
         .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
         .reveal.is-visible{opacity:1;transform:translateY(0)}
-        .float-card{animation:floatY 4s ease-in-out infinite}
         .pulse-dot{animation:pulseDot 2s ease-in-out infinite;background:var(--accent)!important}
-        @keyframes floatY{0%{transform:translateY(0)}50%{transform:translateY(-8px)}100%{transform:translateY(0)}}
         @keyframes pulseDot{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}
         @media (max-width:860px){
           .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
@@ -110,22 +119,47 @@ export default function FitBaseLandingPage() {
         @media (min-width:861px){
           .mobile-login{display:none !important}
         }
-        .fitbase-device-shot{
-          width:100%;
-          height:auto;
-          display:block;
-          object-fit:contain;
-          object-position:center top;
-          -webkit-user-select:none;
-          user-select:none;
+        .fb-ticker-wrap{height:44px;overflow:hidden;background:var(--bg-surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);width:100vw;margin-left:calc(50% - 50vw);position:relative}
+        .fb-ticker-track{display:flex;width:max-content;align-items:center;animation:fbTicker 30s linear infinite}
+        .fb-ticker-set{display:flex;align-items:center;gap:56px;flex-shrink:0;height:44px;padding-right:56px}
+        .fb-ticker-item{font-size:13px;color:var(--text-secondary);white-space:nowrap;line-height:44px}
+        .fb-ticker-accent{color:var(--accent)}
+        @keyframes fbTicker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .fb-trainer-wins-band{background:#0f1f3d;padding:52px 48px;box-sizing:border-box}
+        @media(max-width:860px){.fb-trainer-wins-band{padding:40px max(20px, env(safe-area-inset-left, 0px))}}
+        .fb-wins-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;max-width:1180px;margin:0 auto;text-align:center}
+        .fb-wins-stat{padding:0 20px;border-left:1px solid rgba(255,255,255,0.08)}
+        .fb-wins-stat:first-child{border-left:none;padding-left:0}
+        .fb-wins-stat:last-child{padding-right:0}
+        @media(max-width:860px){
+          .fb-wins-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+          .fb-wins-stat{border-left:none;padding:24px 16px;border-top:1px solid rgba(255,255,255,0.08)}
+          .fb-wins-stat:nth-child(1),.fb-wins-stat:nth-child(2){border-top:none}
+          .fb-wins-stat:nth-child(odd):not(:last-child){border-right:1px solid rgba(255,255,255,0.08)}
+          .fb-wins-stat:last-child{grid-column:1 / -1;border-right:none;border-top:1px solid rgba(255,255,255,0.08)}
         }
-        .fitbase-device-shot--hero,.fitbase-device-shot--portal{
-          max-width:min(400px, 100%);
-          margin-left:auto;
-          margin-right:auto;
+        .fb-ba-table{width:100%;border-collapse:collapse}
+        .fb-ba-table th{text-align:left;font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:14px 24px}
+        .fb-ba-table td{font-size:14px;padding:16px 24px;vertical-align:top}
+        .fb-ba-row-a td{background:var(--bg-primary)}
+        .fb-ba-row-b td{background:var(--bg-surface)}
+        .landing-ghost-cta{display:inline-block;margin:32px auto 0;padding:12px 22px;border:1px solid var(--accent-border);border-radius:10px;color:var(--olive);font-weight:600;font-size:14px;text-decoration:none;transition:border-color .2s ease,background .2s ease}
+        .landing-ghost-cta:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+        .fb-case-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+        @media(max-width:860px){.fb-case-grid{grid-template-columns:1fr}}
+        .fb-case-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:32px 28px;box-shadow:var(--shadow-sm);transition:border-color .2s ease,box-shadow .2s ease}
+        .fb-case-card:hover{border-color:var(--accent-border);box-shadow:var(--shadow-md)}
+        .apply-urgency-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:14px 20px;margin-bottom:20px}
+        @media(max-width:860px){
+          .apply-urgency-bar{flex-direction:column;align-items:stretch}
+          .apply-urgency-left{flex-direction:column;align-items:flex-start;gap:8px}
         }
-        .fitbase-device-shot--grid{
-          max-width:100%;
+        .apply-urgency-left{display:flex;flex-wrap:wrap;align-items:center;gap:8px 0;font-size:12px;color:var(--text-secondary)}
+        .apply-urgency-sep{color:var(--text-muted);padding:0 10px}
+        @media(max-width:860px){.apply-urgency-sep{display:none}}
+        .apply-urgency-badge{align-self:center;background:var(--accent);color:#fff;font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;white-space:nowrap}
+        @media(max-width:860px){
+          .fb-ba-section,.fb-case-studies-section{padding-top:64px!important;padding-bottom:64px!important}
         }
       `}</style>
 
@@ -199,7 +233,7 @@ export default function FitBaseLandingPage() {
 
       {/* 2. HERO */}
       <section className="pad hero" style={{ padding: "110px 36px 80px", background: "var(--bg-primary)" }}>
-        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 30, alignItems: "center" }}>
+        <div style={{ ...sectionBase, maxWidth: 720 }}>
           <div className="reveal" data-reveal>
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 999, background: "var(--bg-card)", border: "1px solid var(--border)", marginBottom: 16 }}>
               <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", display: "inline-block" }} />
@@ -248,40 +282,40 @@ export default function FitBaseLandingPage() {
                   fontWeight: 600
                 }}
               >
-                See the Dashboard
+                Explore the platform
               </a>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 24 }}>
+            <div className="stack-3" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12, marginTop: 28 }}>
               {["500+ Active Trainers", "12K+ Clients Managed", "4.9/5 Platform Rating"].map((t) => (
-                <div key={t} style={{ padding: "12px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13 }}>{t}</div>
+                <div key={t} style={{ padding: "14px 0", borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>
+                  {t}
+                </div>
               ))}
             </div>
           </div>
-          <div className="reveal" data-reveal style={{ position: "relative" }}>
-            <div style={{ border: "1px solid var(--border)", borderRadius: 18, background: "var(--bg-card)", overflow: "hidden", boxShadow: "var(--shadow-lg)" }}>
-              <div style={{ display: "flex", gap: 8, padding: "12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
-              </div>
-              <img
-                className="fitbase-device-shot fitbase-device-shot--hero"
-                src="/img/dashboard_ios.png"
-                alt="FitBase trainer dashboard on mobile"
-                width={800}
-                height={1736}
-                loading="eager"
-                decoding="async"
-                sizes="(max-width: 860px) 92vw, 400px"
-              />
+        </div>
+        <div className="fb-ticker-wrap" role="region" aria-label="Recent platform activity">
+          <div className="fb-ticker-track">
+            <div className="fb-ticker-set">
+              {socialProofTickerItems.map((item, idx) => (
+                <span key={`a-${idx}`} className="fb-ticker-item">
+                  <span className="fb-ticker-accent">{item.emoji}</span> {item.text}
+                </span>
+              ))}
             </div>
-            <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "var(--shadow-md)" }}>
-              Client check-in logged ✓<br />94% weekly compliance
-            </div>
-            <div className="float-card" style={{ position: "absolute", bottom: 22, right: -8, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, boxShadow: "var(--shadow-md)" }}>
-              3× Revenue growth
+            <div className="fb-ticker-set" aria-hidden="true">
+              {socialProofTickerItems.map((item, idx) => (
+                <span key={`b-${idx}`} className="fb-ticker-item">
+                  <span className="fb-ticker-accent">{item.emoji}</span> {item.text}
+                </span>
+              ))}
             </div>
           </div>
+        </div>
+        <div style={{ maxWidth: 720, margin: "0 auto", width: "100%" }}>
+          <p style={{ margin: "20px 0 0", fontSize: 13, color: "var(--text-secondary)", letterSpacing: "0.04em" }}>
+            Stronger check-in discipline · Clearer client outcomes · Room to scale your practice
+          </p>
         </div>
       </section>
 
@@ -353,31 +387,97 @@ export default function FitBaseLandingPage() {
         </div>
       </section>
 
+      <section className="fb-trainer-wins-band" aria-label="Trainer results">
+        <div className="fb-wins-grid">
+          {[
+            { n: "₹2.4L+", l1: "avg monthly revenue", l2: "for Professional plan trainers" },
+            { n: "28 days", l1: "fastest time", l2: "to reach 20 active clients" },
+            { n: "91%", l1: "avg check-in rate", l2: "across all FitBase trainers" },
+            { n: "3×", l1: "avg revenue growth", l2: "within first 6 months" },
+            { n: "48hrs", l1: "avg time", l2: "to onboard first 10 clients" }
+          ].map((s) => (
+            <div key={s.n + s.l1} className="fb-wins-stat">
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 52, lineHeight: 1.05, color: "var(--accent)", marginBottom: 8 }}>{s.n}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 500, lineHeight: 1.35 }}>{s.l1}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 4, lineHeight: 1.4 }}>{s.l2}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* 5. DASHBOARD */}
       <section id="dashboard" className="pad" style={{ padding: "76px 36px", background: "var(--bg-surface)" }}>
-        <div className="stack-2" style={{ ...sectionBase, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "center" }}>
+        <div style={{ ...sectionBase, maxWidth: 720 }}>
           <div className="reveal" data-reveal>
             <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.2 }}>Dashboard</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 16px" }}>Your coaching command center</h2>
-            {["📋 Client Sign-ups & Onboarding", "✅ Daily & Weekly Check-Ins", "💬 Integrated Messaging", "📊 Analytics & Progress Tracking"].map((f) => (
-              <div key={f} style={{ padding: "12px 0", borderBottom: "1px solid var(--border)" }}>{f}</div>
-            ))}
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "8px 0 14px", lineHeight: 1.02 }}>
+              Your coaching command center
+            </h2>
+            <p style={{ margin: "0 0 28px", color: "var(--text-secondary)", lineHeight: 1.65, fontSize: 16, maxWidth: 560 }}>
+              One place to run sign-ups, forms, check-ins, messaging, and progress—without switching tools or losing context.
+            </p>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {[
+                ["Client sign-ups & onboarding", "Approve requests, assign coaches, and keep a clear pipeline."],
+                ["Daily & weekly check-ins", "Structured habits and reviews so nothing slips through."],
+                ["Integrated messaging", "Coach and client stay in one thread, tied to the same record."],
+                ["Analytics & progress tracking", "See trends and act before small issues become big ones."]
+              ].map(([title, desc]) => (
+                <li key={title} style={{ padding: "18px 0", borderBottom: "1px solid var(--border)" }}>
+                  <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{title}</div>
+                  <div style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.55 }}>{desc}</div>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="stack-2 reveal" data-reveal style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[
-              ["/img/dashboard.png", "Dashboard view"],
-              ["/img/forms.png", "Forms view"]
-            ].map(([src, label]) => (
-              <div key={label} style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-                <div style={{ display: "flex", gap: 8, padding: 10, borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
-                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
-                </div>
-                <img src={src} alt={label} style={{ width: "100%", display: "block" }} />
-                <div style={{ fontSize: 12, color: "var(--text-secondary)", padding: 10 }}>{label}</div>
-              </div>
-            ))}
+        </div>
+      </section>
+
+      <section className="pad fb-ba-section" style={{ paddingTop: 96, paddingBottom: 96, background: "var(--bg-surface)" }}>
+        <div style={{ ...sectionBase, textAlign: "center" }}>
+          <div className="reveal" data-reveal style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+            The difference
+          </div>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "0 0 32px", lineHeight: 1.02 }}>
+            Life before and after FitBase
+          </h2>
+          <div className="reveal" data-reveal style={{ overflowX: "auto", textAlign: "left" }}>
+            <table className="fb-ba-table">
+              <thead>
+                <tr>
+                  <th style={{ background: "rgba(224,82,82,0.06)", color: "#c0392b" }}>Before FitBase</th>
+                  <th style={{ background: "rgba(201,168,76,0.08)", color: "var(--accent)" }}>After FitBase</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["Chasing clients on WhatsApp", "Automated check-in reminders"],
+                  ["Separate Excel sheet per client", "One dashboard for all clients"],
+                  ["3+ hours a day on admin", "20 minutes a day on admin"],
+                  ["Clients drop off after 6 weeks", "40% higher client retention"],
+                  ["No idea who needs attention", "Red flags surface automatically"],
+                  ["Undercharging, overworking", "3× revenue in the same hours"],
+                  ["Programs shared over WhatsApp PDFs", "Programs assigned inside the app"],
+                  ["Guessing what's working", "Data-backed decisions every week"]
+                ].map(([before, after], i) => (
+                  <tr key={before} className={i % 2 === 0 ? "fb-ba-row-a" : "fb-ba-row-b"}>
+                    <td style={{ color: "var(--text-secondary)" }}>
+                      <span style={{ color: "#c0392b", marginRight: 8, fontWeight: 600 }}>✗</span>
+                      {before}
+                    </td>
+                    <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>
+                      <span style={{ color: "var(--green)", marginRight: 8, fontWeight: 600 }}>✓</span>
+                      {after}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <a href="#how" className="landing-ghost-cta">
+              See how it works →
+            </a>
           </div>
         </div>
       </section>
@@ -387,91 +487,44 @@ export default function FitBaseLandingPage() {
         id="client-portal"
         className="pad"
         style={{
-          padding: "88px 36px",
-          background: "radial-gradient(circle at 8% 12%, var(--accent-dim), transparent 44%), var(--bg-primary)"
+          padding: "76px 36px",
+          background: "var(--bg-primary)"
         }}
       >
-        <div
-          className="stack-2"
-          style={{
-            ...sectionBase,
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 30,
-            alignItems: "center",
-            background: "linear-gradient(165deg, color-mix(in srgb, var(--bg-card) 94%, transparent), color-mix(in srgb, var(--bg-surface) 88%, transparent))",
-            border: "1px solid var(--accent-border)",
-            borderRadius: 24,
-            padding: "24px",
-            boxShadow: "var(--shadow-lg)"
-          }}
-        >
-          <div
-            className="reveal"
-            data-reveal
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 18,
-              overflow: "hidden",
-              boxShadow: "var(--shadow-lg)"
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: "1px solid var(--border)", background: "var(--bg-surface)" }}>
-              <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--red)" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
-                <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: ".08em", textTransform: "uppercase" }}>Client Portal</div>
-            </div>
-            <img
-              className="fitbase-device-shot fitbase-device-shot--portal"
-              src="/img/checkin_ios.png"
-              alt="FitBase client check-in and progress on mobile"
-              width={800}
-              height={1736}
-              loading="lazy"
-              decoding="async"
-              sizes="(max-width: 860px) 92vw, 400px"
-            />
-          </div>
-          <div className="reveal" data-reveal style={{ position: "relative" }}>
+        <div style={{ ...sectionBase, maxWidth: 720 }}>
+          <div className="reveal" data-reveal>
             <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
-            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(46px,5.6vw,84px)", margin: "0 0 8px", lineHeight: .95, letterSpacing: .4 }}>
-              What your clients
-              <br />
-              actually see
+            <h2 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5.4vw,76px)", margin: "0 0 12px", lineHeight: 1.02, letterSpacing: 0.4 }}>
+              What your clients actually see
             </h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.7, maxWidth: 470, marginBottom: 20 }}>
-              Every client touchpoint feels premium and simple. Clean flows improve adherence, clarity, and trust in your coaching process.
+            <p style={{ color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.7, margin: "0 0 28px", maxWidth: 560 }}>
+              Every touchpoint stays clear and calm—so adherence, trust, and follow-through stay high.
             </p>
-            {[
-              ["Daily check-in form", "Log core daily metrics in under 2 minutes"],
-              ["Sunday progress review", "Structured weekly review with habits and outcomes"],
-              ["Program & workout access", "See assigned workouts and progress history"],
-              ["Trainer messaging", "Direct chat support inside the same portal"]
-            ].map(([title, desc]) => (
-              <div
-                key={title}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "20px 1fr",
-                  gap: 10,
-                  marginBottom: 10,
-                  padding: "10px 12px",
-                  borderRadius: 12,
-                  border: "1px solid var(--accent-border)",
-                  background: "linear-gradient(180deg, var(--bg-card), var(--bg-surface))"
-                }}
-              >
-                <span style={{ color: "var(--green)", fontWeight: 700, marginTop: 1 }}>✓</span>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{title}</div>
-                  <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>{desc}</div>
-                </div>
-              </div>
-            ))}
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {[
+                ["Daily check-in", "Core daily metrics in under two minutes."],
+                ["Sunday progress review", "Structured weekly review with habits and outcomes."],
+                ["Programs & workouts", "Assigned plans and history in one place."],
+                ["Trainer messaging", "Questions and support without leaving the portal."]
+              ].map(([title, desc]) => (
+                <li
+                  key={title}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "22px 1fr",
+                    gap: 12,
+                    padding: "16px 0",
+                    borderBottom: "1px solid var(--border)"
+                  }}
+                >
+                  <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 14, marginTop: 2 }}>✓</span>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 15 }}>{title}</div>
+                    <div style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.55, marginTop: 2 }}>{desc}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -592,6 +645,91 @@ export default function FitBaseLandingPage() {
             >
               Learn how it works
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section className="pad fb-case-studies-section" style={{ paddingTop: 96, paddingBottom: 96, background: "var(--bg-primary)" }}>
+        <div style={sectionBase}>
+          <div className="reveal" data-reveal style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 8 }}>
+            Case studies
+          </div>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: "0 0 12px", lineHeight: 1.02 }}>
+            Trainers already winning
+          </h2>
+          <p className="reveal" data-reveal style={{ margin: "0 0 32px", color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.65, maxWidth: 620 }}>
+            Real numbers from real coaches on FitBase. No fluff, no stock photos.
+          </p>
+          <div className="fb-case-grid">
+            {[
+              {
+                name: "Sneha Kulkarni",
+                loc: "Pune · Fat Loss & Body Recomp",
+                challenge: "Managing 22 clients across WhatsApp, Sheets, and a notes app.",
+                metrics: [
+                  ["Check-in compliance", "38%", "89%"],
+                  ["Clients retained past 3 months", "4", "14"],
+                  ["Admin time per day", "3.5 hrs", "45 mins"],
+                  ["Monthly revenue", "₹62,000", "₹1.4L"]
+                ],
+                quote: "I finally look like I run a real business."
+              },
+              {
+                name: "Vikram Iyer",
+                loc: "Chennai · Strength & Performance",
+                challenge: "Scaling past 15 clients felt impossible without dropping quality.",
+                metrics: [
+                  ["Active clients", "14", "38"],
+                  ["Weekly check-in rate", "52%", "93%"],
+                  ["Client complaints", "Weekly", "Zero"],
+                  ["Monthly revenue", "₹48,000", "₹1.9L"]
+                ],
+                quote: "FitBase is the reason I could scale without burning out."
+              },
+              {
+                name: "Meera Kapoor",
+                loc: "Hyderabad · Online Coaching",
+                challenge: "New trainer, no system, losing clients after week 4.",
+                metrics: [
+                  ["Client retention past 8 weeks", "30%", "78%"],
+                  ["Check-in streak (avg)", "3 days", "19 days"],
+                  ["Programs delivered on time", "60%", "100%"],
+                  ["Monthly revenue", "₹18,000", "₹74,000"]
+                ],
+                quote: "I went from nearly quitting to fully booked in 3 months."
+              }
+            ].map((card) => (
+              <div key={card.name} className="fb-case-card reveal" data-reveal>
+                <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>{card.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{card.loc}</div>
+                <div style={{ width: 32, height: 2, background: "var(--accent)", margin: "12px 0" }} />
+                <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 2, color: "var(--text-muted)", marginBottom: 6 }}>Challenge</div>
+                <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.55 }}>{card.challenge}</p>
+                {card.metrics.map(([label, oldV, newV]) => (
+                  <div key={label} style={{ marginBottom: 10, fontSize: 13, lineHeight: 1.45 }}>
+                    <span style={{ color: "var(--accent)", marginRight: 6 }}>→</span>
+                    <span style={{ color: "var(--text-secondary)" }}>{label}: </span>
+                    <span style={{ color: "var(--text-muted)", textDecoration: "line-through" }}>{oldV}</span>
+                    <span style={{ color: "var(--text-muted)", margin: "0 6px" }}>→</span>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>{newV}</span>
+                  </div>
+                ))}
+                <blockquote
+                  style={{
+                    margin: "20px 0 0",
+                    paddingLeft: 14,
+                    borderLeft: "2px solid var(--accent-border)",
+                    fontFamily: "'Instrument Serif',serif",
+                    fontStyle: "italic",
+                    fontSize: 15,
+                    color: "var(--text-secondary)",
+                    lineHeight: 1.5
+                  }}
+                >
+                  {card.quote}
+                </blockquote>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -965,12 +1103,28 @@ export default function FitBaseLandingPage() {
       {/* 12. APPLY FORM */}
       <section id="apply" ref={applyRef} className="pad" style={{ padding: "76px 36px", background: "var(--bg-primary)" }}>
         <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>Ready to run a serious coaching business?</h2>
+          <h2 className="reveal" data-reveal style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(42px,5vw,74px)", margin: 0 }}>
+            Apply for early access — limited spots this month
+          </h2>
+          <p className="reveal" data-reveal style={{ margin: "14px 0 0", color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.65, maxWidth: 640 }}>
+            We review every application personally. Serious coaches only. If approved, your credentials arrive within 24 hours.
+          </p>
           {!submitted ? (
-            <form
-              className="reveal stack-2"
-              data-reveal
-              onSubmit={async (e) => {
+            <>
+              <div className="reveal apply-urgency-bar" data-reveal style={{ marginTop: 22 }}>
+                <div className="apply-urgency-left">
+                  <span>⏱ Avg response: under 4 hours</span>
+                  <span className="apply-urgency-sep">·</span>
+                  <span>🔒 Every application reviewed personally</span>
+                  <span className="apply-urgency-sep">·</span>
+                  <span>👥 23 trainers approved last month</span>
+                </div>
+                <div className="apply-urgency-badge">12 spots left</div>
+              </div>
+              <form
+                className="reveal stack-2"
+                data-reveal
+                onSubmit={async (e) => {
                 e.preventDefault();
                 setApplyError("");
                 setApplySubmitting(true);
@@ -998,8 +1152,8 @@ export default function FitBaseLandingPage() {
                   setApplySubmitting(false);
                 }
               }}
-              style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
-            >
+                style={{ marginTop: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+              >
               <input
                 required
                 placeholder="Full Name"
@@ -1059,7 +1213,29 @@ export default function FitBaseLandingPage() {
               >
                 {applySubmitting ? "Submitting…" : "Submit Application →"}
               </button>
-            </form>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 16,
+                    justifyContent: "center",
+                    marginTop: 16
+                  }}
+                >
+                  {[
+                    ["🔒", "No credit card required"],
+                    ["✓", "Cancel anytime"],
+                    ["💬", "Setup support included"]
+                  ].map(([ic, lab]) => (
+                    <div key={lab} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-muted)" }}>
+                      <span aria-hidden>{ic}</span>
+                      <span>{lab}</span>
+                    </div>
+                  ))}
+                </div>
+              </form>
+            </>
           ) : (
             <div className="reveal" data-reveal style={{ marginTop: 14, background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 20, color: "var(--text-primary)" }}>
               <div style={{ color: "var(--green)", fontSize: 24 }}>✓</div>
