@@ -110,6 +110,23 @@ export default function FitBaseLandingPage() {
         @media (min-width:861px){
           .mobile-login{display:none !important}
         }
+        .fitbase-device-shot{
+          width:100%;
+          height:auto;
+          display:block;
+          object-fit:contain;
+          object-position:center top;
+          -webkit-user-select:none;
+          user-select:none;
+        }
+        .fitbase-device-shot--hero,.fitbase-device-shot--portal{
+          max-width:min(400px, 100%);
+          margin-left:auto;
+          margin-right:auto;
+        }
+        .fitbase-device-shot--grid{
+          max-width:100%;
+        }
       `}</style>
 
       {/* 1. FIXED NAV */}
@@ -247,7 +264,16 @@ export default function FitBaseLandingPage() {
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent-light)" }} />
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--green)" }} />
               </div>
-              <img src="/img/dashboard.png" alt="Dashboard" style={{ width: "100%", display: "block" }} />
+              <img
+                className="fitbase-device-shot fitbase-device-shot--hero"
+                src="/img/dashboard_ios.png"
+                alt="FitBase trainer dashboard on mobile"
+                width={800}
+                height={1736}
+                loading="eager"
+                decoding="async"
+                sizes="(max-width: 860px) 92vw, 400px"
+              />
             </div>
             <div className="float-card" style={{ position: "absolute", top: 24, left: -12, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px", fontSize: 12, maxWidth: 200, boxShadow: "var(--shadow-md)" }}>
               Client check-in logged ✓<br />94% weekly compliance
@@ -399,7 +425,16 @@ export default function FitBaseLandingPage() {
               </div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)", letterSpacing: ".08em", textTransform: "uppercase" }}>Client Portal</div>
             </div>
-            <img src="/img/checkin.png" alt="Client Portal" style={{ width: "100%", display: "block" }} />
+            <img
+              className="fitbase-device-shot fitbase-device-shot--portal"
+              src="/img/checkin_ios.png"
+              alt="FitBase client check-in and progress on mobile"
+              width={800}
+              height={1736}
+              loading="lazy"
+              decoding="async"
+              sizes="(max-width: 860px) 92vw, 400px"
+            />
           </div>
           <div className="reveal" data-reveal style={{ position: "relative" }}>
             <div style={{ color: "var(--text-secondary)", fontSize: 12, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Client Portal</div>
@@ -1044,6 +1079,69 @@ export default function FitBaseLandingPage() {
             ))}
           </div>
           <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>
+        </div>
+        <div
+          style={{
+            marginTop: 32,
+            padding: "clamp(32px, 6vw, 52px) max(20px, env(safe-area-inset-left, 0px)) clamp(40px, 7vw, 64px)",
+            paddingRight: "max(20px, env(safe-area-inset-right, 0px))",
+            background: "#0a0a0a",
+            borderTop: "1px solid color-mix(in srgb, var(--accent) 28%, transparent)",
+            textAlign: "center"
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 18px",
+              color: "rgba(255,255,255,0.55)",
+              fontSize: 11,
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              fontWeight: 600
+            }}
+          >
+            Co-powered by Bodybank.fit
+          </p>
+          <a
+            href="https://bodybank.fit"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-block", lineHeight: 0, borderRadius: 8 }}
+            aria-label="Visit Bodybank.fit"
+          >
+            <img
+              src="/img/Bodybank%20logo.png"
+              alt="Bodybank"
+              width={520}
+              height={120}
+              loading="lazy"
+              decoding="async"
+              style={{
+                height: "clamp(72px, 14vw, 120px)",
+                width: "auto",
+                maxWidth: "min(560px, 92vw)",
+                objectFit: "contain",
+                display: "block",
+                margin: "0 auto"
+              }}
+            />
+          </a>
+          <a
+            href="https://bodybank.fit"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-block",
+              marginTop: 16,
+              color: "var(--accent)",
+              fontSize: "clamp(15px, 2.5vw, 17px)",
+              fontWeight: 600,
+              textDecoration: "none",
+              letterSpacing: "0.04em"
+            }}
+          >
+            bodybank.fit
+          </a>
         </div>
       </footer>
     </main>

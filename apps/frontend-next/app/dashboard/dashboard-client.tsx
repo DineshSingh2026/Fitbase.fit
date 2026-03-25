@@ -3160,7 +3160,6 @@ export default function DashboardPage() {
         .bb-sa-roster-empty{position:relative;z-index:1;text-align:center;margin-top:28px;padding:52px 28px;border-radius:20px;border:1px dashed color-mix(in srgb,var(--accent) 30%,var(--border));background:rgb(var(--accent-rgb) / 0.045)}
         .bb-sa-roster-empty-line{width:56px;height:1px;margin:0 auto 18px;background:linear-gradient(90deg,transparent,rgb(var(--accent-rgb) / 0.65),transparent)}
         .bb-sa-roster-empty p{margin:0;font-size:15px;line-height:1.55;color:var(--text-secondary);max-width:32ch;margin-left:auto;margin-right:auto}
-        .bb-sa-home-page-h1{margin-bottom:4px;letter-spacing:4px}
         .bb-sa-home{margin-top:4px;margin-bottom:4px}
         .bb-sa-home-top-bento{display:grid;gap:12px;margin-bottom:10px}
         @media(min-width:880px){.bb-sa-home-top-bento{grid-template-columns:minmax(0,0.9fr) minmax(0,1.1fr);gap:14px;align-items:stretch}}
@@ -3765,35 +3764,33 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <h1
-              className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
-                role === "superadmin" && activeTab === "home" ? " bb-sa-home-page-h1" : ""
-              }`}
-            >
-              {activeTab === "home"
-                ? role === "superadmin"
-                  ? "SUPER ADMIN"
-                  : "DASHBOARD"
-                : activeTab === "forms"
-                  ? "FORMS"
-                  : activeTab === "programs" && isTrainer
-                    ? "PROGRAMS"
-                    : activeTab === "training"
-                      ? "TRAINING"
-                      : activeTab === "analytics"
-                        ? trainerAnalyticsSub === "insights"
-                          ? "PERFORMANCE INSIGHTS"
-                          : trainerAnalyticsSub === "campaigns"
-                            ? "CAMPAIGNS"
-                            : "ANALYTICS"
-                        : activeTab === "messages" && isStaff
-                          ? trainerMessagesView === "meetings"
-                            ? "MEETINGS"
-                            : "MESSAGES"
-                          : activeTab === "profile" && isTrainer
-                            ? "MY PROFILE"
-                            : activeTab.toUpperCase()}
-            </h1>
+            {!(role === "superadmin" && activeTab === "home") ? (
+              <h1
+                className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}`}
+              >
+                {activeTab === "home"
+                  ? "DASHBOARD"
+                  : activeTab === "forms"
+                    ? "FORMS"
+                    : activeTab === "programs" && isTrainer
+                      ? "PROGRAMS"
+                      : activeTab === "training"
+                        ? "TRAINING"
+                        : activeTab === "analytics"
+                          ? trainerAnalyticsSub === "insights"
+                            ? "PERFORMANCE INSIGHTS"
+                            : trainerAnalyticsSub === "campaigns"
+                              ? "CAMPAIGNS"
+                              : "ANALYTICS"
+                          : activeTab === "messages" && isStaff
+                            ? trainerMessagesView === "meetings"
+                              ? "MEETINGS"
+                              : "MESSAGES"
+                            : activeTab === "profile" && isTrainer
+                              ? "MY PROFILE"
+                              : activeTab.toUpperCase()}
+              </h1>
+            ) : null}
             {isTrainer && activeTab === "profile" ? (
               <p className="bb-trainer-profile-page-sub">Keep your personal and contact details up to date.</p>
             ) : null}
@@ -4083,7 +4080,7 @@ export default function DashboardPage() {
                   <div className="bb-sa-home-top-bento">
                     <div className="bb-sa-home-hero">
                       <p className="bb-sa-home-kicker">Command suite</p>
-                      <h2 className="bb-sa-home-hero-title">Super admin</h2>
+                      <h1 className="bb-sa-home-hero-title">Super admin</h1>
                       <p className="bb-sa-home-hero-line">
                         Trainers, clients, onboarding queues, and live signals — distilled on one canvas.
                       </p>
