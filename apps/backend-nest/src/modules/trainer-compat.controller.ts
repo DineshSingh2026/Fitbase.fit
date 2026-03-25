@@ -6,6 +6,7 @@ import * as jwt from "jsonwebtoken";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { RolesGuard } from "./roles.guard";
 import { Roles } from "./roles.decorator";
+import { buildAdminUserProgressPayload } from "./admin-user-progress.util";
 
 @Controller("api")
 export class TrainerCompatController {
@@ -238,58 +239,8 @@ export class TrainerCompatController {
       if (!ok) return res.status(403).json({ error: "Access denied" });
     }
     try {
-      const userRow = await this.safeRows(
-        "SELECT COALESCE(suspended,false) AS suspended FROM users WHERE id = $1 LIMIT 1",
-        [userId]
-      );
-      const suspended = !!userRow[0]?.suspended;
-      const progressLogs = await this.safeRows(
-        "SELECT * FROM progress_logs WHERE user_id = $1 ORDER BY created_at ASC",
-        [userId]
-      );
-      const daily = await this.safeRows(
-        "SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = $1 ORDER BY checkin_date ASC",
-        [userId]
-      );
-      const workouts = await this.safeRows(
-        "SELECT created_at, duration_seconds FROM workout_logs WHERE user_id = $1 ORDER BY created_at ASC",
-        [userId]
-      );
-      const currentWeight = progressLogs.length
-        ? progressLogs.filter((x: any) => x.weight != null).slice(-1)[0]?.weight ?? null
-        : null;
-      const activeStreak = daily.length;
-      const workoutConsistencyPercent = progressLogs.length
-        ? ((workouts.length / progressLogs.length) * 100).toFixed(1)
-        : "0.0";
-      const logs = progressLogs.map((p: any) => ({
-        created_at: p.created_at,
-        weight: p.weight,
-        body_fat: p.body_fat,
-        calories_intake: p.calories_intake,
-        protein_intake: p.protein_intake,
-        workout_completed: !!p.workout_completed,
-        workout_type: p.workout_type,
-        strength_bench: p.strength_bench,
-        strength_squat: p.strength_squat,
-        strength_deadlift: p.strength_deadlift,
-        sleep_hours: p.sleep_hours,
-        water_intake: p.water_intake,
-        steps: null
-      }));
-      return res.json({
-        currentWeight,
-        weightChangePercent: null,
-        strengthGrowthPercent: null,
-        workoutConsistencyPercent,
-        activeStreak,
-        goalCompletionPercent: 0,
-        averageCalories: null,
-        averageSleep: null,
-        insights: [],
-        logs,
-        suspended
-      });
+      const data = await buildAdminUserProgressPayload(this.pool, userId);
+      return res.json(data);
     } catch (e: any) {
       return res.status(500).json({ error: e?.message || "Failed to load progress" });
     }
@@ -310,13 +261,15 @@ export class TrainerCompatController {
 
   @Get("progress-report")
   async progressReport(@Req() req: any, @Res() res: Response) {
+    if (!this.pool) return res.status(500).json({ error: "Database unavailable" });
     const token = String(req.query?.token || req.query?.t || "");
     const userId = this.verifyProgressReportToken(token);
     if (!userId) return res.status(401).json({ error: "Invalid or expired link" });
-    const rows = await this.safeRows("SELECT * FROM progress_logs WHERE user_id = $1 ORDER BY created_at ASC", [userId]);
-    return res.json({
-      currentWeight: rows.length ? rows.filter((x: any) => x.weight != null).slice(-1)[0]?.weight ?? null : null,
-      logs: rows
-    });
+    try {
+      const data = await buildAdminUserProgressPayload(this.pool, userId);
+      return res.json(data);
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || "Failed to load report" });
+    }
   }
 }

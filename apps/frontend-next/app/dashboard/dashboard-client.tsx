@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { getApiSiteBase } from "../../lib/site-url";
 import { FITBASE_SESSION_KEY, parseFitbaseSessionFromStorage, type FitbaseSession } from "../../lib/fitbase-session";
 
@@ -30,10 +31,186 @@ type InboxNotification = {
 
 type Session = FitbaseSession;
 
+const ClientProgressCharts = dynamic(
+  () => import("./client-progress-charts").then((m) => ({ default: m.ClientProgressCharts })),
+  { ssr: false, loading: () => <p className="bb-list-row-sub" style={{ marginTop: 8 }}>Loading charts…</p> }
+);
+
 function escapeCsvCell(val: unknown): string {
   const s = val == null ? "" : String(val);
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
+}
+
+function adminDetailText(v: unknown): ReactNode {
+  if (v == null || v === "") return "—";
+  return String(v);
+}
+
+function AdminDetailRow({ label, children }: { label: string; children: ReactNode }) {
+  const show = children == null || children === "" ? "—" : children;
+  return (
+    <div className="bb-form-view-row">
+      <span className="bb-fv-lbl">{label}</span>
+      <span className="bb-fv-val">{show}</span>
+    </div>
+  );
+}
+
+function AdminDetailBlock({ label, value }: { label: string; value: unknown }) {
+  const v = value == null || String(value).trim() === "" ? "—" : String(value);
+  return (
+    <div className="bb-form-view-block">
+      <div className="bb-fv-lbl">{label}</div>
+      <div className="bb-fv-blk">{v}</div>
+    </div>
+  );
+}
+
+function formatAdminCheckinDate(d: unknown): string {
+  if (d == null || d === "") return "—";
+  try {
+    const dt = new Date(String(d));
+    if (Number.isNaN(dt.getTime())) return String(d);
+    return dt.toLocaleDateString(undefined, { dateStyle: "full" });
+  } catch {
+    return "—";
+  }
+}
+
+const PERF_INSIGHT_LABELS: Record<string, string> = {
+  users_approved: "Approved users",
+  pending_requests: "Pending audits",
+  daily_checkins: "Daily check-ins",
+  workouts: "Workouts",
+  sunday_checkin: "Sunday check-in",
+  audit: "Body Audit",
+  part2: "Part-2",
+  meetings: "Meetings",
+  messages: "Messages"
+};
+
+function perfInsightsOverviewDetail(r: any): string {
+  const s = r._source || r.source;
+  if (s === "workouts")
+    return `${[r.first_name, r.last_name].filter(Boolean).join(" ").trim()} — ${r.workout_name || ""} (${r.duration_seconds != null ? Math.round(Number(r.duration_seconds) / 60) + " min" : "—"})`;
+  if (s === "sunday_checkin") return `${r.full_name || ""} — ${r.reply_email || ""}`;
+  if (s === "audit") return `${[r.first_name, r.last_name].filter(Boolean).join(" ").trim()} — ${r.email || ""}`;
+  if (s === "part2") return `${r.name || ""} — ${r.email || ""}`;
+  if (s === "meetings") return `${r.user_name || r.user_email || ""} — ${r.meeting_date || ""} ${r.time_slot || ""}`;
+  if (s === "messages")
+    return `${r.name || ""} — ${String(r.message || "").slice(0, 40)}${String(r.message || "").length > 40 ? "…" : ""}`;
+  return "";
+}
+
+const PERF_INSIGHT_TYPE_LABELS: Record<string, string> = {
+  workouts: "Workout",
+  sunday_checkin: "Sunday Check-in",
+  audit: "Body Audit",
+  part2: "Part-2",
+  meetings: "Meeting",
+  messages: "Message"
+};
+
+/** BodyBank admin insights tab: same card order as `loadPerformanceInsights` in public/index.html */
+const BB_PERF_INSIGHT_CARD_KEYS = [
+  "users_approved",
+  "workouts",
+  "sunday_checkin",
+  "audit",
+  "part2",
+  "meetings",
+  "messages"
+] as const;
+
+const CAMP_DAYS_ORDER = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "daily"] as const;
+
+function renderPerfInsightsTableBody(
+  source: string,
+  data: any[]
+): { head: string[]; rows: string[][] } {
+  const src = source.toLowerCase();
+  if (src === "all" || src === "overview") {
+    return {
+      head: ["Type", "Details", "Date"],
+      rows: data.map((r) => [
+        PERF_INSIGHT_TYPE_LABELS[r._source] || r._source || "—",
+        perfInsightsOverviewDetail(r) || "—",
+        (r._date || r.created_at) ? new Date(String(r._date || r.created_at)).toLocaleString() : "—"
+      ])
+    };
+  }
+  if (src === "workouts") {
+    return {
+      head: ["User", "Workout", "Duration", "Date"],
+      rows: data.map((r) => [
+        `${r.first_name || ""} ${r.last_name || ""}`.trim() || "—",
+        r.workout_name || "—",
+        r.duration_seconds != null ? `${Math.round(Number(r.duration_seconds) / 60)} min` : "—",
+        r.created_at ? new Date(String(r.created_at)).toLocaleString() : "—"
+      ])
+    };
+  }
+  if (src === "sunday_checkin") {
+    return {
+      head: ["Name", "Reply Email", "Plan", "Date"],
+      rows: data.map((r) => [
+        r.full_name || "—",
+        r.reply_email || "—",
+        r.plan || "—",
+        r.created_at ? new Date(String(r.created_at)).toLocaleString() : "—"
+      ])
+    };
+  }
+  if (src === "audit") {
+    return {
+      head: ["Name", "Email", "City", "Goals", "Date"],
+      rows: data.map((r) => [
+        `${r.first_name || ""} ${r.last_name || ""}`.trim() || "—",
+        r.email || "—",
+        r.city || "—",
+        String(r.goals || "").slice(0, 50),
+        r.created_at ? new Date(String(r.created_at)).toLocaleString() : "—"
+      ])
+    };
+  }
+  if (src === "part2") {
+    return {
+      head: ["Name", "Email", "Activity", "Date"],
+      rows: data.map((r) => [
+        r.name || "—",
+        r.email || "—",
+        r.activity_level || "—",
+        r.created_at ? new Date(String(r.created_at)).toLocaleString() : "—"
+      ])
+    };
+  }
+  if (src === "meetings") {
+    return {
+      head: ["User", "Email", "Date", "Time"],
+      rows: data.map((r) => [
+        r.user_name || "—",
+        r.user_email || "—",
+        r.meeting_date || "—",
+        r.time_slot || "—"
+      ])
+    };
+  }
+  if (src === "messages") {
+    return {
+      head: ["Name", "Email", "Message", "Date"],
+      rows: data.map((r) => {
+        const msg = String(r.message || "");
+        return [
+          r.name || "—",
+          r.email || "—",
+          msg.slice(0, 80) + (msg.length > 80 ? "…" : ""),
+          r.created_at ? new Date(String(r.created_at)).toLocaleString() : "—"
+        ];
+      })
+    };
+  }
+  return { head: ["Type", "Details", "Date"], rows: [] };
 }
 
 function downloadCsvFile(filename: string, columns: { key: string; header: string }[], rows: Record<string, unknown>[]) {
@@ -127,7 +304,9 @@ export default function DashboardPage() {
   const [selectedWorkout, setSelectedWorkout] = useState<any | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
   const [clientProgress, setClientProgress] = useState<any | null>(null);
-  const [clientProgressLink, setClientProgressLink] = useState("");
+  const [clientProgressShareUrl, setClientProgressShareUrl] = useState("");
+  const [clientProgressShareBusy, setClientProgressShareBusy] = useState(false);
+  const [clientProgressUserBusy, setClientProgressUserBusy] = useState(false);
   const [newClient, setNewClient] = useState({
     first_name: "",
     last_name: "",
@@ -144,7 +323,7 @@ export default function DashboardPage() {
   const [todayLabel, setTodayLabel] = useState("");
   const [trainerClientsView, setTrainerClientsView] = useState<"hub" | "roster" | "pending" | "progress" | "addClient">("hub");
   const [trainerFormsView, setTrainerFormsView] = useState<"hub" | "part2" | "sunday" | "daily">("hub");
-  const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads">("hub");
+  const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads" | "meetings">("hub");
   const [sundayCheckinsApi, setSundayCheckinsApi] = useState<any[]>([]);
   const [trainerRequests, setTrainerRequests] = useState<any[]>([]);
   const [clientLeadRequests, setClientLeadRequests] = useState<any[]>([]);
@@ -169,8 +348,27 @@ export default function DashboardPage() {
   const [trainerMeetingTime, setTrainerMeetingTime] = useState("");
   const [trainerMeetingSubmitting, setTrainerMeetingSubmitting] = useState(false);
   const [staffAiOpen, setStaffAiOpen] = useState(false);
-  const [perfInsights, setPerfInsights] = useState<{ summary?: Record<string, number>; data?: any[] } | null>(null);
+  const [perfInsights, setPerfInsights] = useState<{ summary?: Record<string, number>; data?: any[]; source?: string } | null>(null);
   const [perfInsightsLoading, setPerfInsightsLoading] = useState(false);
+  const [perfInSource, setPerfInSource] = useState("all");
+  const [perfInFrom, setPerfInFrom] = useState("");
+  const [perfInTo, setPerfInTo] = useState("");
+  const [perfInUserId, setPerfInUserId] = useState("");
+  const [perfInsightsApplyTick, setPerfInsightsApplyTick] = useState(0);
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [campaignsErr, setCampaignsErr] = useState("");
+  const [campMsg, setCampMsg] = useState("");
+  const [campNewMessage, setCampNewMessage] = useState("");
+  const [campNewDay, setCampNewDay] = useState("");
+  const [campNewTime, setCampNewTime] = useState("");
+  const [campBroadcastMsg, setCampBroadcastMsg] = useState("");
+  const [campAiInput, setCampAiInput] = useState("");
+  const [campAiReply, setCampAiReply] = useState("");
+  const [campAiSending, setCampAiSending] = useState(false);
+  const [campBusyId, setCampBusyId] = useState("");
+  const [campAdding, setCampAdding] = useState(false);
+  const [campBroadcasting, setCampBroadcasting] = useState(false);
   const [programCatalog, setProgramCatalog] = useState<any[]>([]);
   const [assignUserId, setAssignUserId] = useState("");
   const [assignProgramId, setAssignProgramId] = useState("");
@@ -256,6 +454,29 @@ export default function DashboardPage() {
 
   const isStaff = role !== "user";
   const isTrainer = role === "admin";
+
+  const part2ClientFormUrl = useMemo(() => `${String(apiBase).replace(/\/+$/, "")}/part2-form.html`, [apiBase]);
+  const [part2LinkCopied, setPart2LinkCopied] = useState(false);
+  const copyPart2ClientLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(part2ClientFormUrl);
+      setPart2LinkCopied(true);
+      window.setTimeout(() => setPart2LinkCopied(false), 2000);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = part2ClientFormUrl;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setPart2LinkCopied(true);
+        window.setTimeout(() => setPart2LinkCopied(false), 2000);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [part2ClientFormUrl]);
 
   const activeClients = useMemo(() => {
     return clients.filter((u: any) => String(u.approval_status || "").toLowerCase() !== "pending");
@@ -518,6 +739,44 @@ export default function DashboardPage() {
     }
   }, [session?.token, apiBase]);
 
+  const loadCampaigns = useCallback(async () => {
+    if (!session?.token) return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    setCampaignsLoading(true);
+    setCampaignsErr("");
+    try {
+      const r = await fetch(`${apiBase}/api/campaigns`, { headers });
+      const d = await r.json().catch(() => null);
+      if (!r.ok) {
+        setCampaignsErr(typeof d?.error === "string" ? d.error : "Failed to load campaigns");
+        setCampaigns([]);
+        return;
+      }
+      setCampaigns(Array.isArray(d) ? d : []);
+    } catch {
+      setCampaignsErr("Failed to load campaigns");
+      setCampaigns([]);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  }, [session?.token, apiBase]);
+
+  useEffect(() => {
+    const wantCampaigns =
+      (isTrainer && activeTab === "analytics" && trainerAnalyticsSub === "campaigns") ||
+      (isStaff && staffOverlay === "campaigns");
+    if (!session?.token || !wantCampaigns || !isStaff) return;
+    void loadCampaigns();
+  }, [
+    session?.token,
+    isStaff,
+    isTrainer,
+    activeTab,
+    trainerAnalyticsSub,
+    staffOverlay,
+    loadCampaigns
+  ]);
+
   useEffect(() => {
     if (!session?.token) return;
     void loadInbox();
@@ -734,16 +993,41 @@ export default function DashboardPage() {
       (isTrainer && activeTab === "analytics" && trainerAnalyticsSub === "insights");
     if (!session?.token || !wantInsights || !isStaff) return;
     const headers = { Authorization: `Bearer ${session.token}` };
+    const params = new URLSearchParams();
+    params.set("source", perfInSource);
+    if (perfInFrom) params.set("from", perfInFrom);
+    if (perfInTo) params.set("to", perfInTo);
+    if (perfInUserId) params.set("user_id", perfInUserId);
     setPerfInsightsLoading(true);
-    fetch(`${apiBase}/api/admin/performance-insights`, { headers })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.error) setPerfInsights(null);
-        else setPerfInsights({ summary: d?.summary || {}, data: Array.isArray(d?.data) ? d.data : [] });
+    fetch(`${apiBase}/api/admin/performance-insights?${params.toString()}`, { headers })
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || (d && typeof d === "object" && (d as { error?: string }).error)) {
+          setPerfInsights(null);
+          return;
+        }
+        setPerfInsights({
+          summary: (d as { summary?: Record<string, number> }).summary || {},
+          data: Array.isArray((d as { data?: unknown }).data) ? (d as { data: any[] }).data : [],
+          source: String((d as { filters?: { source?: string } }).filters?.source || perfInSource || "all")
+        });
       })
       .catch(() => setPerfInsights(null))
       .finally(() => setPerfInsightsLoading(false));
-  }, [session, staffOverlay, isStaff, isTrainer, activeTab, trainerAnalyticsSub, apiBase]);
+  }, [
+    session,
+    staffOverlay,
+    isStaff,
+    isTrainer,
+    activeTab,
+    trainerAnalyticsSub,
+    apiBase,
+    perfInSource,
+    perfInFrom,
+    perfInTo,
+    perfInUserId,
+    perfInsightsApplyTick
+  ]);
 
   useEffect(() => {
     const wantCatalog = staffOverlay === "programs" || (isTrainer && activeTab === "programs");
@@ -844,29 +1128,133 @@ export default function DashboardPage() {
   async function openClientDetail(user: any) {
     setSelectedClient(user || null);
     setClientProgress(null);
-    setClientProgressLink("");
+    setClientProgressShareUrl("");
     if (!session?.token || !user?.id || role === "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     try {
-      const [progress, linkData] = await Promise.all([
-        fetch(`${apiBase}/api/admin/user-progress/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${apiBase}/api/admin/progress-report-link/${encodeURIComponent(String(user.id))}`, { headers }).then((r) => r.json()).catch(() => null)
-      ]);
-      setClientProgress(progress || null);
-      const url = linkData && typeof linkData === "object" ? (linkData as { url?: string; link?: string }).url || (linkData as { link?: string }).link : "";
-      setClientProgressLink(String(url || ""));
+      const r = await fetch(`${apiBase}/api/admin/user-progress/${encodeURIComponent(String(user.id))}`, { headers });
+      const progress = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const err =
+          typeof progress === "object" && progress != null
+            ? String((progress as { error?: string; message?: string }).error || (progress as { message?: string }).message || "")
+            : "";
+        setClientProgress({ error: err || `Failed to load progress (${r.status})` });
+        return;
+      }
+      if (typeof progress === "object" && progress != null && (progress as { error?: string }).error) {
+        setClientProgress({ error: String((progress as { error?: string }).error) });
+        return;
+      }
+      setClientProgress(typeof progress === "object" && progress != null ? progress : { error: "No data returned." });
     } catch {
-      setClientProgress(null);
-      setClientProgressLink("");
+      setClientProgress({ error: "Network error. Please try again." });
+    }
+  }
+
+  async function generateClientProgressShareLink() {
+    if (!session?.token || !selectedClient?.id) return;
+    setClientProgressShareBusy(true);
+    setClientProgressShareUrl("");
+    try {
+      const r = await fetch(`${apiBase}/api/admin/progress-report-link/${encodeURIComponent(String(selectedClient.id))}`, {
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || (data && typeof data === "object" && (data as { error?: string }).error)) {
+        setError((data as { error?: string })?.error || "Could not create share link.");
+        return;
+      }
+      const url =
+        data && typeof data === "object"
+          ? String((data as { url?: string; link?: string }).url || (data as { link?: string }).link || "")
+          : "";
+      setClientProgressShareUrl(url);
+    } catch {
+      setError("Could not create share link.");
+    } finally {
+      setClientProgressShareBusy(false);
+    }
+  }
+
+  async function copyClientProgressShareUrl() {
+    if (!clientProgressShareUrl) return;
+    try {
+      await navigator.clipboard.writeText(clientProgressShareUrl);
+      setError("");
+    } catch {
+      setError("Could not copy to clipboard.");
+    }
+  }
+
+  async function suspendSelectedClient() {
+    if (!session?.token || !selectedClient?.id) return;
+    setClientProgressUserBusy(true);
+    try {
+      const r = await fetch(`${apiBase}/api/admin/users/${encodeURIComponent(String(selectedClient.id))}/suspend`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || (data as { error?: string }).error) throw new Error((data as { error?: string }).error || "Failed");
+      setSelectedClient((c: any) => (c ? { ...c, suspended: true } : c));
+      setClientProgress((p: any) => (p && typeof p === "object" ? { ...p, suspended: true } : p));
+    } catch (e: any) {
+      setError(e?.message || "Failed to suspend user.");
+    } finally {
+      setClientProgressUserBusy(false);
+    }
+  }
+
+  async function reactivateSelectedClient() {
+    if (!session?.token || !selectedClient?.id) return;
+    setClientProgressUserBusy(true);
+    try {
+      const r = await fetch(`${apiBase}/api/admin/users/${encodeURIComponent(String(selectedClient.id))}/reactivate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` }
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || (data as { error?: string }).error) throw new Error((data as { error?: string }).error || "Failed");
+      setSelectedClient((c: any) => (c ? { ...c, suspended: false } : c));
+      setClientProgress((p: any) => (p && typeof p === "object" ? { ...p, suspended: false } : p));
+    } catch (e: any) {
+      setError(e?.message || "Failed to re-activate user.");
+    } finally {
+      setClientProgressUserBusy(false);
     }
   }
 
   async function openCheckinDetail(checkin: any) {
     setSelectedCheckin(checkin || null);
+    setSelectedSunday(null);
+    setSelectedPart2(null);
     if (!session?.token || !checkin?.id || role === "user") return;
     const headers = { Authorization: `Bearer ${session.token}` };
     const data = await fetch(`${apiBase}/api/admin/daily-checkins/${encodeURIComponent(String(checkin.id))}`, { headers }).then((r) => r.json()).catch(() => null);
     if (data && !data.error) setSelectedCheckin(data);
+  }
+
+  async function openSundayDetail(row: any) {
+    setSelectedSunday(row || null);
+    setSelectedCheckin(null);
+    setSelectedPart2(null);
+    if (!session?.token || !row?.id || role === "user") return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const data = await fetch(`${apiBase}/api/admin/sunday-checkins/${encodeURIComponent(String(row.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    if (data && !(data as { error?: string }).error) setSelectedSunday(data);
+    else if ((data as { error?: string })?.error) setError(String((data as { error?: string }).error));
+  }
+
+  async function openPart2Detail(row: any) {
+    setSelectedPart2(row || null);
+    setSelectedCheckin(null);
+    setSelectedSunday(null);
+    if (!session?.token || !row?.id || role === "user") return;
+    const headers = { Authorization: `Bearer ${session.token}` };
+    const data = await fetch(`${apiBase}/api/admin/part2-submissions/${encodeURIComponent(String(row.id))}`, { headers }).then((r) => r.json()).catch(() => null);
+    if (data && !(data as { error?: string }).error) setSelectedPart2(data);
+    else if ((data as { error?: string })?.error) setError(String((data as { error?: string }).error));
   }
 
   async function openWorkoutDetail(workout: any) {
@@ -1398,9 +1786,19 @@ export default function DashboardPage() {
     setNotifOpen(false);
     const l = String(link || "");
     if (!l) return;
-    if (l === "messages" || l === "messages-meetings" || l === "meetings") {
+    if (l === "messages") {
       goTab("messages");
       setTrainerMessagesView("threads");
+      return;
+    }
+    if (l === "meetings") {
+      goTab("messages");
+      setTrainerMessagesView("meetings");
+      return;
+    }
+    if (l === "messages-meetings") {
+      goTab("messages");
+      setTrainerMessagesView("hub");
       return;
     }
     if (l === "signups" || l === "requests") {
@@ -1563,28 +1961,586 @@ export default function DashboardPage() {
   }
 
   function downloadPerfInsightsCsv() {
-    const rows = perfInsights?.data;
     const day = new Date().toISOString().slice(0, 10);
-    if (Array.isArray(rows) && rows.length) {
-      const keys = Object.keys(rows[0] as object);
-      downloadCsvFile(
-        `performance-insights-${day}.csv`,
-        keys.map((k) => ({ key: k, header: k })),
-        rows as Record<string, unknown>[]
-      );
+    const source = String(perfInsights?.source || perfInSource || "all").toLowerCase();
+    const data = Array.isArray(perfInsights?.data) ? perfInsights!.data! : [];
+    if (!data.length) {
+      if (perfInsights?.summary && Object.keys(perfInsights.summary).length) {
+        downloadCsvFile(
+          `performance-insights-summary-${day}.csv`,
+          [
+            { key: "metric", header: "Metric" },
+            { key: "value", header: "Value" }
+          ],
+          Object.entries(perfInsights.summary).map(([metric, value]) => ({ metric, value: String(value) }))
+        );
+      }
       return;
     }
-    if (perfInsights?.summary && Object.keys(perfInsights.summary).length) {
-      downloadCsvFile(
-        `performance-insights-summary-${day}.csv`,
-        [
-          { key: "metric", header: "Metric" },
-          { key: "value", header: "Value" }
-        ],
-        Object.entries(perfInsights.summary).map(([metric, value]) => ({ metric, value: String(value) }))
-      );
+    let columns: { key: string; header: string }[] = [];
+    let out: Record<string, unknown>[] = [];
+    if (source === "all" || source === "overview") {
+      columns = [
+        { key: "type", header: "Type" },
+        { key: "details", header: "Details" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        type: PERF_INSIGHT_TYPE_LABELS[r._source] || r._source || "—",
+        details: perfInsightsOverviewDetail(r) || "—",
+        date: (r._date || r.created_at) ? new Date(String(r._date || r.created_at)).toLocaleString() : "—"
+      }));
+    } else if (source === "workouts") {
+      columns = [
+        { key: "user", header: "User" },
+        { key: "workout", header: "Workout" },
+        { key: "dur", header: "Duration (min)" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        user: [r.first_name, r.last_name].filter(Boolean).join(" ").trim(),
+        workout: r.workout_name || "",
+        dur: r.duration_seconds != null ? Math.round(Number(r.duration_seconds) / 60) : "",
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else if (source === "sunday_checkin") {
+      columns = [
+        { key: "name", header: "Name" },
+        { key: "email", header: "Reply Email" },
+        { key: "plan", header: "Plan" },
+        { key: "loss", header: "Total Weight Loss" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        name: r.full_name || "",
+        email: r.reply_email || "",
+        plan: r.plan || "",
+        loss: r.total_weight_loss || "",
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else if (source === "audit") {
+      columns = [
+        { key: "first_name", header: "First Name" },
+        { key: "last_name", header: "Last Name" },
+        { key: "email", header: "Email" },
+        { key: "city", header: "City" },
+        { key: "goals", header: "Goals" },
+        { key: "status", header: "Status" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        first_name: r.first_name || "",
+        last_name: r.last_name || "",
+        email: r.email || "",
+        city: r.city || "",
+        goals: String(r.goals || "").slice(0, 200),
+        status: r.status || "",
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else if (source === "part2") {
+      columns = [
+        { key: "name", header: "Name" },
+        { key: "email", header: "Email" },
+        { key: "mobile", header: "Mobile" },
+        { key: "activity", header: "Activity Level" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        name: r.name || "",
+        email: r.email || "",
+        mobile: r.mobile || "",
+        activity: r.activity_level || "",
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else if (source === "meetings") {
+      columns = [
+        { key: "user_name", header: "User Name" },
+        { key: "user_email", header: "Email" },
+        { key: "user_phone", header: "Phone" },
+        { key: "meeting_date", header: "Meeting Date" },
+        { key: "time_slot", header: "Time Slot" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        user_name: r.user_name || "",
+        user_email: r.user_email || "",
+        user_phone: r.user_phone || "",
+        meeting_date: r.meeting_date || "",
+        time_slot: r.time_slot || "",
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else if (source === "messages") {
+      columns = [
+        { key: "name", header: "Name" },
+        { key: "email", header: "Email" },
+        { key: "phone", header: "Phone" },
+        { key: "message", header: "Message" },
+        { key: "date", header: "Date" }
+      ];
+      out = data.map((r: any) => ({
+        name: r.name || "",
+        email: r.email || "",
+        phone: r.phone || "",
+        message: String(r.message || "").slice(0, 500),
+        date: r.created_at ? new Date(String(r.created_at)).toISOString() : ""
+      }));
+    } else {
+      const keys = Object.keys(data[0] as object);
+      columns = keys.map((k) => ({ key: k, header: k }));
+      out = data as Record<string, unknown>[];
     }
+    const slug = source === "all" || source === "overview" ? "overview" : source;
+    downloadCsvFile(`performance-insights-${slug}-${day}.csv`, columns, out);
   }
+
+  const perfInsightData = Array.isArray(perfInsights?.data) ? perfInsights.data : [];
+  const perfInsightSummary = perfInsights?.summary || {};
+  const { head: perfTableHead, rows: perfTableRows } = renderPerfInsightsTableBody(perfInSource, perfInsightData);
+
+  const performanceInsightsPanel = (
+    <div className="bb-panel bb-insights-panel">
+      <div className="bb-insights-filters">
+        <div className="bb-insights-field" style={{ flex: "1 1 160px" }}>
+          <label className="bb-insights-label" htmlFor="perf-in-source">
+            Data source
+          </label>
+          <select
+            id="perf-in-source"
+            className="bb-input"
+            value={perfInSource}
+            onChange={(e) => setPerfInSource(e.target.value)}
+            style={{ cursor: "pointer" }}
+          >
+            <option value="all">All (Overview)</option>
+            <option value="workouts">Workouts</option>
+            <option value="sunday_checkin">Sunday Check-in</option>
+            <option value="audit">Body Audit</option>
+            <option value="part2">Part-2 Form</option>
+            <option value="meetings">Meetings</option>
+            <option value="messages">Messages</option>
+          </select>
+        </div>
+        <div className="bb-insights-field" style={{ flex: "0 1 140px" }}>
+          <label className="bb-insights-label" htmlFor="perf-in-from">
+            From
+          </label>
+          <input id="perf-in-from" type="date" className="bb-input" value={perfInFrom} onChange={(e) => setPerfInFrom(e.target.value)} />
+        </div>
+        <div className="bb-insights-field" style={{ flex: "0 1 140px" }}>
+          <label className="bb-insights-label" htmlFor="perf-in-to">
+            To
+          </label>
+          <input id="perf-in-to" type="date" className="bb-input" value={perfInTo} onChange={(e) => setPerfInTo(e.target.value)} />
+        </div>
+        <div className="bb-insights-field" style={{ flex: "1 1 200px" }}>
+          <label className="bb-insights-label" htmlFor="perf-in-user">
+            User
+          </label>
+          <select
+            id="perf-in-user"
+            className="bb-input"
+            value={perfInUserId}
+            onChange={(e) => setPerfInUserId(e.target.value)}
+            style={{ cursor: "pointer" }}
+          >
+            <option value="">All users</option>
+            {activeClients.map((u: any) => (
+              <option key={String(u.id)} value={String(u.id)}>
+                {[u.first_name, u.last_name].filter(Boolean).join(" ").trim() || "—"} — {u.email || ""}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="bb-insights-actions">
+          <button type="button" className="bb-btn-primary" onClick={() => setPerfInsightsApplyTick((t) => t + 1)}>
+            Apply
+          </button>
+          <button type="button" className="bb-back-btn" style={{ marginBottom: 0 }} onClick={() => downloadPerfInsightsCsv()}>
+            Download CSV
+          </button>
+        </div>
+      </div>
+      <div className="bb-insights-cards">
+        {BB_PERF_INSIGHT_CARD_KEYS.map((key) => (
+          <div key={key} className="bb-insights-card">
+            <div className="bb-insights-card-num">{perfInsightSummary[key as string] ?? 0}</div>
+            <div className="bb-insights-card-lbl">{PERF_INSIGHT_LABELS[key as string] || String(key).replace(/_/g, " ")}</div>
+          </div>
+        ))}
+      </div>
+      {perfInsightsLoading ? (
+        <p className="bb-live-empty">Loading insights…</p>
+      ) : perfInsights == null ? (
+        <p className="bb-live-empty" style={{ color: "var(--red)" }}>
+          Failed to load insights.
+        </p>
+      ) : (
+        <div className="bb-admin-table-wrap">
+          <table className="bb-admin-table">
+            <thead>
+              <tr>
+                {perfTableHead.map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {perfTableRows.length ? (
+                perfTableRows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, ci) => (
+                      <td key={ci}>{cell}</td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={Math.max(perfTableHead.length, 1)} style={{ textAlign: "center", padding: 24, color: "var(--text-secondary)" }}>
+                    No data for the selected filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
+  const campGrouped: Record<string, any[]> = {};
+  for (const c of campaigns) {
+    const d = String(c.day_of_week || "other");
+    if (!campGrouped[d]) campGrouped[d] = [];
+    campGrouped[d].push(c);
+  }
+  const campTotal = campaigns.length;
+  const campActive = campaigns.filter((c: any) => c.is_active).length;
+
+  const campaignsPanel = (
+    <div className="bb-panel bb-campaigns-panel">
+      <h3 className="bb-campaigns-h3">Campaign Scheduler</h3>
+      <p className="bb-list-row-sub" style={{ marginBottom: 16, lineHeight: 1.5 }}>
+        Automated weekly broadcast messages sent to all active users via inbox (and chat). Timezone: <strong>IST (Asia/Kolkata)</strong>.
+      </p>
+      {campMsg ? (
+        <p className="bb-list-row-sub" style={{ marginBottom: 12, color: "var(--green)", fontWeight: 600 }}>
+          {campMsg}
+        </p>
+      ) : null}
+      {campaignsErr ? (
+        <p className="bb-list-row-sub" style={{ marginBottom: 12, color: "var(--red)" }}>
+          {campaignsErr}
+        </p>
+      ) : null}
+
+      <div className="bb-campaign-ai-box">
+        <div className="bb-campaign-ai-title">{String.fromCodePoint(0x1f916)} AI Campaign Command</div>
+        <div className="bb-campaign-ai-row">
+          <textarea
+            className="bb-input bb-campaign-ai-textarea"
+            rows={2}
+            placeholder='Try: "Create reminder campaign: Hydrate well every monday at 2 PM" or "List campaigns"'
+            value={campAiInput}
+            onChange={(e) => setCampAiInput(e.target.value)}
+          />
+          <button
+            type="button"
+            className="bb-btn-primary"
+            disabled={campAiSending || !session?.token}
+            onClick={() => {
+              const text = campAiInput.trim();
+              if (!text || !session?.token) return;
+              setCampAiSending(true);
+              setCampAiReply("");
+              void (async () => {
+                try {
+                  const r = await fetch(`${apiBase}/api/admin/ai-assist`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: text })
+                  });
+                  const d = await r.json().catch(() => ({}));
+                  setCampAiReply(typeof d?.reply === "string" ? d.reply : "No response.");
+                  setCampAiInput("");
+                  if (/create|pause|resume|delete|list/i.test(text)) void loadCampaigns();
+                } catch {
+                  setCampAiReply("Error: Failed to send command.");
+                } finally {
+                  setCampAiSending(false);
+                }
+              })();
+            }}
+          >
+            {campAiSending ? "…" : "Send"}
+          </button>
+        </div>
+        {campAiReply ? <div className="bb-campaign-ai-reply">{campAiReply}</div> : null}
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div className="bb-campaigns-subtitle">Broadcast Now</div>
+        <div className="bb-campaign-ai-row">
+          <input
+            type="text"
+            className="bb-input"
+            placeholder="Type an instant message to all active users…"
+            value={campBroadcastMsg}
+            onChange={(e) => setCampBroadcastMsg(e.target.value)}
+          />
+          <button
+            type="button"
+            className="bb-btn-primary"
+            disabled={campBroadcasting || !session?.token}
+            onClick={() => {
+              const msg = campBroadcastMsg.trim();
+              if (!msg || !session?.token) return;
+              setCampBroadcasting(true);
+              setCampaignsErr("");
+              void (async () => {
+                try {
+                  const r = await fetch(`${apiBase}/api/campaigns/broadcast`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: msg })
+                  });
+                  const d = await r.json().catch(() => ({}));
+                  if (d?.error) {
+                    setCampaignsErr(String(d.error));
+                    return;
+                  }
+                  setCampBroadcastMsg("");
+                  setCampMsg(`Broadcast sent to ${Number(d?.sent ?? 0)} active user(s).`);
+                  window.setTimeout(() => setCampMsg(""), 5000);
+                } catch {
+                  setCampaignsErr("Broadcast failed.");
+                } finally {
+                  setCampBroadcasting(false);
+                }
+              })();
+            }}
+          >
+            {campBroadcasting ? "…" : "Broadcast"}
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 24 }}>
+        <div className="bb-campaigns-subtitle">Add Campaign</div>
+        <div className="bb-campaign-add-row">
+          <div className="bb-insights-field" style={{ flex: 2, minWidth: 160 }}>
+            <label className="bb-insights-label" htmlFor="camp-msg">
+              Message
+            </label>
+            <input
+              id="camp-msg"
+              type="text"
+              className="bb-input"
+              placeholder="e.g. Hydrate well! 💧"
+              value={campNewMessage}
+              onChange={(e) => setCampNewMessage(e.target.value)}
+            />
+          </div>
+          <div className="bb-insights-field" style={{ flex: 1, minWidth: 120 }}>
+            <label className="bb-insights-label" htmlFor="camp-day">
+              Day
+            </label>
+            <select id="camp-day" className="bb-input" value={campNewDay} onChange={(e) => setCampNewDay(e.target.value)} style={{ cursor: "pointer" }}>
+              <option value="">Select day</option>
+              <option value="daily">Daily (every day)</option>
+              <option value="sunday">Sunday</option>
+              <option value="monday">Monday</option>
+              <option value="tuesday">Tuesday</option>
+              <option value="wednesday">Wednesday</option>
+              <option value="thursday">Thursday</option>
+              <option value="friday">Friday</option>
+              <option value="saturday">Saturday</option>
+            </select>
+          </div>
+          <div className="bb-insights-field" style={{ flex: 1, minWidth: 110 }}>
+            <label className="bb-insights-label" htmlFor="camp-time">
+              Time (IST)
+            </label>
+            <input id="camp-time" type="time" className="bb-input" value={campNewTime} onChange={(e) => setCampNewTime(e.target.value)} />
+          </div>
+          <button
+            type="button"
+            className="bb-btn-primary"
+            style={{ alignSelf: "flex-end" }}
+            disabled={campAdding || !session?.token}
+            onClick={() => {
+              if (!session?.token) return;
+              if (!campNewMessage.trim() || !campNewDay || !campNewTime) {
+                setCampaignsErr("Please fill in message, day, and time.");
+                return;
+              }
+              setCampAdding(true);
+              setCampaignsErr("");
+              void (async () => {
+                try {
+                  const r = await fetch(`${apiBase}/api/campaigns`, {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      message: campNewMessage.trim(),
+                      day_of_week: campNewDay,
+                      time_of_day: campNewTime
+                    })
+                  });
+                  const d = await r.json().catch(() => ({}));
+                  if (d?.error) {
+                    setCampaignsErr(String(d.error));
+                    return;
+                  }
+                  setCampNewMessage("");
+                  setCampNewDay("");
+                  setCampNewTime("");
+                  setCampMsg("Campaign added. It will broadcast at the scheduled time (IST).");
+                  window.setTimeout(() => setCampMsg(""), 4000);
+                  await loadCampaigns();
+                } catch {
+                  setCampaignsErr("Failed to add campaign.");
+                } finally {
+                  setCampAdding(false);
+                }
+              })();
+            }}
+          >
+            {campAdding ? "…" : "Add"}
+          </button>
+        </div>
+      </div>
+
+      <div className="bb-campaigns-subtitle">
+        All Campaigns{" "}
+        <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 400, letterSpacing: 0, textTransform: "none" }}>
+          ({campTotal} total, {campActive} active)
+        </span>
+      </div>
+      {campaignsLoading ? (
+        <p className="bb-live-empty">Loading…</p>
+      ) : campTotal === 0 ? (
+        <p className="bb-live-empty">No campaigns yet. Use the form above to add one.</p>
+      ) : (
+        <div style={{ maxWidth: 760 }}>
+          {CAMP_DAYS_ORDER.map((day) => {
+            const items = campGrouped[day];
+            if (!items?.length) return null;
+            return (
+              <div key={day} style={{ marginBottom: 18 }}>
+                <div className="bb-campaign-day-h">
+                  {day.charAt(0).toUpperCase() + day.slice(1)}
+                </div>
+                {items.map((c: any) => {
+                  const active = !!c.is_active;
+                  const busy = campBusyId === c.id;
+                  return (
+                    <div key={String(c.id)} className="bb-campaign-row">
+                      <span style={{ fontSize: 18 }}>{active ? "🟢" : "🔴"}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--accent)", minWidth: 44 }}>{c.time_of_day}</span>
+                      <span style={{ flex: 1, fontSize: 14, color: "var(--text-primary)", wordBreak: "break-word" }}>{c.message}</span>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {active ? (
+                          <button
+                            type="button"
+                            className="bb-back-btn"
+                            style={{ marginBottom: 0, padding: "6px 12px", fontSize: 12 }}
+                            disabled={busy}
+                            onClick={() => {
+                              if (!session?.token) return;
+                              setCampBusyId(String(c.id));
+                              void (async () => {
+                                try {
+                                  const r = await fetch(`${apiBase}/api/campaigns/${encodeURIComponent(String(c.id))}/pause`, {
+                                    method: "POST",
+                                    headers: { Authorization: `Bearer ${session.token}` }
+                                  });
+                                  const d = await r.json().catch(() => ({}));
+                                  if (d?.error) setCampaignsErr(String(d.error));
+                                  await loadCampaigns();
+                                } catch {
+                                  setCampaignsErr("Failed to pause.");
+                                } finally {
+                                  setCampBusyId("");
+                                }
+                              })();
+                            }}
+                          >
+                            Pause
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="bb-btn-primary"
+                            style={{ padding: "6px 12px", fontSize: 12 }}
+                            disabled={busy}
+                            onClick={() => {
+                              if (!session?.token) return;
+                              setCampBusyId(String(c.id));
+                              void (async () => {
+                                try {
+                                  const r = await fetch(`${apiBase}/api/campaigns/${encodeURIComponent(String(c.id))}/resume`, {
+                                    method: "POST",
+                                    headers: { Authorization: `Bearer ${session.token}` }
+                                  });
+                                  const d = await r.json().catch(() => ({}));
+                                  if (d?.error) setCampaignsErr(String(d.error));
+                                  await loadCampaigns();
+                                } catch {
+                                  setCampaignsErr("Failed to resume.");
+                                } finally {
+                                  setCampBusyId("");
+                                }
+                              })();
+                            }}
+                          >
+                            Resume
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="bb-back-btn"
+                          style={{
+                            marginBottom: 0,
+                            padding: "6px 12px",
+                            fontSize: 12,
+                            borderColor: "var(--red)",
+                            color: "var(--red)"
+                          }}
+                          disabled={busy}
+                          onClick={() => {
+                            if (!confirm("Delete this campaign? This cannot be undone.")) return;
+                            if (!session?.token) return;
+                            setCampBusyId(String(c.id));
+                            void (async () => {
+                              try {
+                                const r = await fetch(`${apiBase}/api/campaigns/${encodeURIComponent(String(c.id))}`, {
+                                  method: "DELETE",
+                                  headers: { Authorization: `Bearer ${session.token}` }
+                                });
+                                const d = await r.json().catch(() => ({}));
+                                if (d?.error) setCampaignsErr(String(d.error));
+                                await loadCampaigns();
+                              } catch {
+                                setCampaignsErr("Failed to delete.");
+                              } finally {
+                                setCampBusyId("");
+                              }
+                            })();
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   const trainerNavDefs: { t: DashboardTab; label: string; ic: string }[] = [
     { t: "home", label: "Dashboard", ic: String.fromCodePoint(0x1f4ca) },
@@ -1605,10 +2561,24 @@ export default function DashboardPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&family=Rajdhani:wght@600;700&display=swap');
         .bb-dash-header{padding-top:max(12px, env(safe-area-inset-top, 0px));padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-bottom:12px}
         .bb-dash-main{padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));padding-top:14px;padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px))}
-        .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer}
-        .bb-header-badge{position:absolute;top:-7px;right:-6px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;line-height:1.4}
+        .bb-header-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1px solid var(--accent-border);background:transparent;color:var(--accent);display:grid;place-items:center;cursor:pointer;overflow:visible}
+        .bb-header-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:var(--text-on-accent);border-radius:999px;padding:2px 6px;font-size:10px;font-weight:700;line-height:1.15;min-width:18px;box-sizing:border-box;text-align:center;display:inline-flex;align-items:center;justify-content:center}
         .bb-notif-wrap{position:relative}
         .bb-notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:min(360px,calc(100vw - 28px));max-height:min(420px,70vh);overflow:auto;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-md);z-index:50;padding:10px 0}
+        /* Mobile: wide panel + right:0 on ~42px bell wrap drew the menu across the full header (over logo/hamburger). Anchor to header + safe insets instead. */
+        @media(max-width:640px){
+          .bb-notif-wrap{position:static}
+          .bb-notif-panel{
+            position:absolute;
+            top:100%;
+            right:max(14px,env(safe-area-inset-right,0px));
+            left:auto;
+            margin-top:8px;
+            width:min(360px,calc(100vw - max(28px,env(safe-area-inset-left,0px) + env(safe-area-inset-right,0px))));
+            max-height:min(420px,65dvh);
+            z-index:60
+          }
+        }
         .bb-notif-row{width:100%;text-align:left;padding:10px 14px;border:none;background:transparent;cursor:pointer;color:var(--text-primary);font-family:inherit;font-size:13px;line-height:1.45;border-bottom:1px solid var(--border)}
         .bb-notif-row:last-child{border-bottom:none}
         .bb-notif-row:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
@@ -1623,6 +2593,8 @@ export default function DashboardPage() {
         .bb-dash-root{font-family:'Outfit',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
         .bb-trainer-shell{display:flex;flex-direction:column;min-height:100dvh}
         @media(min-width:900px){.bb-trainer-shell .bb-dash-main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}}
+        .bb-trainer-welcome-line{margin:0 0 10px;font-family:'Outfit',sans-serif;font-size:clamp(15px,3.4vw,18px);font-weight:600;color:var(--olive);letter-spacing:.03em;line-height:1.35}
+        .bb-trainer-welcome-name{font-weight:700;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 55%,var(--accent-light) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bb-dashboard-title{margin:0 0 12px;font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,8vw,44px);letter-spacing:3px;line-height:1;background:linear-gradient(122deg,var(--olive) 0%,var(--accent) 32%,var(--accent-light) 62%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
         .bb-admin-section-page-title{font-size:28px;letter-spacing:2px;margin-bottom:6px}
         .bb-admin-hub-cards{display:grid;grid-template-columns:1fr;gap:10px}
@@ -1663,6 +2635,34 @@ export default function DashboardPage() {
         .bb-admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-section-page{padding:4px 0 8px}
         .bb-admin-filter-bar label,.bb-admin-filter-bar span.bb-list-row-sub{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-secondary)}
+        .bb-btn-view{padding:8px 14px;border-radius:8px;border:1px solid var(--accent-border);background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+        .bb-btn-view:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
+        .bb-admin-actions-col{text-align:right;width:1%;white-space:nowrap}
+        .bb-form-view-grid{display:grid;gap:12px}
+        .bb-form-view-row{display:grid;grid-template-columns:minmax(120px,150px) 1fr;gap:10px 14px;font-size:13px;line-height:1.45;align-items:start}
+        @media(max-width:520px){.bb-form-view-row{grid-template-columns:1fr;gap:2px}}
+        .bb-fv-lbl{color:var(--text-secondary);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+        .bb-fv-val{color:var(--text-primary);word-break:break-word}
+        .bb-form-view-block{margin-top:2px}
+        .bb-form-view-block .bb-fv-blk{background:color-mix(in srgb,var(--text-primary) 4%,var(--bg-card));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--text-primary);margin-top:6px}
+        .bb-insights-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
+        .bb-insights-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px}
+        .bb-insights-field{display:flex;flex-direction:column;min-width:0}
+        .bb-insights-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;margin-bottom:14px}
+        .bb-insights-card{padding:14px;background:rgba(200,164,78,0.06);border:1px solid var(--border);border-radius:8px;text-align:center}
+        .bb-insights-card-num{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;color:var(--accent);line-height:1}
+        .bb-insights-card-lbl{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);margin-top:6px;line-height:1.25}
+        .bb-insights-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+        .bb-campaigns-panel .bb-campaigns-h3{font-size:clamp(16px,3.5vw,20px);font-weight:700;letter-spacing:.04em;color:var(--text-primary);margin:0 0 8px}
+        .bb-campaigns-subtitle{font-size:14px;font-weight:700;letter-spacing:.04em;color:var(--text-primary);margin-bottom:12px}
+        .bb-campaign-ai-box{background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.25);border-radius:12px;padding:18px 16px;margin-bottom:24px}
+        .bb-campaign-ai-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+        .bb-campaign-ai-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+        .bb-campaign-ai-textarea{flex:1;min-width:200px;resize:none;font-family:inherit}
+        .bb-campaign-ai-reply{margin-top:12px;font-size:13px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;background:color-mix(in srgb,var(--text-primary) 6%,var(--bg-card));border-radius:8px;padding:12px 14px}
+        .bb-campaign-add-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+        .bb-campaign-day-h{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+        .bb-campaign-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:color-mix(in srgb,var(--text-primary) 3%,var(--bg-card));border:1px solid var(--border);border-radius:10px;margin-bottom:8px;flex-wrap:wrap}
         .bb-admin-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px;border-radius:10px;border:1px solid var(--border)}
         .bb-admin-table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
         .bb-admin-table th,.bb-admin-table td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);vertical-align:top}
@@ -1906,6 +2906,15 @@ export default function DashboardPage() {
         .progress-logs-list td{padding:10px 12px;color:var(--text-secondary);border-bottom:1px solid var(--border)}
         .progress-logs-list tr:last-child td{border-bottom:none}
         .admin-cp-placeholder{color:var(--text-secondary);padding:16px;text-align:center;font-size:14px;margin:0}
+        .admin-cp-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:16px}
+        .admin-cp-kpi{background:color-mix(in srgb,var(--text-primary) 5%,var(--bg-card));border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+        .admin-cp-kpi .num{display:block;font-size:1.15rem;font-weight:700;color:var(--accent)}
+        .admin-cp-kpi .lbl{display:block;font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-top:6px}
+        .bb-client-progress-charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:16px}
+        .bb-cp-chart-wrap{background:color-mix(in srgb,var(--text-primary) 4%,var(--bg-card));border:1px solid var(--border);border-radius:12px;padding:12px;min-height:200px}
+        .bb-cp-chart-wrap canvas{max-height:200px;width:100%!important}
+        .bb-cp-chart-title{font-size:11px;color:var(--text-secondary);margin-top:8px;text-align:center}
+        .progress-insights{margin-top:12px;padding:12px 14px;background:rgb(var(--accent-rgb) / 0.08);border:1px solid rgb(var(--accent-rgb) / 0.22);border-radius:8px;font-size:13px;line-height:1.5;color:var(--text-secondary)}
         .form-success{display:none}
         .form-success.show{display:block;color:var(--green);text-align:center;margin-top:16px}
       `}</style>
@@ -2075,6 +3084,11 @@ export default function DashboardPage() {
           </aside>
         ) : null}
         <section className="bb-dash-main" style={{ flex: 1, minWidth: 0 }}>
+        {isTrainer && activeTab === "home" ? (
+          <p className="bb-trainer-welcome-line">
+            Welcome back <span className="bb-trainer-welcome-name">{displayName}</span>
+          </p>
+        ) : null}
         <h1
           className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}${
             role === "user" && activeTab === "home" ? " bb-client-home-title" : ""
@@ -2098,7 +3112,11 @@ export default function DashboardPage() {
                         : trainerAnalyticsSub === "campaigns"
                           ? "CAMPAIGNS"
                           : "ANALYTICS"
-                      : activeTab.toUpperCase()}
+                      : activeTab === "messages" && isStaff
+                        ? trainerMessagesView === "meetings"
+                          ? "MEETINGS"
+                          : "MESSAGES"
+                        : activeTab.toUpperCase()}
         </h1>
 
         {error ? <p style={{ color: "var(--red)", marginTop: 12 }}>{error}</p> : null}
@@ -2919,26 +3937,10 @@ export default function DashboardPage() {
                       }
                     },
                     {
-                      label: "Part 2",
-                      icon: String.fromCodePoint(0x1f4dd),
-                      onClick: () => {
-                        goTab("forms");
-                        setTrainerFormsView("part2");
-                      }
-                    },
-                    {
                       label: "Workouts",
                       icon: String.fromCodePoint(0x1f3c3),
                       onClick: () => {
                         goTab("training");
-                      }
-                    },
-                    {
-                      label: "Daily logs",
-                      icon: String.fromCodePoint(0x1f4d1),
-                      onClick: () => {
-                        goTab("forms");
-                        setTrainerFormsView("daily");
                       }
                     },
                     {
@@ -2953,6 +3955,14 @@ export default function DashboardPage() {
                       icon: String.fromCodePoint(0x1f4ca),
                       onClick: () => {
                         goTab("analytics");
+                      }
+                    },
+                    {
+                      label: "Add Client",
+                      icon: String.fromCodePoint(0x2795),
+                      onClick: () => {
+                        goTab("clients");
+                        setTrainerClientsView("addClient");
                       }
                     }
                   ].map((x) => (
@@ -3859,7 +4869,28 @@ export default function DashboardPage() {
                   </div>
                 ) : null}
                 {trainerFormsView === "hub" && role !== "superadmin" ? (
-                  <div className="bb-admin-hub-cards">
+                  <>
+                    <div className="bb-panel" style={{ marginBottom: 14 }}>
+                      <span className="bb-inline-label">PART-2 LINK FOR CLIENTS</span>
+                      <p className="bb-list-row-sub" style={{ marginTop: 6, marginBottom: 10, lineHeight: 1.45 }}>
+                        Share this URL with clients so they can open and submit the Part-2 questionnaire (same as BodyBank).
+                      </p>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+                        <input
+                          type="text"
+                          readOnly
+                          className="bb-input"
+                          value={part2ClientFormUrl}
+                          aria-label="Part-2 form URL for clients"
+                          style={{ flex: "1 1 220px", cursor: "pointer" }}
+                          onFocus={(e) => e.target.select()}
+                        />
+                        <button type="button" className="bb-btn-primary" onClick={() => void copyPart2ClientLink()}>
+                          {part2LinkCopied ? "Copied" : "Copy link"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bb-admin-hub-cards">
                     <HubCard
                       icon={String.fromCodePoint(0x1f4c5)}
                       title="Sunday Check-In"
@@ -3869,7 +4900,7 @@ export default function DashboardPage() {
                     <HubCard
                       icon={String.fromCodePoint(0x1f4dd)}
                       title="Part-2 Form"
-                      desc="Client questionnaire submissions"
+                      desc="View Part-2 submissions from your clients"
                       onClick={() => setTrainerFormsView("part2")}
                     />
                     <HubCard
@@ -3878,10 +4909,33 @@ export default function DashboardPage() {
                       desc="Daily steps, water, protein and sleep logs"
                       onClick={() => setTrainerFormsView("daily")}
                     />
-                  </div>
+                    </div>
+                  </>
                 ) : null}
                 {trainerFormsView === "part2" ? (
                   <div className="bb-panel">
+                    {isStaff ? (
+                      <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+                        <span className="bb-inline-label">PART-2 LINK FOR CLIENTS</span>
+                        <p className="bb-list-row-sub" style={{ marginTop: 6, marginBottom: 10, lineHeight: 1.45 }}>
+                          Send this link to clients who still need to complete Part-2.
+                        </p>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+                          <input
+                            type="text"
+                            readOnly
+                            className="bb-input"
+                            value={part2ClientFormUrl}
+                            aria-label="Part-2 form URL for clients"
+                            style={{ flex: "1 1 220px", cursor: "pointer" }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <button type="button" className="bb-btn-primary" onClick={() => void copyPart2ClientLink()}>
+                            {part2LinkCopied ? "Copied" : "Copy link"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     <span className="bb-inline-label">
                       PART-2 SUBMISSIONS · <strong style={{ color: "var(--accent)" }}>{part2Submissions.length}</strong>
                     </span>
@@ -3921,16 +4975,22 @@ export default function DashboardPage() {
                               <th>Mobile</th>
                               <th>Activity</th>
                               <th>Submitted</th>
+                              <th className="bb-admin-actions-col">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {part2Submissions.slice(0, 250).map((p: any) => (
-                              <tr key={p.id} onClick={() => setSelectedPart2(p)} style={{ cursor: "pointer" }}>
+                              <tr key={p.id}>
                                 <td>{p.name || "—"}</td>
                                 <td>{p.email || "—"}</td>
                                 <td>{p.mobile || "—"}</td>
                                 <td>{p.activity_level || "—"}</td>
                                 <td>{p.created_at ? new Date(p.created_at).toLocaleString() : "—"}</td>
+                                <td className="bb-admin-actions-col">
+                                  <button type="button" className="bb-btn-view" onClick={() => void openPart2Detail(p)}>
+                                    View
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -3989,11 +5049,12 @@ export default function DashboardPage() {
                               <th>Weight loss</th>
                               {role === "superadmin" ? <th>Coach</th> : null}
                               <th>Submitted</th>
+                              <th className="bb-admin-actions-col">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {sundayCheckinsApi.slice(0, 250).map((c: any) => (
-                              <tr key={c.id} onClick={() => setSelectedSunday(c)} style={{ cursor: "pointer" }}>
+                              <tr key={c.id}>
                                 <td>{c.full_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.reply_email || "—"}</td>
                                 <td>{c.reply_email || c.email || "—"}</td>
                                 <td>{c.total_weight_loss != null ? String(c.total_weight_loss) : "—"}</td>
@@ -4003,6 +5064,11 @@ export default function DashboardPage() {
                                   </td>
                                 ) : null}
                                 <td>{c.created_at ? new Date(c.created_at).toLocaleString() : "—"}</td>
+                                <td className="bb-admin-actions-col">
+                                  <button type="button" className="bb-btn-view" onClick={() => void openSundayDetail(c)}>
+                                    View
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -4061,11 +5127,12 @@ export default function DashboardPage() {
                               <th>Protein</th>
                               <th>Sleep</th>
                               {role === "superadmin" ? <th>Coach</th> : null}
+                              <th className="bb-admin-actions-col">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
                             {dailyCheckins.slice(0, 250).map((c: any) => (
-                              <tr key={c.id} onClick={() => openCheckinDetail(c)} style={{ cursor: "pointer" }}>
+                              <tr key={c.id}>
                                 <td>{[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}</td>
                                 <td>{c.email || "—"}</td>
                                 <td>{c.checkin_date || "—"}</td>
@@ -4077,6 +5144,11 @@ export default function DashboardPage() {
                                     {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email || "—"}
                                   </td>
                                 ) : null}
+                                <td className="bb-admin-actions-col">
+                                  <button type="button" className="bb-btn-view" onClick={() => void openCheckinDetail(c)}>
+                                    View
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -4244,37 +5316,8 @@ export default function DashboardPage() {
                 />
               </div>
             ) : null}
-            {trainerAnalyticsSub === "insights" ? (
-              <div className="bb-panel">
-                <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
-                  <button type="button" className="bb-back-btn" style={{ marginBottom: 0 }} onClick={() => downloadPerfInsightsCsv()}>
-                    Download CSV
-                  </button>
-                </div>
-                {perfInsightsLoading ? (
-                  <p className="bb-live-empty">Loading insights…</p>
-                ) : perfInsights?.summary ? (
-                  <ul className="bb-list-rows">
-                    {Object.entries(perfInsights.summary).map(([k, v]) => (
-                      <li key={k} className="bb-list-row bb-list-row-static">
-                        <div className="bb-list-row-title">{k.replace(/_/g, " ")}</div>
-                        <p className="bb-list-row-sub">{String(v)}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="bb-live-empty">No insight data available.</p>
-                )}
-              </div>
-            ) : null}
-            {trainerAnalyticsSub === "campaigns" ? (
-              <div className="bb-panel">
-                <span className="bb-inline-label">BROADCAST CAMPAIGNS</span>
-                <p className="bb-live-empty" style={{ marginTop: 8 }}>
-                  Campaign scheduling matches BodyBank&rsquo;s broadcast tool. Wire this view to your notifications/campaign API when it is available.
-                </p>
-              </div>
-            ) : null}
+            {trainerAnalyticsSub === "insights" ? performanceInsightsPanel : null}
+            {trainerAnalyticsSub === "campaigns" ? campaignsPanel : null}
           </div>
         ) : null}
 
@@ -4598,12 +5641,18 @@ export default function DashboardPage() {
                   <div className="bb-admin-hub-cards">
                     <HubCard
                       icon={String.fromCodePoint(0x1f4ac)}
-                      title="Messages & Meetings"
-                      desc="Contact messages and meeting requests"
+                      title="Messages"
+                      desc="Client chat threads and replies"
                       onClick={() => setTrainerMessagesView("threads")}
                     />
+                    <HubCard
+                      icon={String.fromCodePoint(0x1f4c5)}
+                      title="Meetings"
+                      desc="Schedule calls and view meeting requests"
+                      onClick={() => setTrainerMessagesView("meetings")}
+                    />
                   </div>
-                ) : (
+                ) : trainerMessagesView === "threads" ? (
                   <div style={{ display: "grid", gap: 10 }}>
                     <div className="bb-panel">
                       <span className="bb-inline-label">THREADS</span>
@@ -4669,11 +5718,13 @@ export default function DashboardPage() {
                         </>
                       )}
                     </div>
-
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 10 }}>
                     <div className="bb-panel">
                       <span className="bb-inline-label">MEETINGS</span>
                       <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
-                        Schedule a call or view upcoming meetings — same flow as BodyBank Messages &amp; Meetings.
+                        Schedule a call for a client or review upcoming meeting requests.
                       </p>
                       {isStaff && role !== "user" ? (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-end", marginBottom: 16 }}>
@@ -4911,33 +5962,9 @@ export default function DashboardPage() {
               </div>
             ) : null}
 
-            {staffOverlay === "insights" ? (
-              <div className="bb-panel">
-                {perfInsightsLoading ? (
-                  <p className="bb-live-empty">Loading insights…</p>
-                ) : perfInsights?.summary ? (
-                  <ul className="bb-list-rows">
-                    {Object.entries(perfInsights.summary).map(([k, v]) => (
-                      <li key={k} className="bb-list-row bb-list-row-static">
-                        <div className="bb-list-row-title">{k.replace(/_/g, " ")}</div>
-                        <p className="bb-list-row-sub">{String(v)}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="bb-live-empty">No insight data available.</p>
-                )}
-              </div>
-            ) : null}
+            {staffOverlay === "insights" ? performanceInsightsPanel : null}
 
-            {staffOverlay === "campaigns" ? (
-              <div className="bb-panel">
-                <span className="bb-inline-label">BROADCAST CAMPAIGNS</span>
-                <p className="bb-live-empty" style={{ marginTop: 8 }}>
-                  Campaign scheduling matches BodyBank&rsquo;s broadcast tool. Wire this view to your notifications/campaign API when it is available, or contact support for help.
-                </p>
-              </div>
-            ) : null}
+            {staffOverlay === "campaigns" ? campaignsPanel : null}
           </div>
         ) : null}
 
@@ -4964,7 +5991,7 @@ export default function DashboardPage() {
                   setSelectedSunday(null);
                   setSelectedPart2(null);
                   setClientProgress(null);
-                  setClientProgressLink("");
+                  setClientProgressShareUrl("");
                 }}
               >
                 Close
@@ -4982,80 +6009,218 @@ export default function DashboardPage() {
                     {selectedClient._coachEmail ? ` (${selectedClient._coachEmail})` : ""}
                   </div>
                 ) : null}
-                {clientProgress && typeof clientProgress === "object" ? (
-                  <div style={{ fontSize: 13, lineHeight: 1.5 }}>
-                    <div>
-                      <strong>Current weight:</strong> {clientProgress.currentWeight != null ? String(clientProgress.currentWeight) : "—"}
-                    </div>
-                    <div>
-                      <strong>Check-in streak (days logged):</strong>{" "}
-                      {clientProgress.activeStreak != null ? String(clientProgress.activeStreak) : "—"}
-                    </div>
-                    <div>
-                      <strong>Workout consistency:</strong>{" "}
-                      {clientProgress.workoutConsistencyPercent != null ? `${clientProgress.workoutConsistencyPercent}%` : "—"}
-                    </div>
-                    {clientProgress.suspended ? (
-                      <div style={{ color: "var(--red)", fontWeight: 700 }}>Account suspended</div>
-                    ) : null}
-                    {Array.isArray(clientProgress.logs) && clientProgress.logs.length ? (
-                      <p className="bb-list-row-sub" style={{ marginTop: 8 }}>
-                        {clientProgress.logs.length} progress log{clientProgress.logs.length === 1 ? "" : "s"} on file — use the report link for the full chart view.
-                      </p>
-                    ) : (
-                      <p className="bb-list-row-sub" style={{ marginTop: 8 }}>No progress logs yet.</p>
-                    )}
-                  </div>
+                {clientProgress && typeof clientProgress === "object" && (clientProgress as { error?: string }).error ? (
+                  <p className="bb-list-row-sub" style={{ marginTop: 8, color: "var(--red)" }}>
+                    {(clientProgress as { error?: string }).error}
+                  </p>
                 ) : null}
-                {clientProgressLink ? (
-                  <a href={clientProgressLink} target="_blank" rel="noreferrer" style={{ color: s.gold, fontWeight: 700 }}>
-                    Open progress report
-                  </a>
+                {clientProgress && typeof clientProgress === "object" && !(clientProgress as { error?: string }).error ? (
+                  <>
+                    <p className="bb-list-row-sub" style={{ marginTop: 10, marginBottom: 0 }}>
+                      KPIs and charts match BodyBank Client Progress. Generate a link when the client should open their read-only report.
+                      {(clientProgress as { suspended?: boolean }).suspended ? (
+                        <span style={{ color: s.gold, fontWeight: 700 }}> (User is suspended)</span>
+                      ) : null}
+                    </p>
+                    <div className="admin-cp-kpis">
+                      {[
+                        {
+                          lbl: "Current Weight",
+                          num: clientProgress.currentWeight != null ? `${clientProgress.currentWeight} kg` : "—"
+                        },
+                        {
+                          lbl: "Weight Change %",
+                          num: clientProgress.weightChangePercent != null ? `${clientProgress.weightChangePercent}%` : "—"
+                        },
+                        {
+                          lbl: "Strength Growth %",
+                          num: clientProgress.strengthGrowthPercent != null ? `${clientProgress.strengthGrowthPercent}%` : "—"
+                        },
+                        {
+                          lbl: "Consistency %",
+                          num: clientProgress.workoutConsistencyPercent != null ? `${clientProgress.workoutConsistencyPercent}%` : "—"
+                        },
+                        {
+                          lbl: "Active Streak",
+                          num: clientProgress.activeStreak != null ? `${clientProgress.activeStreak} days` : "—"
+                        },
+                        {
+                          lbl: "Goal Completion %",
+                          num:
+                            clientProgress.goalCompletionPercent != null
+                              ? `${Math.round(Number(clientProgress.goalCompletionPercent))}%`
+                              : "—"
+                        }
+                      ].map((k) => (
+                        <div key={k.lbl} className="admin-cp-kpi">
+                          <span className="num">{k.num}</span>
+                          <span className="lbl">{k.lbl}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {clientProgress.averageCalories != null || clientProgress.averageSleep != null ? (
+                      <p className="bb-list-row-sub" style={{ marginTop: 10 }}>
+                        {clientProgress.averageCalories != null ? (
+                          <span>
+                            <strong>Avg calories:</strong> {String(clientProgress.averageCalories)}{" "}
+                          </span>
+                        ) : null}
+                        {clientProgress.averageSleep != null ? (
+                          <span>
+                            <strong>Avg sleep (h):</strong> {String(clientProgress.averageSleep)}
+                          </span>
+                        ) : null}
+                      </p>
+                    ) : null}
+                    {Array.isArray(clientProgress.insights) && clientProgress.insights.length ? (
+                      <p className="progress-insights">
+                        <strong>Insights:</strong> {clientProgress.insights.map((x: unknown) => String(x)).join(" • ")}
+                      </p>
+                    ) : null}
+                    <ClientProgressCharts logs={Array.isArray(clientProgress.logs) ? clientProgress.logs : []} />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginTop: 16 }}>
+                      <button
+                        type="button"
+                        className="bb-header-btn"
+                        style={{ fontWeight: 600 }}
+                        disabled={clientProgressShareBusy}
+                        onClick={() => void generateClientProgressShareLink()}
+                      >
+                        {clientProgressShareBusy ? "Generating…" : "Share link with user"}
+                      </button>
+                      {(clientProgress as { suspended?: boolean }).suspended ? (
+                        <button
+                          type="button"
+                          className="bb-header-btn"
+                          style={{ fontWeight: 600 }}
+                          disabled={clientProgressUserBusy}
+                          onClick={() => void reactivateSelectedClient()}
+                        >
+                          Re-activate
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="bb-header-btn"
+                          style={{
+                            fontWeight: 600,
+                            borderColor: "rgba(200,80,80,0.45)",
+                            color: "var(--red)"
+                          }}
+                          disabled={clientProgressUserBusy}
+                          onClick={() => void suspendSelectedClient()}
+                        >
+                          Suspend user
+                        </button>
+                      )}
+                    </div>
+                    {clientProgressShareUrl ? (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="admin-cp-heading" style={{ marginBottom: 6 }}>
+                          Link to send to client
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          <input type="text" readOnly className="ud-form-input" style={{ flex: 1, minWidth: 200 }} value={clientProgressShareUrl} />
+                          <button type="button" className="bb-header-btn" style={{ fontWeight: 600 }} onClick={() => void copyClientProgressShareUrl()}>
+                            Copy link
+                          </button>
+                          <a href={clientProgressShareUrl} target="_blank" rel="noreferrer" style={{ color: s.gold, fontWeight: 700 }}>
+                            Open report
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : selectedClient && session?.token ? (
+                  <p className="bb-list-row-sub" style={{ marginTop: 8 }}>Loading progress…</p>
                 ) : null}
               </div>
             ) : null}
             {selectedCheckin ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                <div><strong>Check-in date:</strong> {selectedCheckin.checkin_date || "-"}</div>
-                <div><strong>User:</strong> {[selectedCheckin.first_name, selectedCheckin.last_name].filter(Boolean).join(" ") || selectedCheckin.email || "-"}</div>
-                {(selectedCheckin.trainer_first_name || selectedCheckin.trainer_email) ? (
-                  <div>
-                    <strong>Coach:</strong>{" "}
+              <div className="bb-form-view-grid">
+                <span className="bb-inline-label" style={{ marginBottom: 4 }}>
+                  Daily check-in
+                </span>
+                <AdminDetailRow label="Name">
+                  {[selectedCheckin.first_name, selectedCheckin.last_name].filter(Boolean).join(" ") || "—"}
+                </AdminDetailRow>
+                <AdminDetailRow label="Email">{adminDetailText(selectedCheckin.email)}</AdminDetailRow>
+                <AdminDetailRow label="Phone">{adminDetailText(selectedCheckin.phone)}</AdminDetailRow>
+                <AdminDetailRow label="Check-in date">{formatAdminCheckinDate(selectedCheckin.checkin_date)}</AdminDetailRow>
+                <AdminDetailRow label="Steps">{adminDetailText(selectedCheckin.steps)}</AdminDetailRow>
+                <AdminDetailRow label="Water (ml)">{adminDetailText(selectedCheckin.water_ml)}</AdminDetailRow>
+                <AdminDetailRow label="Protein (g)">{adminDetailText(selectedCheckin.protein_g)}</AdminDetailRow>
+                <AdminDetailRow label="Sleep (hrs)">{adminDetailText(selectedCheckin.sleep_hours)}</AdminDetailRow>
+                {selectedCheckin.trainer_first_name || selectedCheckin.trainer_email ? (
+                  <AdminDetailRow label="Coach">
                     {[selectedCheckin.trainer_first_name, selectedCheckin.trainer_last_name].filter(Boolean).join(" ") ||
                       selectedCheckin.trainer_email ||
                       "—"}
-                  </div>
+                  </AdminDetailRow>
                 ) : null}
-                <div><strong>Steps:</strong> {selectedCheckin.steps ?? "-"}</div>
-                <div><strong>Water (ml):</strong> {selectedCheckin.water_ml ?? "-"}</div>
-                <div><strong>Protein (g):</strong> {selectedCheckin.protein_g ?? "-"}</div>
-                <div><strong>Sleep (h):</strong> {selectedCheckin.sleep_hours ?? "-"}</div>
+                <AdminDetailRow label="Saved at">
+                  {selectedCheckin.created_at ? new Date(String(selectedCheckin.created_at)).toLocaleString() : "—"}
+                </AdminDetailRow>
               </div>
             ) : null}
             {selectedSunday ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                <div><strong>Name:</strong> {selectedSunday.full_name || "-"}</div>
-                <div><strong>Email:</strong> {selectedSunday.reply_email || "-"}</div>
-                {(selectedSunday.trainer_first_name || selectedSunday.trainer_email) ? (
-                  <div>
-                    <strong>Coach:</strong>{" "}
+              <div className="bb-form-view-grid">
+                <span className="bb-inline-label" style={{ marginBottom: 4 }}>
+                  Sunday check-in
+                </span>
+                <AdminDetailRow label="Full name">{adminDetailText(selectedSunday.full_name)}</AdminDetailRow>
+                <AdminDetailRow label="Reply email">{adminDetailText(selectedSunday.reply_email)}</AdminDetailRow>
+                <AdminDetailRow label="Plan">{adminDetailText(selectedSunday.plan)}</AdminDetailRow>
+                <AdminDetailBlock label="Current weight, waist & week" value={selectedSunday.current_weight_waist_week} />
+                <AdminDetailBlock label="Last week weight & waist" value={selectedSunday.last_week_weight_waist} />
+                <AdminDetailBlock label="Total weight loss/gain" value={selectedSunday.total_weight_loss} />
+                <AdminDetailBlock label="How did your training go?" value={selectedSunday.training_go} />
+                <AdminDetailBlock label="How did your nutrition go?" value={selectedSunday.nutrition_go} />
+                <AdminDetailBlock label="Sleep (bed/wake, 8 hours, difficulties)" value={selectedSunday.sleep} />
+                <AdminDetailBlock label="Occupation & stress" value={selectedSunday.occupation_stress} />
+                <AdminDetailBlock label="Other stress & cause" value={selectedSunday.other_stress} />
+                <AdminDetailBlock label="Differences felt (physically & mentally)" value={selectedSunday.differences_felt} />
+                <AdminDetailBlock label="Biggest achievements" value={selectedSunday.achievements} />
+                <AdminDetailBlock label="Improve for coming week" value={selectedSunday.improve_next_week} />
+                <AdminDetailBlock label="Questions" value={selectedSunday.questions} />
+                {selectedSunday.account_first_name || selectedSunday.account_email ? (
+                  <AdminDetailRow label="Linked account">
+                    {[selectedSunday.account_first_name, selectedSunday.account_last_name].filter(Boolean).join(" ") || "—"}
+                    {selectedSunday.account_email ? ` · ${selectedSunday.account_email}` : ""}
+                  </AdminDetailRow>
+                ) : null}
+                {selectedSunday.trainer_first_name || selectedSunday.trainer_email ? (
+                  <AdminDetailRow label="Coach">
                     {[selectedSunday.trainer_first_name, selectedSunday.trainer_last_name].filter(Boolean).join(" ") ||
                       selectedSunday.trainer_email ||
                       "—"}
-                  </div>
+                  </AdminDetailRow>
                 ) : null}
-                <div><strong>Weight loss:</strong> {selectedSunday.total_weight_loss ?? "-"}</div>
-                <div><strong>Achievements:</strong> {selectedSunday.achievements || "-"}</div>
-                <div><strong>Submitted:</strong> {selectedSunday.created_at ? new Date(selectedSunday.created_at).toLocaleString() : "-"}</div>
+                <AdminDetailRow label="Submitted">
+                  {selectedSunday.created_at ? new Date(String(selectedSunday.created_at)).toLocaleString() : "—"}
+                </AdminDetailRow>
               </div>
             ) : null}
             {selectedPart2 ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                <div><strong>Name:</strong> {selectedPart2.name || "-"}</div>
-                <div><strong>Email:</strong> {selectedPart2.email || "-"}</div>
-                <div><strong>Mobile:</strong> {selectedPart2.mobile || "-"}</div>
-                <div><strong>Activity:</strong> {selectedPart2.activity_level || "-"}</div>
-                <div><strong>Submitted:</strong> {selectedPart2.created_at ? new Date(selectedPart2.created_at).toLocaleString() : "-"}</div>
+              <div className="bb-form-view-grid">
+                <span className="bb-inline-label" style={{ marginBottom: 4 }}>
+                  Part-2 submission
+                </span>
+                <AdminDetailRow label="Name">{adminDetailText(selectedPart2.name)}</AdminDetailRow>
+                <AdminDetailRow label="Email">{adminDetailText(selectedPart2.email)}</AdminDetailRow>
+                <AdminDetailRow label="Mobile">{adminDetailText(selectedPart2.mobile)}</AdminDetailRow>
+                <AdminDetailRow label="Activity level">{adminDetailText(selectedPart2.activity_level)}</AdminDetailRow>
+                <AdminDetailBlock label="Sports history" value={selectedPart2.sports_history} />
+                <AdminDetailBlock label="Past/current injuries" value={selectedPart2.injuries} />
+                <AdminDetailBlock label="Mental health" value={selectedPart2.mental_health} />
+                <AdminDetailBlock label="Gym experience" value={selectedPart2.gym_experience} />
+                <AdminDetailBlock label="Food choices" value={selectedPart2.food_choices} />
+                <AdminDetailBlock label="Vices & addictions" value={selectedPart2.vices_addictions} />
+                <AdminDetailBlock label="Goals" value={selectedPart2.goals} />
+                <AdminDetailBlock label="What compelled you" value={selectedPart2.what_compelled} />
+                <AdminDetailRow label="Submitted">
+                  {selectedPart2.created_at ? new Date(String(selectedPart2.created_at)).toLocaleString() : "—"}
+                </AdminDetailRow>
               </div>
             ) : null}
             {selectedWorkout ? (

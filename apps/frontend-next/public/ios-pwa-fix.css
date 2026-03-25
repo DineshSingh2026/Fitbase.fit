@@ -1,0 +1,108 @@
+/* ========== iOS WebKit PWA Layout Fixes ========== */
+/* Targets iOS Safari/Chrome (WebKit) — @supports (-webkit-touch-callout: none) */
+/* Fixes inconsistent padding, spacing, and layout on iOS */
+
+@supports (-webkit-touch-callout: none) {
+  /* 1. Normalize safe-area — use 0px fallback and round values */
+  :root {
+    --safe-top: max(0px, env(safe-area-inset-top, 0px));
+    --safe-bottom: max(0px, env(safe-area-inset-bottom, 0px));
+    --safe-left: max(0px, env(safe-area-inset-left, 0px));
+    --safe-right: max(0px, env(safe-area-inset-right, 0px));
+  }
+
+  /* 2. Layout stability — reduce subpixel rendering jitter on iOS */
+  html {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+
+  /* 3. Flex children — prevent overflow/layout bugs */
+  .hero, .hero-inner, .sec, .si, .admin-panel, .admin-body,
+  .admin-layout, .user-panel, .dashboard {
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .hero { min-height: 100vh; }
+  .admin-panel, .admin-layout, .user-panel, .dashboard { min-height: 100vh; }
+
+  /* 4. Main nav — consistent padding */
+  nav:not(.admin-bottom-nav):not(.user-bottom-nav) {
+    padding-top: calc(12px + var(--safe-top));
+    padding-left: max(48px, var(--safe-left));
+    padding-right: max(48px, var(--safe-right));
+  }
+
+  /* 5. Hero section — consistent spacing */
+  .hero-inner {
+    padding-top: 0;
+    padding-bottom: var(--safe-bottom);
+  }
+  .hero-tag { margin-bottom: 28px; }
+  .hero h1 { margin-bottom: 28px; }
+  .hero-sub { margin-bottom: 40px; }
+
+  /* 6. Sections — padding with safe area */
+  .sec {
+    padding-left: max(24px, var(--safe-left));
+    padding-right: max(24px, var(--safe-right));
+  }
+  @media (min-width: 769px) {
+    .sec {
+      padding-left: max(48px, var(--safe-left));
+      padding-right: max(48px, var(--safe-right));
+    }
+  }
+
+  /* 9. Bottom navs — extend to safe area + equal spacing, fit width on iOS */
+  .admin-bottom-nav,
+  .user-bottom-nav {
+    padding-bottom: var(--safe-bottom);
+    width: 100% !important;
+    min-width: 100%;
+    max-width: 100%;
+    left: 0 !important;
+    right: 0 !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  .admin-bottom-nav-inner,
+  .user-bottom-nav-inner {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0;
+    flex: 1;
+    justify-content: space-between !important;
+    padding-left: max(4px, var(--safe-left));
+    padding-right: max(4px, var(--safe-right));
+    box-sizing: border-box;
+    gap: 0;
+  }
+  .admin-bottom-nav-item,
+  .user-bottom-nav-item {
+    flex: 1 1 0% !important;
+    width: 0;
+    min-width: 0 !important;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 9. Admin summary/quick-access — margin fallback for grid gap */
+  .admin-summary-cards { gap: 10px; }
+  .admin-qa-grid { gap: 10px; }
+  .admin-summary-card { margin-bottom: 0; }
+  .admin-qa-btn { margin-bottom: 0; }
+
+  /* 10. Footer safe area */
+  footer {
+    padding-bottom: max(28px, var(--safe-bottom));
+  }
+
+  /* 11. Modals/overlays — safe area */
+  .modal-overlay, .pwa-ios-modal {
+    padding: max(24px, var(--safe-top)) max(24px, var(--safe-right)) max(24px, var(--safe-bottom)) max(24px, var(--safe-left));
+  }
+}

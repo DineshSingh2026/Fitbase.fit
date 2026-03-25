@@ -20,6 +20,11 @@ import { TrainerCompatController } from "./trainer-compat.controller";
 import { PushController } from "./push.controller";
 import { MessageThreadsController } from "./message-threads.controller";
 import { ClientActivityController } from "./client-activity.controller";
+import { CampaignsController } from "./campaigns.controller";
+import { CampaignService } from "./campaign.service";
+import { CampaignBroadcastService } from "./campaign-broadcast.service";
+import { CampaignSchedulerService } from "./campaign-scheduler.service";
+import { Part2PublicController } from "./part2-public.controller";
 
 @Module({
   imports: [
@@ -44,8 +49,17 @@ import { ClientActivityController } from "./client-activity.controller";
     TrainerCompatController,
     PushController,
     MessageThreadsController,
-    ClientActivityController
+    ClientActivityController,
+    CampaignsController,
+    Part2PublicController
   ],
-  providers: [AuthService, RolesGuard, BootstrapService]
+  providers: [
+    AuthService,
+    RolesGuard,
+    BootstrapService,
+    CampaignBroadcastService,
+    CampaignSchedulerService,
+    CampaignService
+  ]
 })
 export class AppModule {}

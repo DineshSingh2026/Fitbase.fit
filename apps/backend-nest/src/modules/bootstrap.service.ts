@@ -102,6 +102,38 @@ export class BootstrapService implements OnModuleInit {
     await this.pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`);
 
     await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS audit_requests (
+        id text PRIMARY KEY,
+        first_name text NOT NULL,
+        last_name text DEFAULT '',
+        age integer,
+        sex text DEFAULT '',
+        email text NOT NULL,
+        phone text DEFAULT '',
+        country text DEFAULT '',
+        city text DEFAULT '',
+        occupation text DEFAULT '',
+        work_intensity text DEFAULT '',
+        fitness_experience text DEFAULT '',
+        goals text DEFAULT '',
+        motivation text DEFAULT '',
+        status text DEFAULT 'pending',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS contact_messages (
+        id text PRIMARY KEY,
+        user_id text,
+        name text NOT NULL,
+        phone text DEFAULT '',
+        email text DEFAULT '',
+        message text DEFAULT '',
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+
+    await this.pool.query(
       `CREATE TABLE IF NOT EXISTS message_threads (
         id uuid PRIMARY KEY,
         user_id uuid NOT NULL,
@@ -125,6 +157,63 @@ export class BootstrapService implements OnModuleInit {
     );
     await this.pool.query(
       `CREATE INDEX IF NOT EXISTS thread_messages_thread_idx ON thread_messages (thread_id, created_at ASC)`
+    );
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS campaign_messages (
+        id text PRIMARY KEY,
+        day_of_week text NOT NULL,
+        time_of_day text NOT NULL,
+        message text NOT NULL,
+        is_active boolean DEFAULT true,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_campaign_messages_active ON campaign_messages (is_active, day_of_week, time_of_day)`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS campaign_send_log (
+        id text PRIMARY KEY,
+        campaign_id text,
+        message text NOT NULL,
+        sent_to integer DEFAULT 0,
+        sent_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_campaign_send_log_sent_at ON campaign_send_log (sent_at DESC)`
+    );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS user_inbox (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        title text NOT NULL DEFAULT 'FitBase',
+        body text NOT NULL,
+        type text DEFAULT 'campaign',
+        is_read boolean DEFAULT false,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox (user_id, created_at DESC)`);
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS part2_audit (
+        id text PRIMARY KEY,
+        name text NOT NULL,
+        email text NOT NULL,
+        mobile text DEFAULT '',
+        sports_history text DEFAULT '',
+        injuries text DEFAULT '',
+        mental_health text DEFAULT '',
+        gym_experience text DEFAULT '',
+        food_choices text DEFAULT '',
+        vices_addictions text DEFAULT '',
+        goals text DEFAULT '',
+        what_compelled text DEFAULT '',
+        activity_level text DEFAULT '',
+        created_at timestamptz DEFAULT now()
+      )`
     );
 
     await this.ensureTribeMembersTable();
@@ -202,6 +291,18 @@ export class BootstrapService implements OnModuleInit {
     );
     await this.pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS user_id text`);
     await this.pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS reply_email text DEFAULT ''`);
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS user_goals (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        target_weight numeric,
+        target_body_fat numeric,
+        weekly_workout_target integer,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_user_goals_user_id ON user_goals (user_id)`);
   }
 
   /** Matches Express server.js / trainer dashboard; required for approve-user and /api/tribe. */

@@ -7,6 +7,7 @@ import { Roles } from "./roles.decorator";
 import { randomUUID } from "crypto";
 import * as bcrypt from "bcryptjs";
 import { normalizeRoleString } from "./auth-role.util";
+import { CampaignService } from "./campaign.service";
 
 function isAdmin(user: any): boolean {
   return normalizeRoleString(user?.role) === "admin";
@@ -20,7 +21,10 @@ function isSuperadmin(user: any): boolean {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles("admin", "superadmin")
 export class AdminManagementController {
-  constructor(@Inject("PG_POOL") private readonly pool: Pool | null) {}
+  constructor(
+    @Inject("PG_POOL") private readonly pool: Pool | null,
+    private readonly campaignService: CampaignService
+  ) {}
 
   private async safeRows(sql: string, params: any[] = []) {
     if (!this.pool) return [];
@@ -30,6 +34,18 @@ export class AdminManagementController {
     } catch (e: any) {
       if (e?.code === "42P01" || e?.code === "42703") return [];
       throw e;
+    }
+  }
+
+  /** Never throws — missing tables/columns return []. */
+  private async perfInsightRows(sql: string, params: any[] = []): Promise<any[]> {
+    if (!this.pool) return [];
+    try {
+      const r = await this.pool.query(sql, params);
+      return r.rows || [];
+    } catch (e: any) {
+      console.error("[performance-insights]", e?.code, e?.message, sql.slice(0, 120));
+      return [];
     }
   }
 
@@ -66,6 +82,24 @@ export class AdminManagementController {
     } catch {
       return res.status(500).json({ error: "Failed to load invite link" });
     }
+  }
+
+  /** BodyBank: campaign NLP + fallback when OpenAI is not configured. */
+  @Post("ai-assist")
+  async aiAssist(@Body() body: { message?: string }) {
+    const text = String(body?.message || "").trim();
+    if (!text) {
+      return { reply: "Enter a command or question." };
+    }
+    const cmd = this.campaignService.runCampaignAiParse(text);
+    if (cmd) {
+      const reply = await this.campaignService.handleAiCommand(cmd);
+      return { reply };
+    }
+    return {
+      reply:
+        "Full AI Assist (OpenAI) is not enabled on this server. For scheduled broadcasts, use the Campaigns tab, or try:\n• List campaigns\n• Create reminder campaign: Your message every monday at 9 AM\n• Pause campaign <uuid>\n• Broadcast now: Your message"
+    };
   }
 
   @Get("pending-signups")
@@ -388,6 +422,31 @@ export class AdminManagementController {
     }
   }
 
+  @Get("sunday-checkins/:id")
+  async sundayCheckinById(@Param("id") id: string, @Req() req: any, @Res() res: Response) {
+    if (!this.pool) return res.status(500).json({ error: "Not found" });
+    try {
+      const rows = await this.safeRows(
+        "SELECT s.*, u.trainer_id, u.first_name AS account_first_name, u.last_name AS account_last_name, u.email AS account_email, " +
+          "tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
+          "FROM sunday_checkins s " +
+          "LEFT JOIN users u ON u.id::text = s.user_id::text " +
+          "LEFT JOIN users tr ON tr.id::text = u.trainer_id::text AND tr.role = 'admin' " +
+          "WHERE s.id = $1 LIMIT 1",
+        [id]
+      );
+      const row = rows[0];
+      if (!row) return res.status(404).json({ error: "Not found" });
+      if (isAdmin(req.user)) {
+        const tid = row.trainer_id != null ? String(row.trainer_id) : "";
+        if (!tid || tid !== String(req.user.id)) return res.status(403).json({ error: "Access denied" });
+      }
+      return res.json(row);
+    } catch {
+      return res.status(500).json({ error: "Not found" });
+    }
+  }
+
   @Get("daily-checkins")
   async dailyCheckins(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json([]);
@@ -399,7 +458,7 @@ export class AdminManagementController {
       const where: string[] = [];
       let sql =
         "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, " +
-        "u.first_name, u.last_name, u.email, u.trainer_id, " +
+        "u.first_name, u.last_name, u.email, u.phone, u.trainer_id, " +
         "tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
         "FROM daily_checkins dc " +
         "LEFT JOIN users u ON u.id::text = dc.user_id::text " +
@@ -437,7 +496,7 @@ export class AdminManagementController {
     try {
       const rows = await this.safeRows(
         "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, " +
-          "u.first_name, u.last_name, u.email, u.trainer_id, " +
+          "u.first_name, u.last_name, u.email, u.phone, u.trainer_id, " +
           "tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name, tr.email AS trainer_email " +
           "FROM daily_checkins dc " +
           "LEFT JOIN users u ON u.id::text = dc.user_id::text " +
@@ -552,6 +611,28 @@ export class AdminManagementController {
       return res.json(await this.safeRows(sql, params));
     } catch {
       return res.status(500).json([]);
+    }
+  }
+
+  @Get("part2-submissions/:id")
+  async part2SubmissionById(@Param("id") id: string, @Req() req: any, @Res() res: Response) {
+    if (!this.pool) return res.status(500).json({ error: "Not found" });
+    try {
+      const rows = await this.safeRows(
+        "SELECT p2.*, u.trainer_id FROM part2_audit p2 " +
+          "LEFT JOIN users u ON LOWER(TRIM(u.email)) = LOWER(TRIM(p2.email)) AND u.role = 'user' " +
+          "WHERE p2.id = $1 LIMIT 1",
+        [id]
+      );
+      const row = rows[0];
+      if (!row) return res.status(404).json({ error: "Not found" });
+      if (isAdmin(req.user)) {
+        const tid = row.trainer_id != null ? String(row.trainer_id) : "";
+        if (!tid || tid !== String(req.user.id)) return res.status(403).json({ error: "Access denied" });
+      }
+      return res.json(row);
+    } catch {
+      return res.status(500).json({ error: "Not found" });
     }
   }
 
@@ -725,176 +806,168 @@ export class AdminManagementController {
   @Get("performance-insights")
   async performanceInsights(@Req() req: any, @Res() res: Response) {
     if (!this.pool) return res.status(500).json({ error: "Database unavailable", summary: {}, data: [] });
-    try {
-      const source = String(req.query?.source || "all").toLowerCase();
-      const dateFrom = req.query?.from ? String(req.query.from) : null;
-      const dateTo = req.query?.to ? String(req.query.to) : null;
-      const filterUserId = req.query?.user_id ? String(req.query.user_id) : null;
-      const scopedUserId = isAdmin(req.user) ? null : filterUserId;
-      const trainerId = isAdmin(req.user) ? req.user.id : null;
-      const hasDate = !!(dateFrom || dateTo);
-      const summary: Record<string, any> = {};
+    const source = String(req.query?.source || "all").toLowerCase();
+    const dateFrom = req.query?.from ? String(req.query.from) : null;
+    const dateTo = req.query?.to ? String(req.query.to) : null;
+    const filterUserId = req.query?.user_id ? String(req.query.user_id) : null;
+    const scopedUserId = isAdmin(req.user) ? null : filterUserId;
+    const trainerId = isAdmin(req.user) ? req.user.id : null;
+    const hasDate = !!(dateFrom || dateTo);
+    const summary: Record<string, any> = {};
 
-      const usersApproved = await this.pool.query(
-        "SELECT COUNT(*)::int as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved') AND ($1::text IS NULL OR trainer_id = $2)",
-        [trainerId, trainerId]
-      );
-      summary.users_approved = usersApproved.rows[0]?.c || 0;
+    const ua = await this.perfInsightRows(
+      "SELECT COUNT(*)::int as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved') AND ($1::text IS NULL OR trainer_id::text = $2::text)",
+      [trainerId, trainerId]
+    );
+    summary.users_approved = ua[0]?.c ?? 0;
 
-      const pendingAudit = await this.pool.query(
-        "SELECT COUNT(*)::int as c FROM audit_requests WHERE status='pending'"
-      );
-      summary.pending_requests = pendingAudit.rows[0]?.c || 0;
+    const pend = await this.perfInsightRows("SELECT COUNT(*)::int as c FROM audit_requests WHERE status='pending'");
+    summary.pending_requests = pend[0]?.c ?? 0;
 
-      const dailyCheckins = await this.pool.query(
-        "SELECT COUNT(*)::int as c FROM daily_checkins d LEFT JOIN users u ON u.id::text = d.user_id::text WHERE ($1::text IS NULL OR u.trainer_id = $2)",
-        [trainerId, trainerId]
-      );
-      summary.daily_checkins = dailyCheckins.rows[0]?.c || 0;
+    const dc = await this.perfInsightRows(
+      "SELECT COUNT(*)::int as c FROM daily_checkins d LEFT JOIN users u ON u.id::text = d.user_id::text WHERE ($1::text IS NULL OR u.trainer_id::text = $2::text)",
+      [trainerId, trainerId]
+    );
+    summary.daily_checkins = dc[0]?.c ?? 0;
 
-      const counters = [
-        { key: "workouts", sql: "SELECT COUNT(*)::int as c FROM workout_logs w", dateCol: "w.created_at", userCol: "w.user_id" },
-        { key: "sunday_checkin", sql: "SELECT COUNT(*)::int as c FROM sunday_checkins", dateCol: "created_at", userCol: "user_id" },
-        { key: "audit", sql: "SELECT COUNT(*)::int as c FROM audit_requests", dateCol: "created_at", userCol: null },
-        { key: "part2", sql: "SELECT COUNT(*)::int as c FROM part2_audit", dateCol: "created_at", userCol: null },
-        { key: "meetings", sql: "SELECT COUNT(*)::int as c FROM meetings WHERE status='scheduled'", dateCol: "created_at", userCol: "user_id" },
-        { key: "messages", sql: "SELECT COUNT(*)::int as c FROM contact_messages", dateCol: "created_at", userCol: "user_id" }
-      ];
+    const counters = [
+      { key: "workouts", sql: "SELECT COUNT(*)::int as c FROM workout_logs w", dateCol: "w.created_at", userCol: "w.user_id" },
+      { key: "sunday_checkin", sql: "SELECT COUNT(*)::int as c FROM sunday_checkins", dateCol: "created_at", userCol: "user_id" },
+      { key: "audit", sql: "SELECT COUNT(*)::int as c FROM audit_requests", dateCol: "created_at", userCol: null },
+      { key: "part2", sql: "SELECT COUNT(*)::int as c FROM part2_audit", dateCol: "created_at", userCol: null },
+      { key: "meetings", sql: "SELECT COUNT(*)::int as c FROM meetings WHERE status='scheduled'", dateCol: "created_at", userCol: "user_id" },
+      { key: "messages", sql: "SELECT COUNT(*)::int as c FROM contact_messages", dateCol: "created_at", userCol: "user_id" }
+    ];
 
-      for (const item of counters) {
-        let sql = item.sql;
-        const conditions: string[] = [];
-        const params: any[] = [];
-        if (hasDate && item.dateCol) {
-          if (dateFrom) {
-            params.push(dateFrom);
-            conditions.push(`date(${item.dateCol}) >= date($${params.length})`);
-          }
-          if (dateTo) {
-            params.push(dateTo);
-            conditions.push(`date(${item.dateCol}) <= date($${params.length})`);
-          }
+    for (const item of counters) {
+      let sql = item.sql;
+      const conditions: string[] = [];
+      const params: any[] = [];
+      if (hasDate && item.dateCol) {
+        if (dateFrom) {
+          params.push(dateFrom);
+          conditions.push(`date(${item.dateCol}) >= date($${params.length})`);
         }
-        if (scopedUserId && item.userCol) {
-          params.push(scopedUserId);
-          conditions.push(`${item.userCol} = $${params.length}`);
-        }
-        if (conditions.length) {
-          sql += (item.sql.toLowerCase().includes(" where ") ? " AND " : " WHERE ") + conditions.join(" AND ");
-        }
-        const row = await this.pool.query(sql, params);
-        summary[item.key] = row.rows[0]?.c || 0;
-      }
-
-      let data: any[] = [];
-      if (source === "all" || source === "overview") {
-        const limit = 80;
-        const w = await this.pool.query(
-          "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text ORDER BY w.created_at DESC LIMIT 200"
-        );
-        const sc = await this.pool.query(
-          "SELECT id, user_id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200"
-        );
-        const ar = await this.pool.query(
-          "SELECT id, first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200"
-        );
-        const p2 = await this.pool.query(
-          "SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200"
-        );
-        const meet = await this.pool.query(
-          "SELECT id, user_id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings ORDER BY created_at DESC LIMIT 200"
-        );
-        const msg = await this.pool.query(
-          "SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200"
-        );
-        data = [
-          ...w.rows.map((r: any) => ({ ...r, _source: "workouts", _date: r.created_at })),
-          ...sc.rows.map((r: any) => ({ ...r, _source: "sunday_checkin", _date: r.created_at })),
-          ...ar.rows.map((r: any) => ({ ...r, _source: "audit", _date: r.created_at })),
-          ...p2.rows.map((r: any) => ({ ...r, _source: "part2", _date: r.created_at })),
-          ...meet.rows.map((r: any) => ({ ...r, _source: "meetings", _date: r.created_at })),
-          ...msg.rows.map((r: any) => ({ ...r, _source: "messages", _date: r.created_at }))
-        ];
-        if (hasDate) {
-          data = data.filter((r) => {
-            const d = String(r._date || r.created_at || "").slice(0, 10);
-            return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo);
-          });
-        }
-        if (scopedUserId) data = data.filter((r) => r.user_id === scopedUserId);
-        data.sort(
-          (a, b) => new Date(String(b._date || b.created_at || 0)).getTime() - new Date(String(a._date || a.created_at || 0)).getTime()
-        );
-        data = data.slice(0, limit);
-      } else {
-        const limit = 500;
-        const params: any[] = [];
-        let sql = "";
-        const addDateUserFilters = (dateCol: string, userCol: string | null) => {
-          const where: string[] = [];
-          if (dateFrom) {
-            params.push(dateFrom);
-            where.push(`date(${dateCol}) >= date($${params.length})`);
-          }
-          if (dateTo) {
-            params.push(dateTo);
-            where.push(`date(${dateCol}) <= date($${params.length})`);
-          }
-          if (scopedUserId && userCol) {
-            params.push(scopedUserId);
-            where.push(`${userCol} = $${params.length}`);
-          }
-          return where;
-        };
-
-        if (source === "workouts") {
-          sql =
-            "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text";
-          const where = addDateUserFilters("w.created_at", "w.user_id");
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY w.created_at DESC LIMIT ${limit}`;
-        } else if (source === "sunday_checkin") {
-          sql = "SELECT id, user_id, full_name, reply_email, plan, total_weight_loss, created_at FROM sunday_checkins";
-          const where = addDateUserFilters("created_at", "user_id");
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
-        } else if (source === "audit") {
-          sql = "SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests";
-          const where = addDateUserFilters("created_at", null);
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
-        } else if (source === "part2") {
-          sql = "SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit";
-          const where = addDateUserFilters("created_at", null);
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
-        } else if (source === "meetings") {
-          sql =
-            "SELECT id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, created_at FROM meetings";
-          const where = addDateUserFilters("created_at", "user_id");
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
-        } else if (source === "messages") {
-          sql = "SELECT id, user_id, name, email, phone, message, created_at FROM contact_messages";
-          const where = addDateUserFilters("created_at", "user_id");
-          if (where.length) sql += " WHERE " + where.join(" AND ");
-          sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
-        }
-        if (sql) {
-          const rows = await this.pool.query(sql, params);
-          data = rows.rows;
+        if (dateTo) {
+          params.push(dateTo);
+          conditions.push(`date(${item.dateCol}) <= date($${params.length})`);
         }
       }
-
-      const stats = { ...summary, sunday_checkins: summary.sunday_checkin };
-      return res.json({
-        summary,
-        stats,
-        data,
-        filters: { source, dateFrom, dateTo, user_id: filterUserId || null }
-      });
-    } catch (e: any) {
-      return res.status(500).json({ error: e?.message || "Server error", summary: {}, data: [] });
+      if (scopedUserId && item.userCol) {
+        params.push(scopedUserId);
+        conditions.push(`${item.userCol}::text = $${params.length}::text`);
+      }
+      if (conditions.length) {
+        sql += (item.sql.toLowerCase().includes(" where ") ? " AND " : " WHERE ") + conditions.join(" AND ");
+      }
+      const row = await this.perfInsightRows(sql, params);
+      summary[item.key] = row[0]?.c ?? 0;
     }
+
+    let data: any[] = [];
+    if (source === "all" || source === "overview") {
+      const limit = 80;
+      const w = await this.perfInsightRows(
+        "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text ORDER BY w.created_at DESC LIMIT 200"
+      );
+      const sc = await this.perfInsightRows(
+        "SELECT id, user_id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200"
+      );
+      const ar = await this.perfInsightRows(
+        "SELECT id, first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200"
+      );
+      const p2 = await this.perfInsightRows(
+        "SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200"
+      );
+      const meet = await this.perfInsightRows(
+        "SELECT id, user_id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings ORDER BY created_at DESC LIMIT 200"
+      );
+      const msg = await this.perfInsightRows(
+        "SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200"
+      );
+      data = [
+        ...w.map((r: any) => ({ ...r, _source: "workouts", _date: r.created_at })),
+        ...sc.map((r: any) => ({ ...r, _source: "sunday_checkin", _date: r.created_at })),
+        ...ar.map((r: any) => ({ ...r, _source: "audit", _date: r.created_at })),
+        ...p2.map((r: any) => ({ ...r, _source: "part2", _date: r.created_at })),
+        ...meet.map((r: any) => ({ ...r, _source: "meetings", _date: r.created_at })),
+        ...msg.map((r: any) => ({ ...r, _source: "messages", _date: r.created_at }))
+      ];
+      if (hasDate) {
+        data = data.filter((r) => {
+          const d = String(r._date || r.created_at || "").slice(0, 10);
+          return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo);
+        });
+      }
+      if (scopedUserId) data = data.filter((r) => String(r.user_id || "") === String(scopedUserId));
+      data.sort(
+        (a, b) =>
+          new Date(String(b._date || b.created_at || 0)).getTime() - new Date(String(a._date || a.created_at || 0)).getTime()
+      );
+      data = data.slice(0, limit);
+    } else {
+      const limit = 500;
+      const params: any[] = [];
+      let sql = "";
+      const addDateUserFilters = (dateCol: string, userCol: string | null) => {
+        const where: string[] = [];
+        if (dateFrom) {
+          params.push(dateFrom);
+          where.push(`date(${dateCol}) >= date($${params.length})`);
+        }
+        if (dateTo) {
+          params.push(dateTo);
+          where.push(`date(${dateCol}) <= date($${params.length})`);
+        }
+        if (scopedUserId && userCol) {
+          params.push(scopedUserId);
+          where.push(`${userCol}::text = $${params.length}::text`);
+        }
+        return where;
+      };
+
+      if (source === "workouts") {
+        sql =
+          "SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON u.id::text = w.user_id::text";
+        const where = addDateUserFilters("w.created_at", "w.user_id");
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY w.created_at DESC LIMIT ${limit}`;
+      } else if (source === "sunday_checkin") {
+        sql = "SELECT id, user_id, full_name, reply_email, plan, total_weight_loss, created_at FROM sunday_checkins";
+        const where = addDateUserFilters("created_at", "user_id");
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
+      } else if (source === "audit") {
+        sql = "SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests";
+        const where = addDateUserFilters("created_at", null);
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
+      } else if (source === "part2") {
+        sql = "SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit";
+        const where = addDateUserFilters("created_at", null);
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
+      } else if (source === "meetings") {
+        sql =
+          "SELECT id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, created_at FROM meetings";
+        const where = addDateUserFilters("created_at", "user_id");
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
+      } else if (source === "messages") {
+        sql = "SELECT id, user_id, name, email, phone, message, created_at FROM contact_messages";
+        const where = addDateUserFilters("created_at", "user_id");
+        if (where.length) sql += " WHERE " + where.join(" AND ");
+        sql += ` ORDER BY created_at DESC LIMIT ${limit}`;
+      }
+      if (sql) data = await this.perfInsightRows(sql, params);
+    }
+
+    const stats = { ...summary, sunday_checkins: summary.sunday_checkin };
+    return res.json({
+      summary,
+      stats,
+      data,
+      filters: { source, dateFrom: dateFrom || null, dateTo: dateTo || null, user_id: filterUserId || null }
+    });
   }
 }
