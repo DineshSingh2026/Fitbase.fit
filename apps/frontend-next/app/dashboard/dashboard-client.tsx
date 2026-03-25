@@ -365,7 +365,9 @@ async function fetchFitbaseJson(
 }
 
 export default function DashboardPage() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(() =>
+    typeof window !== "undefined" ? getSession() : null
+  );
   const role = String(session?.user?.role || "")
     .trim()
     .toLowerCase();
@@ -1062,6 +1064,70 @@ export default function DashboardPage() {
     });
   }, [session?.token, role, apiBase]);
 
+  const reloadMainDashboardData = useCallback(() => {
+    const token = session?.token;
+    const r = String(role || "").toLowerCase();
+    if (!token || r === "superadmin") return;
+
+    const headers = { Authorization: `Bearer ${token}` };
+    if (r === "user") {
+      const userId = String(session?.user?.id || "");
+      Promise.all([
+        fetch(`${apiBase}/api/workouts/${encodeURIComponent(userId)}`, { headers }).then((res) => res.json()).catch(() => []),
+        fetch(`${apiBase}/api/meetings/user/${encodeURIComponent(userId)}`, { headers }).then((res) => res.json()).catch(() => []),
+        fetch(`${apiBase}/api/threads`, { headers }).then((res) => res.json()).catch(() => []),
+        fetch(`${apiBase}/api/today`, { headers }).then((res) => res.json()).catch(() => null),
+        fetch(`${apiBase}/api/daily-checkin/streak`, { headers }).then((res) => res.json()).catch(() => null)
+      ])
+        .then(([w, m, t, todayData, streakData]) => {
+          setStats({
+            active_members: 1,
+            daily_checkins: 0,
+            pending_signups: 0,
+            messages: Array.isArray(t) ? t.length : 0
+          });
+          setWorkouts(Array.isArray(w) ? w : []);
+          setActivity(Array.isArray(m) ? m : []);
+          setThreads(Array.isArray(t) ? t : []);
+          setClients([]);
+          setDailyCheckins([]);
+          setPendingUsers([]);
+          if (todayData && !todayData.error) setUserToday(todayData);
+          if (streakData && !streakData.error) setUserStreak(streakData);
+        })
+        .catch(() => setError("Failed to load dashboard data."));
+      return;
+    }
+
+    Promise.all([
+      fetch(`${apiBase}/api/stats`, { headers }).then((res) => res.json()).catch(() => null),
+      fetch(`${apiBase}/api/admin/recent-activity`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/threads`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/users`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/daily-checkins`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/workouts`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/pending-signups`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((res) => res.json()).catch(() => []),
+      fetch(`${apiBase}/api/meetings`, { headers }).then((res) => res.json()).catch(() => [])
+    ])
+      .then(([s, a, t, u, d, w, p, sun, p2, mt]) => {
+        if (s?.error) setError(s.error);
+        else setError("");
+        setStats(s || null);
+        setActivity(Array.isArray(a) ? a : []);
+        setThreads(Array.isArray(t) ? t : []);
+        setClients(Array.isArray(u) ? u : []);
+        setDailyCheckins(Array.isArray(d) ? d : []);
+        setWorkouts(Array.isArray(w) ? w : []);
+        setPendingUsers(Array.isArray(p) ? p : []);
+        setSundayCheckinsApi(Array.isArray(sun) ? sun : []);
+        setPart2Submissions(Array.isArray(p2) ? p2 : []);
+        setStaffMeetings(Array.isArray(mt) ? mt : []);
+      })
+      .catch(() => setError("Failed to load dashboard data."));
+  }, [session?.token, session?.user?.id, role, apiBase]);
+
   useEffect(() => {
     if (!timerRunning) {
       if (timerRef.current) {
@@ -1235,66 +1301,8 @@ export default function DashboardPage() {
   }, [session?.token, role, apiBase, loadSuperadminDashboard]);
 
   useEffect(() => {
-    if (!session?.token) return;
-    if (role === "superadmin") return;
-
-    const headers = { Authorization: `Bearer ${session.token}` };
-    if (role === "user") {
-      const userId = String(session?.user?.id || "");
-      Promise.all([
-        fetch(`${apiBase}/api/workouts/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/meetings/user/${encodeURIComponent(userId)}`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-        fetch(`${apiBase}/api/today`, { headers }).then((r) => r.json()).catch(() => null),
-        fetch(`${apiBase}/api/daily-checkin/streak`, { headers }).then((r) => r.json()).catch(() => null)
-      ])
-        .then(([w, m, t, todayData, streakData]) => {
-          setStats({
-            active_members: 1,
-            daily_checkins: 0,
-            pending_signups: 0,
-            messages: Array.isArray(t) ? t.length : 0
-          });
-          setWorkouts(Array.isArray(w) ? w : []);
-          setActivity(Array.isArray(m) ? m : []);
-          setThreads(Array.isArray(t) ? t : []);
-          setClients([]);
-          setDailyCheckins([]);
-          setPendingUsers([]);
-          if (todayData && !todayData.error) setUserToday(todayData);
-          if (streakData && !streakData.error) setUserStreak(streakData);
-        })
-        .catch(() => setError("Failed to load dashboard data."));
-      return;
-    }
-
-    Promise.all([
-      fetch(`${apiBase}/api/stats`, { headers }).then((r) => r.json()).catch(() => null),
-      fetch(`${apiBase}/api/admin/recent-activity`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/threads`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/users`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/daily-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/workouts`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/pending-signups`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/sunday-checkins`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/admin/part2-submissions`, { headers }).then((r) => r.json()).catch(() => []),
-      fetch(`${apiBase}/api/meetings`, { headers }).then((r) => r.json()).catch(() => [])
-    ])
-      .then(([s, a, t, u, d, w, p, sun, p2, mt]) => {
-        if (s?.error) setError(s.error);
-        setStats(s || null);
-        setActivity(Array.isArray(a) ? a : []);
-        setThreads(Array.isArray(t) ? t : []);
-        setClients(Array.isArray(u) ? u : []);
-        setDailyCheckins(Array.isArray(d) ? d : []);
-        setWorkouts(Array.isArray(w) ? w : []);
-        setPendingUsers(Array.isArray(p) ? p : []);
-        setSundayCheckinsApi(Array.isArray(sun) ? sun : []);
-        setPart2Submissions(Array.isArray(p2) ? p2 : []);
-        setStaffMeetings(Array.isArray(mt) ? mt : []);
-      })
-      .catch(() => setError("Failed to load dashboard data."));
-  }, [session?.token, role, apiBase]);
+    void reloadMainDashboardData();
+  }, [reloadMainDashboardData]);
 
   useEffect(() => {
     if (!session?.token || role !== "admin") {
@@ -1313,7 +1321,7 @@ export default function DashboardPage() {
         } else setTrainerReferral(null);
       })
       .catch(() => setTrainerReferral(null));
-  }, [session?.token, role]);
+  }, [session?.token, role, apiBase]);
 
   useEffect(() => {
     if (!session?.token || !selectedThreadId) return;
@@ -2339,14 +2347,14 @@ export default function DashboardPage() {
         setSuperadminPortfolioTrainerId(null);
         setTrainerFormsView("hub");
       } else if (id === "forms") {
-        setTrainerClientsView("hub");
+      setTrainerClientsView("hub");
         setSuperadminPortfolioTrainerId(null);
         setTrainerFormsView(role === "superadmin" ? "daily" : "hub");
       } else {
         setTrainerClientsView("hub");
         setSuperadminPortfolioTrainerId(null);
-        setTrainerFormsView("hub");
-      }
+      setTrainerFormsView("hub");
+    }
     }
     if (role === "user" && id === "forms") setUserCheckinView("hub");
     setActiveTab(id);
@@ -2538,7 +2546,7 @@ export default function DashboardPage() {
     searchPlaceholder: string;
   }) {
     const f = props.filter;
-    return (
+  return (
       <div
         className="bb-admin-filter-bar"
         style={{
@@ -3740,7 +3748,7 @@ export default function DashboardPage() {
               {inboxItems.length > 0 ? (
                 <span className="bb-header-badge">{inboxItems.length > 99 ? "99+" : inboxItems.length}</span>
               ) : null}
-            </button>
+          </button>
             {notifOpen ? (
               <div className="bb-notif-panel" role="menu">
                 <div className="bb-notif-panel-head">
@@ -3803,7 +3811,24 @@ export default function DashboardPage() {
             disabled={role === "superadmin" && superadminSync.loading}
             onClick={() => {
               if (role === "superadmin") void loadSuperadminDashboard();
-              else window.location.reload();
+              else {
+                void reloadMainDashboardData();
+                void loadInbox();
+                if (role === "admin" && session?.token) {
+                  const headers = { Authorization: `Bearer ${session.token}` };
+                  void fetch(`${apiBase}/api/admin/referral-link`, { headers })
+                    .then((r) => r.json())
+                    .then((d) => {
+                      if (d?.referral_code) {
+                        setTrainerReferral({
+                          code: String(d.referral_code),
+                          join_path: String(d.join_path || `/join/${d.referral_code}`)
+                        });
+                      } else setTrainerReferral(null);
+                    })
+                    .catch(() => setTrainerReferral(null));
+                }
+              }
             }}
           >
             ↻
@@ -3956,8 +3981,8 @@ export default function DashboardPage() {
                 <button type="button" className="bb-user-pwa-btn" onClick={handlePwaAddToHomescreenUser}>
                   Add to Home Screen
                 </button>
-              </div>
-            ) : null}
+          </div>
+        ) : null}
           </>
         ) : (
           <>
@@ -4284,7 +4309,7 @@ export default function DashboardPage() {
                       <p className="bb-sa-home-hero-date" suppressHydrationWarning>
                         {todayLabel || "\u00a0"}
                       </p>
-                    </div>
+                </div>
                     <div className="bb-sa-home-metrics">
                       <button
                         type="button"
@@ -4372,7 +4397,7 @@ export default function DashboardPage() {
                         <span className="bb-sa-metric-lbl">Coach portfolio</span>
                         <span className="bb-sa-metric-num num-gold">{superadminTrainers.filter((t: any) => !t.suspended).length}</span>
                       </button>
-                    </div>
+                  </div>
                   </div>
 
                   <div className={`bb-sa-sync-shell${superadminSync.issues.length ? " bb-sa-sync--warn" : ""}`}>
@@ -4408,9 +4433,9 @@ export default function DashboardPage() {
                             ))}
                           </ul>
                         )}
-                      </div>
-                    ) : null}
                   </div>
+                    ) : null}
+                </div>
                   <div className="bb-sa-home-queues">
                     <div className="bb-sa-queue-col">
                       <h3 id="sa-trainer-onboarding" className="bb-sa-sec-head">
@@ -4685,7 +4710,7 @@ export default function DashboardPage() {
                                       {t.suspended ? (
                                         <span className="bb-sa-roster-badge-warn" style={{ fontSize: 10 }}>
                                           Suspended
-                                        </span>
+                      </span>
                                       ) : (
                                         <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--green)" }}>
                                           Active
@@ -4969,8 +4994,8 @@ export default function DashboardPage() {
               <>
                 <div className="ud-user-back">
                   <button type="button" className="ud-back-btn" onClick={() => goTab("home")}>
-                    ← Back
-                  </button>
+                  ← Back
+                </button>
                 </div>
                 <div className="ud-form-section-title">Log your session</div>
                 <div className="ud-form-group">
@@ -5045,20 +5070,20 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="ud-form-divider" />
-                {workouts.length ? (
-                  <ul className="bb-list-rows">
-                    {workouts.slice(0, 20).map((w: any) => (
-                      <li key={String(w.id || `${w.workout_name}-${w.created_at}`)} className="bb-list-row bb-list-row-static">
-                        <div className="bb-list-row-title">{w.workout_name || "Workout"}</div>
-                        <p className="bb-list-row-sub">
-                          {Math.floor((Number(w.duration_seconds) || 0) / 60)} min · {w.created_at ? new Date(w.created_at).toLocaleString() : ""}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="bb-live-empty">No workouts yet.</p>
-                )}
+                  {workouts.length ? (
+                    <ul className="bb-list-rows">
+                      {workouts.slice(0, 20).map((w: any) => (
+                        <li key={String(w.id || `${w.workout_name}-${w.created_at}`)} className="bb-list-row bb-list-row-static">
+                          <div className="bb-list-row-title">{w.workout_name || "Workout"}</div>
+                          <p className="bb-list-row-sub">
+                            {Math.floor((Number(w.duration_seconds) || 0) / 60)} min · {w.created_at ? new Date(w.created_at).toLocaleString() : ""}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="bb-live-empty">No workouts yet.</p>
+                  )}
               </>
             ) : (
               <>
@@ -5582,9 +5607,9 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="bb-panel">
+                    <div className="bb-panel">
                         <p className="bb-live-empty">Super admins manage clients via the platform roster and coach assignments.</p>
-                      </div>
+                                </div>
                     )}
                   </>
                 ) : null}
@@ -5664,8 +5689,8 @@ export default function DashboardPage() {
                   <div className="checkin-hub">
                     <div className="checkin-hub-back">
                       <button type="button" className="checkin-back-btn" onClick={() => goTab("home")}>
-                        ← Back
-                      </button>
+                  ← Back
+                </button>
                     </div>
                     <p className="form-hint" style={{ marginBottom: 20 }}>
                       Choose what you want to do:
@@ -6061,8 +6086,8 @@ export default function DashboardPage() {
                           </table>
                         ) : (
                           <p className="admin-cp-placeholder">No entries yet. Save a log above to see them here.</p>
-                        )}
-                      </div>
+                  )}
+                </div>
                     </div>
                   </div>
                 ) : null}
@@ -6140,7 +6165,7 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="bb-admin-hub-cards">
+                  <div className="bb-admin-hub-cards">
                     <HubCard
                       icon={String.fromCodePoint(0x1f4c5)}
                       title="Sunday Check-In"
@@ -6159,7 +6184,7 @@ export default function DashboardPage() {
                       desc="Daily steps, water, protein and sleep logs"
                       onClick={() => setTrainerFormsView("daily")}
                     />
-                    </div>
+                  </div>
                   </>
                 ) : null}
                 {trainerFormsView === "part2" ? (
@@ -6184,8 +6209,8 @@ export default function DashboardPage() {
                             {part2LinkCopied ? "Copied" : "Copy link"}
                           </button>
                         </div>
-                      </div>
-                    ) : null}
+                  </div>
+                ) : null}
                     <span className="bb-inline-label">
                       PART-2 SUBMISSIONS · <strong style={{ color: "var(--accent)" }}>{part2Submissions.length}</strong>
                     </span>
@@ -6403,7 +6428,7 @@ export default function DashboardPage() {
                             ))}
                           </tbody>
                         </table>
-                      </div>
+                            </div>
                     ) : (
                       <p className="bb-live-empty">No daily check-ins yet.</p>
                     )}
@@ -6527,16 +6552,16 @@ export default function DashboardPage() {
                             PDF
                           </a>
                         ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
                   <p className="bb-live-empty">Loading programs…</p>
-                )}
+                    )}
               </div>
             </div>
-          </div>
-        ) : null}
+                  </div>
+                ) : null}
 
         {isTrainer && activeTab === "analytics" ? (
           <div className="bb-section-page">
@@ -7210,9 +7235,9 @@ export default function DashboardPage() {
                       )}
                     </div>
                   </div>
-                ) : (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div className="bb-panel">
+            ) : (
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div className="bb-panel">
                       <span className="bb-inline-label">MEETINGS</span>
                       <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
                         Schedule a call for a client or review upcoming meeting requests.
@@ -7265,7 +7290,7 @@ export default function DashboardPage() {
                         </div>
                       ) : null}
                       {staffMeetings.length ? (
-                        <ul className="bb-list-rows">
+                      <ul className="bb-list-rows">
                           {staffMeetings.map((m: any) => (
                             <li
                               key={String(m.id)}
@@ -7282,16 +7307,16 @@ export default function DashboardPage() {
                               </p>
                             </li>
                           ))}
-                        </ul>
-                      ) : (
+                      </ul>
+                    ) : (
                         <p className="bb-live-empty">No upcoming scheduled meetings.</p>
-                      )}
-                    </div>
+                    )}
+                  </div>
                   </div>
                 )}
               </>
-            ) : (
-              <>
+                    ) : (
+                      <>
                 <div className="ud-user-back">
                   <button type="button" className="ud-back-btn" onClick={() => goTab("home")}>
                     ← Back
@@ -7313,37 +7338,37 @@ export default function DashboardPage() {
                     ) : threadMessages.length ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {threadMessages.map((m: any) => {
-                          const staffSide = m.sender_role === "admin" || m.sender_role === "superadmin";
-                          const mine = !staffSide;
-                          return (
+                              const staffSide = m.sender_role === "admin" || m.sender_role === "superadmin";
+                              const mine = !staffSide;
+                              return (
                             <div key={m.id} className={`thread-msg${mine ? " user" : " admin"}`}>
                               <div className="thread-msg-bubble">{m.body}</div>
                               <div className="thread-msg-meta">
                                 {staffSide ? userTrainerChatDisplayName || "Coach" : "You"} ·{" "}
                                 {m.created_at ? new Date(m.created_at).toLocaleString() : ""}
-                              </div>
-                            </div>
-                          );
+                                  </div>
+                                </div>
+                              );
                         })}
                       </div>
-                    ) : (
+                          ) : (
                       <p className="form-hint" style={{ textAlign: "center", padding: "32px 16px", margin: 0 }}>
                         No messages yet.
                       </p>
-                    )}
-                  </div>
+                          )}
+                        </div>
                   <div className="thread-reply-wrap">
                     <textarea
                       className="ud-form-input"
                       placeholder="Type your message…"
                       rows={2}
                       maxLength={5000}
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                    />
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                          />
                     <button type="button" className="chat-send-btn" onClick={() => void sendReply()} disabled={isReplying}>
                       {isReplying ? "…" : "Send"}
-                    </button>
+                          </button>
                   </div>
                 </div>
               </>
@@ -7560,7 +7585,7 @@ export default function DashboardPage() {
                         <div key={k.lbl} className="admin-cp-kpi">
                           <span className="num">{k.num}</span>
                           <span className="lbl">{k.lbl}</span>
-                        </div>
+              </div>
                       ))}
                     </div>
                     {clientProgress.averageCalories != null || clientProgress.averageSleep != null ? (
@@ -7569,7 +7594,7 @@ export default function DashboardPage() {
                           <span>
                             <strong>Avg calories:</strong> {String(clientProgress.averageCalories)}{" "}
                           </span>
-                        ) : null}
+            ) : null}
                         {clientProgress.averageSleep != null ? (
                           <span>
                             <strong>Avg sleep (h):</strong> {String(clientProgress.averageSleep)}
@@ -7764,7 +7789,7 @@ export default function DashboardPage() {
             ) : null}
           </div>
         ) : null}
-        </section>
+      </section>
       </div>
 
       {isStaff ? (
@@ -7799,7 +7824,7 @@ export default function DashboardPage() {
                     Pending sign-ups: {pendingUsers.length}
                   </span>
                 </div>
-                <p style={{ margin: 0 }}>
+            <p style={{ margin: 0 }}>
                   Platform-wide context: trainer applications, website coaching requests, Part-2 forms, daily/Sunday check-ins, and roster health. Ask for a morning briefing, bottleneck analysis, or &ldquo;which coaches have suspended accounts?&rdquo;
                 </p>
               </>
@@ -7951,7 +7976,7 @@ Change your password on first login.
         <div className="bb-nav-inner">
           {role === "user" ? (
             <>
-              {tabButton("home", "Home", "\u2605")}
+          {tabButton("home", "Home", "\u2605")}
               {tabButton("clients", "Workout", "\uD83D\uDCAA")}
               {tabButton("programs", "Programs", "\uD83C\uDFAF")}
               {tabButton("forms", "Check-in", "\u2705")}
@@ -7962,8 +7987,8 @@ Change your password on first login.
               {tabButton("home", "Home", "\u2605")}
               {tabButton("clients", "Clients", String.fromCodePoint(0x1f46a))}
               {tabButton("forms", "Forms", String.fromCodePoint(0x1f4cb))}
-              {tabButton("messages", "Messages", String.fromCodePoint(0x1f4ac))}
-              {tabButton("ai", "AI", String.fromCodePoint(0x1f4a1))}
+          {tabButton("messages", "Messages", String.fromCodePoint(0x1f4ac))}
+          {tabButton("ai", "AI", String.fromCodePoint(0x1f4a1))}
             </>
           )}
         </div>
