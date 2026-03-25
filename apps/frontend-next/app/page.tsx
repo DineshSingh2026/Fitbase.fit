@@ -110,14 +110,12 @@ export default function FitBaseLandingPage() {
         @keyframes floatCard1{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
         @keyframes floatCard2{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
         @keyframes fbHeroFloat1Mob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-7px)}}
-        @keyframes badgePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
         .fb-hero{position:relative;overflow:hidden;background:#faf7f2}
         .fb-hero-dotgrid{position:absolute;top:0;right:0;width:320px;height:320px;pointer-events:none;z-index:0;background-image:radial-gradient(circle,rgba(201,168,76,0.18) 1.2px,transparent 1.2px);background-size:22px 22px;-webkit-mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%);mask-image:radial-gradient(ellipse at top right,black 20%,transparent 70%)}
         .fb-hero-glow{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:420px;height:380px;pointer-events:none;z-index:0;background:radial-gradient(ellipse at center,rgba(201,168,76,0.09) 0%,transparent 70%)}
         .fb-hero-row{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:40px;max-width:1180px;margin:0 auto;width:100%;box-sizing:border-box}
         .fb-hero-left{flex:1;min-width:0;max-width:620px}
         .fb-hero-screens-wrap{position:relative;width:400px;height:380px;flex-shrink:0;z-index:2}
-        .fb-hero-badge-dot{animation:badgePulse 2.5s ease-in-out infinite;width:8px;height:8px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
         .fb-hero-stats{display:flex;flex-wrap:wrap;align-items:flex-start;border-top:1px solid #e8e0d0;padding-top:24px;margin-top:36px}
         .fb-hero-stat{display:flex;flex-direction:column;gap:4px;border-right:1px solid #e8e0d0;padding-right:32px;margin-right:32px}
         .fb-hero-stat:last-child{border-right:none;margin-right:0;padding-right:0}
@@ -307,21 +305,6 @@ export default function FitBaseLandingPage() {
         <div className="fb-hero-row">
           <div className="fb-hero-left">
             <div className="reveal" data-reveal>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 12px",
-                  borderRadius: 999,
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  marginBottom: 16
-                }}
-              >
-                <span className="fb-hero-badge-dot" />
-                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Now in Early Access</span>
-              </div>
               <h1
                 className="fb-hero-h1"
                 style={{
