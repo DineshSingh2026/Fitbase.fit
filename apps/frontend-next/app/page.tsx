@@ -6,6 +6,7 @@ import { getApiSiteBase } from "../lib/site-url";
 type FaqItem = { q: string; a: string };
 type Plan = { name: string; price: string; featured?: boolean; badge?: string; features: string[] };
 type CompareValue = "✓" | "✗" | "Limited" | "Basic" | "Paid" | "$24" | "$35" | "$19" | "$49";
+type ApplyJoinType = "individual" | "enterprise";
 
 const faqs: FaqItem[] = [
   { q: "How long does approval take?", a: "Most trainer applications are reviewed within 24 hours." },
@@ -39,6 +40,8 @@ export default function FitBaseLandingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [applySubmitting, setApplySubmitting] = useState(false);
   const [applyError, setApplyError] = useState("");
+  const [applyJoinType, setApplyJoinType] = useState<ApplyJoinType>("individual");
+  const [submittedJoinType, setSubmittedJoinType] = useState<ApplyJoinType>("individual");
   const [applyForm, setApplyForm] = useState({
     full_name: "",
     email: "",
@@ -46,6 +49,18 @@ export default function FitBaseLandingPage() {
     gym_name: "",
     city: "",
     message: ""
+  });
+  const [enterpriseForm, setEnterpriseForm] = useState({
+    business_name: "",
+    your_name: "",
+    business_type: "",
+    trainers_to_onboard: "",
+    active_clients: "",
+    white_labeling: "No",
+    custom_integrations: "No",
+    work_email: "",
+    phone: "",
+    notes: ""
   });
   const [clientSubmitted, setClientSubmitted] = useState(false);
   const [clientSubmitting, setClientSubmitting] = useState(false);
@@ -102,9 +117,21 @@ export default function FitBaseLandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
         *{box-sizing:border-box}
         html,body{margin:0;padding:0;font-family:'DM Sans',sans-serif;scroll-behavior:smooth;background:var(--bg-primary);color:var(--text-primary)}
-        #apply input,#apply textarea{color:var(--text-primary)}
+        #apply input,#apply textarea,#apply select{color:var(--text-primary)}
         #apply input::placeholder,#apply textarea::placeholder{color:var(--text-muted)}
-        #apply input:focus,#apply textarea:focus{border-color:var(--accent)!important;outline:none}
+        #apply input:focus,#apply textarea:focus,#apply select:focus{border-color:var(--accent)!important;outline:none}
+        .apply-join-shell{grid-column:1 / -1;display:grid;gap:12px;padding:16px;border-radius:20px;position:relative;overflow:hidden;background:linear-gradient(150deg,#fffdf9 0%,#faf4e9 46%,#f2e5ca 100%);border:1px solid color-mix(in srgb,var(--accent) 28%,#decaa0);box-shadow:0 14px 38px rgba(86,63,22,.16),inset 0 1px 0 rgba(255,255,255,.95)}
+        .apply-join-shell::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(120deg,transparent 0%,rgba(255,255,255,.7) 22%,transparent 44%);transform:translateX(-120%);animation:applyLuxurySweep 6.4s ease-in-out infinite}
+        @keyframes applyLuxurySweep{0%,86%,100%{transform:translateX(-120%)}38%{transform:translateX(130%)}}
+        .apply-join-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap}
+        .apply-join-kicker{margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#af8533}
+        .apply-join-label{margin:2px 0 0;font-size:15px;font-weight:700;color:#20160a}
+        .apply-join-note{margin:0;font-size:11px;color:#6f5b37}
+        .apply-join-toggle{display:flex;flex-wrap:wrap;gap:10px;padding:0;background:transparent;border:none;border-radius:0;box-shadow:none}
+        .apply-join-pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 22%,#d8c49a);padding:11px 18px;background:rgba(255,255,255,.72);color:#4f3d1d;font-weight:700;letter-spacing:.01em;cursor:pointer;transition:all .28s cubic-bezier(.2,.9,.2,1)}
+        .apply-join-pill:hover{transform:translateY(-1px);border-color:#caa052;color:#2d210d;box-shadow:0 8px 18px rgba(192,145,57,.15)}
+        .apply-join-pill[data-active="true"]{background:linear-gradient(140deg,#f6e8bf 0%,#e5c978 45%,#cda149 100%);border-color:transparent;color:#201508;box-shadow:0 10px 22px rgba(173,129,43,.24),inset 0 1px 0 rgba(255,255,255,.8)}
+        .apply-mode-panel{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:10px;opacity:1;transform:translateY(0);transition:opacity .24s ease,transform .24s ease}
         a[href="#dashboard"]:hover{border-color:var(--accent)!important}
         .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s ease,transform .6s ease}
         .reveal.is-visible{opacity:1;transform:translateY(0)}
@@ -125,7 +152,9 @@ export default function FitBaseLandingPage() {
         .fb-hero-float1{animation:floatCard1 4s ease-in-out infinite}
         .fb-hero-float2{animation:floatCard2 4s 1.5s ease-in-out infinite}
         @media (max-width:860px){
-          .stack-2,.stack-3,.stack-2-tight{grid-template-columns:1fr !important}
+          .stack-2,.stack-3,.stack-2-tight,.apply-mode-panel{grid-template-columns:1fr !important}
+          .apply-join-shell{padding:14px;border-radius:16px}
+          .apply-join-pill{width:100%}
           .hide-mobile{display:none !important}
           .mobile-login{display:inline-flex !important}
           .pad{padding-left:max(20px, env(safe-area-inset-left, 0px)) !important;padding-right:max(20px, env(safe-area-inset-right, 0px)) !important}
@@ -1870,22 +1899,44 @@ export default function FitBaseLandingPage() {
                 setApplyError("");
                 setApplySubmitting(true);
                 try {
+                  const payload =
+                    applyJoinType === "individual"
+                      ? {
+                          full_name: applyForm.full_name.trim(),
+                          email: applyForm.email.trim(),
+                          phone: applyForm.phone.trim(),
+                          gym_name: applyForm.gym_name.trim(),
+                          city: applyForm.city.trim(),
+                          message: applyForm.message.trim()
+                        }
+                      : {
+                          full_name: enterpriseForm.your_name.trim(),
+                          email: enterpriseForm.work_email.trim(),
+                          phone: enterpriseForm.phone.trim(),
+                          gym_name: enterpriseForm.business_name.trim(),
+                          city: enterpriseForm.business_type.trim(),
+                          message: [
+                            "Enterprise / Business Request",
+                            `Business Type: ${enterpriseForm.business_type.trim() || "—"}`,
+                            `Trainers to onboard: ${enterpriseForm.trainers_to_onboard.trim() || "—"}`,
+                            `Approx active clients: ${enterpriseForm.active_clients.trim() || "—"}`,
+                            `Need white-labeling: ${enterpriseForm.white_labeling}`,
+                            `Need custom integrations: ${enterpriseForm.custom_integrations}`,
+                            enterpriseForm.notes.trim() ? `Notes: ${enterpriseForm.notes.trim()}` : ""
+                          ]
+                            .filter(Boolean)
+                            .join(" | ")
+                        };
                   const r = await fetch(`${getApiSiteBase()}/api/trainer-requests`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      full_name: applyForm.full_name.trim(),
-                      email: applyForm.email.trim(),
-                      phone: applyForm.phone.trim(),
-                      gym_name: applyForm.gym_name.trim(),
-                      city: applyForm.city.trim(),
-                      message: applyForm.message.trim()
-                    })
+                    body: JSON.stringify(payload)
                   });
                   const data = await r.json().catch(() => ({}));
                   if (!r.ok || data?.error) {
                     throw new Error(data?.error || "Could not submit application.");
                   }
+                  setSubmittedJoinType(applyJoinType);
                   setSubmitted(true);
                 } catch (err: unknown) {
                   setApplyError(err instanceof Error ? err.message : "Something went wrong.");
@@ -1895,45 +1946,173 @@ export default function FitBaseLandingPage() {
               }}
                 style={{ marginTop: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
               >
-              <input
-                required
-                placeholder="Full Name"
-                value={applyForm.full_name}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, full_name: ev.target.value }))}
-                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
-              <input
-                required
-                type="email"
-                placeholder="Email"
-                value={applyForm.email}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, email: ev.target.value }))}
-                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
-              <input
-                placeholder="Phone"
-                value={applyForm.phone}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, phone: ev.target.value }))}
-                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
-              <input
-                placeholder="Gym / Brand"
-                value={applyForm.gym_name}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, gym_name: ev.target.value }))}
-                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
-              <input
-                placeholder="City"
-                value={applyForm.city}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, city: ev.target.value }))}
-                style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
-              <textarea
-                placeholder="Anything else we should know? (optional)"
-                value={applyForm.message}
-                onChange={(ev) => setApplyForm((p) => ({ ...p, message: ev.target.value }))}
-                style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 100, background: "var(--bg-card)", color: "var(--text-primary)" }}
-              />
+              <div className="apply-join-shell">
+                <div className="apply-join-head">
+                  <div>
+                    <p className="apply-join-kicker">Access Path</p>
+                    <label className="apply-join-label">How are you joining FitBase?</label>
+                  </div>
+                  <p className="apply-join-note">Elite onboarding for individual or enterprise teams</p>
+                </div>
+                <div className="apply-join-toggle" role="radiogroup" aria-label="How are you joining FitBase?">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={applyJoinType === "individual"}
+                    data-active={applyJoinType === "individual"}
+                    className="apply-join-pill"
+                    onClick={() => setApplyJoinType("individual")}
+                  >
+                    <span aria-hidden>🧑</span>
+                    <span>Individual Trainer</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={applyJoinType === "enterprise"}
+                    data-active={applyJoinType === "enterprise"}
+                    className="apply-join-pill"
+                    onClick={() => setApplyJoinType("enterprise")}
+                  >
+                    <span aria-hidden>🏢</span>
+                    <span>Enterprise / Business</span>
+                  </button>
+                </div>
+              </div>
+              {applyJoinType === "individual" ? (
+                <div className="apply-mode-panel">
+                  <input
+                    required
+                    placeholder="Full Name*"
+                    value={applyForm.full_name}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, full_name: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    required
+                    type="email"
+                    placeholder="Email*"
+                    value={applyForm.email}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, email: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    placeholder="Phone"
+                    value={applyForm.phone}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, phone: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    placeholder="Gym / Brand"
+                    value={applyForm.gym_name}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, gym_name: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    placeholder="City"
+                    value={applyForm.city}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, city: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <textarea
+                    placeholder="Anything else we should know? (optional)"
+                    value={applyForm.message}
+                    onChange={(ev) => setApplyForm((p) => ({ ...p, message: ev.target.value }))}
+                    style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 100, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              ) : (
+                <div className="apply-mode-panel">
+                  <input
+                    required
+                    placeholder="Business / Gym Name*"
+                    value={enterpriseForm.business_name}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, business_name: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    required
+                    placeholder="Your Name*"
+                    value={enterpriseForm.your_name}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, your_name: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <select
+                    required
+                    value={enterpriseForm.business_type}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, business_type: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)", cursor: "pointer" }}
+                  >
+                    <option value="">Business Type*</option>
+                    <option value="Gym / Fitness Studio">Gym / Fitness Studio</option>
+                    <option value="Corporate Wellness">Corporate Wellness</option>
+                    <option value="Sports Academy">Sports Academy</option>
+                    <option value="Rehabilitation Center">Rehabilitation Center</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  <select
+                    required
+                    value={enterpriseForm.trainers_to_onboard}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, trainers_to_onboard: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)", cursor: "pointer" }}
+                  >
+                    <option value="">Number of Trainers to Onboard*</option>
+                    <option value="2–5">2–5</option>
+                    <option value="6–15">6–15</option>
+                    <option value="16–30">16–30</option>
+                    <option value="30+">30+</option>
+                  </select>
+                  <select
+                    required
+                    value={enterpriseForm.active_clients}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, active_clients: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)", cursor: "pointer" }}
+                  >
+                    <option value="">Approximate Active Clients*</option>
+                    <option value="Under 100">Under 100</option>
+                    <option value="100–500">100–500</option>
+                    <option value="500–1000">500–1000</option>
+                    <option value="1000+">1000+</option>
+                  </select>
+                  <select
+                    value={enterpriseForm.white_labeling}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, white_labeling: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)", cursor: "pointer" }}
+                  >
+                    <option value="No">Do you need White-Labeling? — No</option>
+                    <option value="Yes">Do you need White-Labeling? — Yes</option>
+                  </select>
+                  <select
+                    value={enterpriseForm.custom_integrations}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, custom_integrations: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)", cursor: "pointer" }}
+                  >
+                    <option value="No">Do you need Custom Integrations? — No</option>
+                    <option value="Yes">Do you need Custom Integrations? — Yes</option>
+                  </select>
+                  <input
+                    required
+                    type="email"
+                    placeholder="Work Email*"
+                    value={enterpriseForm.work_email}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, work_email: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <input
+                    required
+                    placeholder="Phone Number*"
+                    value={enterpriseForm.phone}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, phone: ev.target.value }))}
+                    style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 12, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                  <textarea
+                    placeholder="Anything else you'd like us to know? (optional)"
+                    value={enterpriseForm.notes}
+                    onChange={(ev) => setEnterpriseForm((p) => ({ ...p, notes: ev.target.value }))}
+                    style={{ gridColumn: "1 / -1", border: "1px solid var(--border)", borderRadius: 8, padding: 12, minHeight: 100, background: "var(--bg-card)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              )}
               {applyError ? (
                 <p style={{ gridColumn: "1 / -1", margin: 0, color: "var(--red)", fontSize: 14 }}>{applyError}</p>
               ) : null}
@@ -1952,7 +2131,7 @@ export default function FitBaseLandingPage() {
                   opacity: applySubmitting ? 0.85 : 1
                 }}
               >
-                {applySubmitting ? "Submitting…" : "Submit Application →"}
+                {applySubmitting ? "Submitting…" : applyJoinType === "enterprise" ? "Request Enterprise Demo →" : "Submit Application →"}
               </button>
                 <div
                   style={{
@@ -1980,7 +2159,12 @@ export default function FitBaseLandingPage() {
           ) : (
             <div className="reveal" data-reveal style={{ marginTop: 14, background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 20, color: "var(--text-primary)" }}>
               <div style={{ color: "var(--green)", fontSize: 24 }}>✓</div>
-              <strong>Application received!</strong>
+              <strong>{submittedJoinType === "enterprise" ? "Enterprise request received!" : "Application received!"}</strong>
+              {submittedJoinType === "enterprise" ? (
+                <p style={{ margin: "10px 0 0", color: "var(--text-secondary)", lineHeight: 1.65 }}>
+                  Thanks! Your request has been received. Our enterprise team will reach out within 24 hours to schedule your onboarding call.
+                </p>
+              ) : null}
             </div>
           )}
         </div>
