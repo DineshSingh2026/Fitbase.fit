@@ -3965,6 +3965,22 @@ export default function DashboardPage() {
           .bb-trainer-shell .bb-nav-btn > span:first-child{font-size:20px !important}
           .bb-trainer-shell .bb-user-wc-title{font-size:14px}
           .bb-trainer-shell .bb-user-wc-desc{font-size:13px}
+          .bb-user-shell .bb-list-row-title{font-size:15px}
+          .bb-user-shell .bb-list-row-sub{font-size:13px}
+          .bb-user-shell .bb-inline-label{font-size:11px}
+          .bb-user-shell .bb-input,.bb-user-shell .bb-textarea{font-size:16px}
+          .bb-user-shell .bb-btn-primary{font-size:14px}
+          .bb-user-shell .bb-nav-inner{min-height:74px}
+          .bb-user-shell .bb-nav-btn{font-size:12px}
+          .bb-user-shell .bb-nav-btn > span:first-child{font-size:20px !important}
+          .bb-user-shell .bb-user-wc-title{font-size:14px}
+          .bb-user-shell .bb-user-wc-desc{font-size:13px}
+          .bb-user-shell .welcome-card .wc-title{font-size:14px}
+          .bb-user-shell .welcome-card .wc-desc{font-size:13px}
+          .bb-user-shell .today-card p{font-size:15px}
+          .bb-superadmin-shell .bb-form-view-row,.bb-trainer-shell .bb-form-view-row,.bb-user-shell .bb-form-view-row{font-size:14px}
+          .bb-superadmin-shell .bb-fv-lbl,.bb-trainer-shell .bb-fv-lbl,.bb-user-shell .bb-fv-lbl{font-size:12px}
+          .bb-superadmin-shell .bb-form-view-block .bb-fv-blk,.bb-trainer-shell .bb-form-view-block .bb-fv-blk,.bb-user-shell .bb-form-view-block .bb-fv-blk{font-size:14px}
         }
         .bb-sa-slim-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
         .bb-sa-slim-detail-name{font-size:16px;font-weight:700;color:var(--text-primary);margin:0 0 3px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
@@ -3977,12 +3993,12 @@ export default function DashboardPage() {
         .bb-btn-view:hover{background:color-mix(in srgb,var(--accent) 22%,transparent)}
         .bb-admin-actions-col{text-align:right;width:1%;white-space:nowrap}
         .bb-form-view-grid{display:grid;gap:12px}
-        .bb-form-view-row{display:grid;grid-template-columns:minmax(120px,150px) 1fr;gap:10px 14px;font-size:13px;line-height:1.45;align-items:start}
+        .bb-form-view-row{display:grid;grid-template-columns:minmax(120px,150px) 1fr;gap:10px 14px;font-size:14px;line-height:1.45;align-items:start}
         @media(max-width:520px){.bb-form-view-row{grid-template-columns:1fr;gap:2px}}
-        .bb-fv-lbl{color:var(--text-secondary);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+        .bb-fv-lbl{color:var(--text-secondary);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
         .bb-fv-val{color:var(--text-primary);word-break:break-word}
         .bb-form-view-block{margin-top:2px}
-        .bb-form-view-block .bb-fv-blk{background:color-mix(in srgb,var(--text-primary) 4%,var(--bg-card));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--text-primary);margin-top:6px}
+        .bb-form-view-block .bb-fv-blk{background:color-mix(in srgb,var(--text-primary) 4%,var(--bg-card));border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:14px;line-height:1.55;white-space:pre-wrap;word-break:break-word;color:var(--text-primary);margin-top:6px}
         .bb-insights-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:14px}
         .bb-insights-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);display:block;margin-bottom:4px}
         .bb-insights-field{display:flex;flex-direction:column;min-width:0}

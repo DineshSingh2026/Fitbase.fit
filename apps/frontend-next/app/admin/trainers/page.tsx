@@ -260,7 +260,7 @@ export default function AdminTrainersPage() {
               On a phone, scroll sideways inside the table to see all columns.
             </p>
             <div style={tableScrollWrap}>
-            <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
+            <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 14, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Name</th>
@@ -300,7 +300,7 @@ export default function AdminTrainersPage() {
                             color: "var(--accent)",
                             fontWeight: 700,
                             cursor: "pointer",
-                            fontSize: 12
+                            fontSize: 13
                           }}
                         >
                           View
@@ -322,7 +322,7 @@ export default function AdminTrainersPage() {
               On a phone, scroll sideways inside the table to see all columns.
             </p>
             <div style={tableScrollWrap}>
-            <table style={{ width: "100%", minWidth: 920, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
+            <table style={{ width: "100%", minWidth: 920, borderCollapse: "collapse", fontSize: 14, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Name</th>
@@ -390,7 +390,7 @@ export default function AdminTrainersPage() {
           </div>
         ) : (
           <div style={tableScrollWrap}>
-            <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 13 }}>
+            <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)" }}>Name</th>
@@ -469,7 +469,7 @@ export default function AdminTrainersPage() {
               ×
             </button>
             <h3 style={{ margin: "0 0 10px", fontSize: 18, color: "var(--text-primary)" }}>Trainer application details</h3>
-            <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
+            <div style={{ display: "grid", gap: 8, fontSize: 14 }}>
               <div><strong>Name:</strong> {pendingDetail.full_name || "—"}</div>
               <div><strong>Email:</strong> {pendingDetail.email || "—"}</div>
               <div><strong>Phone:</strong> {pendingDetail.phone || "—"}</div>
@@ -707,8 +707,8 @@ Change your password on first login.
             >
               ×
             </button>
-            <h3 style={{ margin: "0 0 10px", fontSize: 16 }}>Reject application</h3>
-            <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--text-secondary)" }}>Optional reason (stored for admin reference):</p>
+            <h3 style={{ margin: "0 0 10px", fontSize: 17 }}>Reject application</h3>
+            <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--text-secondary)" }}>Optional reason (stored for admin reference):</p>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
