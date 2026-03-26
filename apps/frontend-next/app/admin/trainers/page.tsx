@@ -435,6 +435,7 @@ export default function AdminTrainersPage() {
         >
           <div
             style={{
+              position: "relative",
               maxWidth: 560,
               width: "100%",
               background: "var(--bg-card)",
@@ -446,6 +447,27 @@ export default function AdminTrainersPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              type="button"
+              aria-label="Close details"
+              onClick={() => !busy && setPendingDetail(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
             <h3 style={{ margin: "0 0 10px", fontSize: 18, color: "var(--text-primary)" }}>Trainer application details</h3>
             <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
               <div><strong>Name:</strong> {pendingDetail.full_name || "—"}</div>
@@ -495,21 +517,6 @@ export default function AdminTrainersPage() {
               >
                 Reject
               </button>
-              <button
-                type="button"
-                disabled={!!busy}
-                onClick={() => setPendingDetail(null)}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "transparent",
-                  color: "var(--text-secondary)",
-                  cursor: "pointer"
-                }}
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>
@@ -533,6 +540,7 @@ export default function AdminTrainersPage() {
         >
           <div
             style={{
+              position: "relative",
               maxWidth: 440,
               width: "100%",
               background: "var(--bg-card)",
@@ -543,6 +551,27 @@ export default function AdminTrainersPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              type="button"
+              aria-label="Close credentials"
+              onClick={() => setCredModal(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
             <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Trainer approved</h2>
             <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-secondary)" }}>
               Share these credentials with <strong>{credModal.full_name}</strong>
@@ -647,6 +676,7 @@ Change your password on first login.
         >
           <div
             style={{
+              position: "relative",
               maxWidth: 400,
               width: "100%",
               background: "var(--bg-card)",
@@ -656,6 +686,27 @@ Change your password on first login.
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              type="button"
+              aria-label="Close reject modal"
+              onClick={() => !busy && setRejectModal(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
             <h3 style={{ margin: "0 0 10px", fontSize: 16 }}>Reject application</h3>
             <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--text-secondary)" }}>Optional reason (stored for admin reference):</p>
             <textarea

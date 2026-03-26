@@ -2216,6 +2216,7 @@ export default function FitBaseLandingPage() {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
+              position: "relative",
               width: "min(520px, 100%)",
               background: "var(--bg-card)",
               border: "1px solid var(--accent-border)",
@@ -2224,27 +2225,32 @@ export default function FitBaseLandingPage() {
               padding: 22
             }}
           >
+            <button
+              type="button"
+              aria-label="Close notice"
+              onClick={() => setSubmitNotice(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: 18,
+                lineHeight: 1
+              }}
+            >
+              ×
+            </button>
             <div style={{ color: "var(--green)", fontSize: 26, marginBottom: 8 }}>✓</div>
             <h3 style={{ margin: 0, fontSize: 20, color: "var(--text-primary)" }}>{submitNotice.title}</h3>
             <p style={{ margin: "10px 0 0", color: "var(--text-secondary)", lineHeight: 1.65 }}>
               {submitNotice.message}
             </p>
-            <button
-              type="button"
-              onClick={() => setSubmitNotice(null)}
-              style={{
-                marginTop: 16,
-                border: "none",
-                borderRadius: 10,
-                background: "var(--accent)",
-                color: "var(--on-accent)",
-                padding: "11px 16px",
-                fontWeight: 700,
-                cursor: "pointer"
-              }}
-            >
-              Close
-            </button>
           </div>
         </div>
       ) : null}

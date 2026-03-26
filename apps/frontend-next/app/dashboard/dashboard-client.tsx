@@ -162,6 +162,35 @@ function superadminWeeksOnPlatform(iso: string | null | undefined): number {
   return Math.max(1, Math.floor(ms / (7 * 24 * 60 * 60 * 1000)) + 1);
 }
 
+function dayMs(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const d = new Date(String(v));
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function daysAgoFromMs(ms: number | null): number | null {
+  if (ms == null) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return Math.floor((now.getTime() - ms) / (24 * 60 * 60 * 1000));
+}
+
+function fmtDaysAgo(days: number | null): string {
+  if (days == null) return "—";
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  return `${days} days ago`;
+}
+
+function trendArrow(v: number | null): string {
+  if (v == null) return "•";
+  if (v > 0) return "↑";
+  if (v < 0) return "↓";
+  return "→";
+}
+
 const PERF_INSIGHT_LABELS: Record<string, string> = {
   users_approved: "Approved users",
   pending_requests: "Pending audits",
@@ -591,6 +620,7 @@ export default function DashboardPage() {
     to: "",
     search: ""
   });
+  const [trainerProgressSegment, setTrainerProgressSegment] = useState<"all" | "onTrack" | "needsAttention" | "highRisk" | "new">("all");
   const [inboxItems, setInboxItems] = useState<InboxNotification[]>([]);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -713,6 +743,254 @@ export default function DashboardPage() {
     }
     return list;
   }, [activeClients, clientProgressFilterApplied]);
+
+  const trainerClientInsightsById = useMemo(() => {
+    const byClientId = new Map<string, any>();
+    try {
+      const safeActiveClients = Array.isArray(activeClients) ? activeClients : [];
+      const safeDailyCheckins = Array.isArray(dailyCheckins) ? dailyCheckins : [];
+      const safeWorkouts = Array.isArray(workouts) ? workouts : [];
+      const safeSundayCheckins = Array.isArray(sundayCheckinsApi) ? sundayCheckinsApi : [];
+      const safeThreads = Array.isArray(threads) ? threads : [];
+    const dailyByUser = new Map<string, any[]>();
+    const dailyByEmail = new Map<string, any[]>();
+    const workoutsByUser = new Map<string, any[]>();
+    const workoutsByEmail = new Map<string, any[]>();
+    const sundayByUser = new Map<string, any[]>();
+    const sundayByEmail = new Map<string, any[]>();
+    const threadLastByUser = new Map<string, string>();
+    const threadLastByEmail = new Map<string, string>();
+
+    const put = (m: Map<string, any[]>, k: string, v: any) => {
+      if (!k) return;
+      const arr = m.get(k) || [];
+      arr.push(v);
+      m.set(k, arr);
+    };
+
+    for (const d of safeDailyCheckins) {
+      const uid = String(d?.user_id || d?.account_user_id || d?.client_user_id || "").trim();
+      const em = String(d?.email || d?.account_email || "").trim().toLowerCase();
+      put(dailyByUser, uid, d);
+      put(dailyByEmail, em, d);
+    }
+    for (const w of safeWorkouts) {
+      const uid = String(w?.user_id || w?.client_user_id || "").trim();
+      const em = String(w?.email || "").trim().toLowerCase();
+      put(workoutsByUser, uid, w);
+      put(workoutsByEmail, em, w);
+    }
+    for (const s of safeSundayCheckins) {
+      const uid = String(s?.user_id || s?.account_user_id || "").trim();
+      const em = String(s?.email || s?.account_email || s?.reply_email || "").trim().toLowerCase();
+      put(sundayByUser, uid, s);
+      put(sundayByEmail, em, s);
+    }
+    for (const t of safeThreads) {
+      const uid = String(t?.user_id || t?.participant_user_id || t?.client_user_id || "").trim();
+      const em = String(t?.email || "").trim().toLowerCase();
+      const stamp = String(t?.last_message_at || t?.last_message_created_at || t?.updated_at || t?.created_at || "").trim();
+      if (uid && stamp && !threadLastByUser.get(uid)) threadLastByUser.set(uid, stamp);
+      if (em && stamp && !threadLastByEmail.get(em)) threadLastByEmail.set(em, stamp);
+    }
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const todayMs = now.getTime();
+    const currStart = todayMs - 6 * 24 * 60 * 60 * 1000;
+    const prevStart = todayMs - 13 * 24 * 60 * 60 * 1000;
+    const prevEnd = todayMs - 7 * 24 * 60 * 60 * 1000;
+    const last7Start = todayMs - 7 * 24 * 60 * 60 * 1000;
+    const thresholds = {
+      newClientDays: 21,
+      workoutsTarget: 4,
+      highRiskNoWorkoutDays: 4,
+      highRiskNoCheckinDays: 3,
+      attentionNoWorkoutDays: 2,
+      attentionNoCheckinDays: 2,
+      minWeeklyWorkoutsAttention: 3,
+      minWeeklyCheckinsAttention: 4,
+      minSleepHoursAttention: 6.5,
+      negativeDeltasForAttention: 2
+    };
+
+    for (const u of safeActiveClients) {
+      const uid = String(u?.id || "").trim();
+      const em = String(u?.email || "").trim().toLowerCase();
+      const dailyRows = [...(dailyByUser.get(uid) || []), ...(dailyByEmail.get(em) || [])];
+      const workoutRows = [...(workoutsByUser.get(uid) || []), ...(workoutsByEmail.get(em) || [])];
+      const sundayRows = [...(sundayByUser.get(uid) || []), ...(sundayByEmail.get(em) || [])];
+
+      const dailyDates = Array.from(
+        new Set(
+          dailyRows
+            .map((d: any) => dayMs(d?.checkin_date || d?.created_at))
+            .filter((n: number | null): n is number => n != null)
+        )
+      ).sort((a, b) => b - a);
+      const workoutDates = workoutRows
+        .map((w: any) => dayMs(w?.created_at || w?.log_date))
+        .filter((n: number | null): n is number => n != null)
+        .sort((a, b) => b - a);
+      const sundayDates = sundayRows
+        .map((s: any) => dayMs(s?.created_at || s?.submitted_at))
+        .filter((n: number | null): n is number => n != null)
+        .sort((a, b) => b - a);
+
+      const lastCheckinMs = dailyDates[0] ?? null;
+      const lastWorkoutMs = workoutDates[0] ?? null;
+      const lastSundayMs = sundayDates[0] ?? null;
+      const lastMessageRaw = threadLastByUser.get(uid) || threadLastByEmail.get(em) || "";
+      const lastMessageMs = dayMs(lastMessageRaw);
+
+      let streak = 0;
+      let cursor = todayMs;
+      for (const d of dailyDates) {
+        if (d === cursor) {
+          streak += 1;
+          cursor -= 24 * 60 * 60 * 1000;
+        } else if (d < cursor) {
+          break;
+        }
+      }
+
+      const inCurr = (n: number) => n >= currStart && n <= todayMs;
+      const inPrev = (n: number) => n >= prevStart && n <= prevEnd;
+      const currDailyRows = dailyRows.filter((d: any) => {
+        const n = dayMs(d?.checkin_date || d?.created_at);
+        return n != null && inCurr(n);
+      });
+      const prevDailyRows = dailyRows.filter((d: any) => {
+        const n = dayMs(d?.checkin_date || d?.created_at);
+        return n != null && inPrev(n);
+      });
+      const workoutsCurr = workoutRows.filter((w: any) => {
+        const n = dayMs(w?.created_at || w?.log_date);
+        return n != null && inCurr(n);
+      }).length;
+      const workoutsPrev = workoutRows.filter((w: any) => {
+        const n = dayMs(w?.created_at || w?.log_date);
+        return n != null && inPrev(n);
+      }).length;
+
+      const avg = (arr: any[], key: string) => {
+        const nums = arr.map((x: any) => Number(x?.[key])).filter((n: number) => Number.isFinite(n));
+        if (!nums.length) return null;
+        return nums.reduce((a: number, b: number) => a + b, 0) / nums.length;
+      };
+      const stepsCurr = avg(currDailyRows, "steps");
+      const stepsPrev = avg(prevDailyRows, "steps");
+      const proteinCurr = avg(currDailyRows, "protein_g");
+      const proteinPrev = avg(prevDailyRows, "protein_g");
+      const sleepCurr = avg(currDailyRows, "sleep_hours");
+      const sleepPrev = avg(prevDailyRows, "sleep_hours");
+      const deltas = {
+        steps: stepsCurr == null || stepsPrev == null ? null : Math.round(stepsCurr - stepsPrev),
+        protein: proteinCurr == null || proteinPrev == null ? null : Math.round(proteinCurr - proteinPrev),
+        sleep: sleepCurr == null || sleepPrev == null ? null : Number((sleepCurr - sleepPrev).toFixed(1)),
+        workouts: workoutsCurr - workoutsPrev
+      };
+
+      const lastWorkoutDays = daysAgoFromMs(lastWorkoutMs);
+      const lastCheckinDays = daysAgoFromMs(lastCheckinMs);
+      const missedSunday = lastSundayMs == null || lastSundayMs < last7Start;
+      const noWorkoutHighRisk = lastWorkoutDays == null || lastWorkoutDays >= thresholds.highRiskNoWorkoutDays;
+      const noCheckinHighRisk = lastCheckinDays == null || lastCheckinDays >= thresholds.highRiskNoCheckinDays;
+      const noWorkoutAttention = lastWorkoutDays == null || lastWorkoutDays >= thresholds.attentionNoWorkoutDays;
+      const noCheckinAttention = lastCheckinDays == null || lastCheckinDays >= thresholds.attentionNoCheckinDays;
+      const lowAdherence =
+        workoutsCurr < thresholds.minWeeklyWorkoutsAttention ||
+        currDailyRows.length < thresholds.minWeeklyCheckinsAttention;
+      const negDeltaCount = [deltas.steps, deltas.protein, deltas.sleep, deltas.workouts].filter((v) => (v ?? 0) < 0).length;
+      const isNew = (() => {
+        const c = dayMs(u?.created_at);
+        if (c == null) return false;
+        return Math.floor((todayMs - c) / (24 * 60 * 60 * 1000)) < thresholds.newClientDays;
+      })();
+
+      let segment: "onTrack" | "needsAttention" | "highRisk" | "new" = "onTrack";
+      if (isNew) segment = "new";
+      else if (noWorkoutHighRisk || noCheckinHighRisk || (missedSunday && lowAdherence)) segment = "highRisk";
+      else if (
+        lowAdherence ||
+        noWorkoutAttention ||
+        noCheckinAttention ||
+        negDeltaCount >= thresholds.negativeDeltasForAttention ||
+        (sleepCurr != null && sleepCurr < thresholds.minSleepHoursAttention)
+      ) {
+        segment = "needsAttention";
+      }
+
+      const riskBadges: string[] = [];
+      if (noWorkoutHighRisk) riskBadges.push(`No Workout ${thresholds.highRiskNoWorkoutDays}d`);
+      else if (noWorkoutAttention) riskBadges.push(`Workout Gap ${thresholds.attentionNoWorkoutDays}d`);
+      if (noCheckinHighRisk) riskBadges.push("Check-in Stale");
+      else if (noCheckinAttention) riskBadges.push("Check-in Slow");
+      if (lowAdherence) riskBadges.push("Low Adherence");
+      if (missedSunday) riskBadges.push("Missed Sunday");
+
+      const riskScore =
+        (noWorkoutHighRisk ? 3 : noWorkoutAttention ? 1 : 0) +
+        (noCheckinHighRisk ? 2 : noCheckinAttention ? 1 : 0) +
+        (missedSunday ? 2 : 0) +
+        (lowAdherence ? 1 : 0) +
+        Math.max(0, negDeltaCount - 1);
+
+      byClientId.set(uid, {
+        segment,
+        riskBadges,
+        riskScore,
+        noWorkout3d: noWorkoutHighRisk || noWorkoutAttention,
+        noCheckin2d: noCheckinHighRisk || noCheckinAttention,
+        missedSunday,
+        compliance: {
+          workoutsDone: workoutsCurr,
+          workoutsTarget: thresholds.workoutsTarget,
+          checkinCompletionPct: Math.round((currDailyRows.length / 7) * 100),
+          streak
+        },
+        deltas,
+        lastActive: {
+          workout: fmtDaysAgo(lastWorkoutDays),
+          checkin: fmtDaysAgo(lastCheckinDays),
+          contact: fmtDaysAgo(daysAgoFromMs(lastMessageMs))
+        }
+      });
+    }
+      return byClientId;
+    } catch (err) {
+      console.error("[trainerClientInsightsById]", err);
+      return byClientId;
+    }
+  }, [activeClients, dailyCheckins, workouts, sundayCheckinsApi, threads]);
+
+  const trainerSegmentedClients = useMemo(() => {
+    if (trainerProgressSegment === "all") return clientProgressFiltered;
+    return clientProgressFiltered.filter((u: any) => {
+      const i = trainerClientInsightsById.get(String(u?.id || ""));
+      return i?.segment === trainerProgressSegment;
+    });
+  }, [clientProgressFiltered, trainerProgressSegment, trainerClientInsightsById]);
+
+  const trainerSegmentCounts = useMemo(() => {
+    const counts = { all: clientProgressFiltered.length, onTrack: 0, needsAttention: 0, highRisk: 0, new: 0 };
+    for (const u of clientProgressFiltered) {
+      const seg = trainerClientInsightsById.get(String(u?.id || ""))?.segment;
+      if (seg === "onTrack") counts.onTrack += 1;
+      else if (seg === "needsAttention") counts.needsAttention += 1;
+      else if (seg === "highRisk") counts.highRisk += 1;
+      else if (seg === "new") counts.new += 1;
+    }
+    return counts;
+  }, [clientProgressFiltered, trainerClientInsightsById]);
+
+  const trainerAtRiskTop = useMemo(() => {
+    return activeClients
+      .map((u: any) => ({ u, i: trainerClientInsightsById.get(String(u?.id || "")) }))
+      .filter((x: any) => x?.i && (x.i.riskScore > 0 || x.i.segment === "highRisk"))
+      .sort((a: any, b: any) => Number(b.i.riskScore || 0) - Number(a.i.riskScore || 0))
+      .slice(0, 10);
+  }, [activeClients, trainerClientInsightsById]);
 
   const superadminRosterRows = useMemo(() => {
     const rows: { client: any; trainer: any }[] = [];
@@ -3363,7 +3641,7 @@ export default function DashboardPage() {
 
   return (
     <main
-      className={`bb-dash-root${isTrainer ? " bb-trainer-shell" : ""}${role === "user" ? " bb-user-shell" : ""}`}
+      className={`bb-dash-root${isTrainer ? " bb-trainer-shell" : ""}${role === "user" ? " bb-user-shell" : ""}${isSuperadminViewer ? " bb-superadmin-shell" : ""}`}
       style={{ minHeight: "100dvh", background: s.bg, color: s.text, display: "flex", flexDirection: "column" }}
     >
       <style>{`
@@ -3416,6 +3694,7 @@ export default function DashboardPage() {
         .bb-dash-root{font-family:'Outfit',sans-serif;font-weight:400;-webkit-font-smoothing:antialiased}
         .bb-trainer-shell{display:flex;flex-direction:column;min-height:100dvh}
         @media(min-width:900px){.bb-trainer-shell .bb-dash-main{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}}
+        .bb-superadmin-shell{display:flex;flex-direction:column;min-height:100dvh}
         .bb-user-shell{display:flex;flex-direction:column;min-height:100dvh}
         .bb-user-layout-row{display:flex;flex:1;min-height:0;min-width:0;align-items:stretch;flex-direction:row}
         .bb-user-sidebar-desktop{display:none;flex-direction:column;width:240px;flex-shrink:0;border-right:1px solid var(--border);background:color-mix(in srgb,var(--bg-primary) 97%,transparent);padding:12px 0 24px;gap:2px}
@@ -3659,6 +3938,34 @@ export default function DashboardPage() {
         .bb-sa-modal-actions .bb-sa-queue-select{min-width:180px;height:36px;padding:0 10px}
         @media(max-width:640px){.bb-sa-req-actions{flex-direction:column;align-items:stretch}.bb-sa-req-actions .bb-btn-view,.bb-sa-req-actions .bb-sa-btn-approve,.bb-sa-req-actions .bb-sa-btn-reject{width:100%}}
         @media(max-width:640px){.bb-sa-modal-actions{flex-direction:column;align-items:stretch}.bb-sa-modal-actions .bb-sa-queue-select,.bb-sa-modal-actions .bb-sa-btn-approve,.bb-sa-modal-actions .bb-sa-btn-reject{width:100%}}
+        @media(max-width:640px){
+          .bb-superadmin-shell .bb-sa-home-hero-line{font-size:13px}
+          .bb-superadmin-shell .bb-sa-home-hero-date{font-size:12px}
+          .bb-superadmin-shell .bb-sa-metric-lbl{font-size:10px}
+          .bb-superadmin-shell .bb-sa-sync-trigger-lbl{font-size:10px}
+          .bb-superadmin-shell .bb-sa-sync-trigger-meta{font-size:12px}
+          .bb-superadmin-shell .bb-admin-qa-btn{font-size:13px;padding:18px 10px}
+          .bb-superadmin-shell .bb-admin-qa-ic{font-size:24px}
+          .bb-superadmin-shell .bb-sa-qac-chip{font-size:13px}
+          .bb-superadmin-shell .bb-list-row-title{font-size:15px}
+          .bb-superadmin-shell .bb-list-row-sub{font-size:13px}
+          .bb-superadmin-shell .bb-sa-slim-table{font-size:14px}
+          .bb-superadmin-shell .bb-sa-slim-table th{font-size:11px}
+          .bb-superadmin-shell .bb-sa-slim-pill{font-size:12px}
+          .bb-superadmin-shell .bb-nav-inner{min-height:74px}
+          .bb-superadmin-shell .bb-nav-btn{font-size:12px}
+          .bb-superadmin-shell .bb-nav-btn > span:first-child{font-size:20px !important}
+          .bb-trainer-shell .bb-list-row-title{font-size:15px}
+          .bb-trainer-shell .bb-list-row-sub{font-size:13px}
+          .bb-trainer-shell .bb-inline-label{font-size:11px}
+          .bb-trainer-shell .bb-input,.bb-trainer-shell .bb-textarea{font-size:16px}
+          .bb-trainer-shell .bb-btn-primary{font-size:14px}
+          .bb-trainer-shell .bb-nav-inner{min-height:74px}
+          .bb-trainer-shell .bb-nav-btn{font-size:12px}
+          .bb-trainer-shell .bb-nav-btn > span:first-child{font-size:20px !important}
+          .bb-trainer-shell .bb-user-wc-title{font-size:14px}
+          .bb-trainer-shell .bb-user-wc-desc{font-size:13px}
+        }
         .bb-sa-slim-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
         .bb-sa-slim-detail-name{font-size:16px;font-weight:700;color:var(--text-primary);margin:0 0 3px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
         .bb-sa-slim-detail-meta{font-size:12px;color:var(--text-secondary);margin:0}
@@ -3723,6 +4030,8 @@ export default function DashboardPage() {
         .bb-detail-panel{border-color:var(--accent-border)!important;border-width:1.5px!important}
         .bb-detail-modal-backdrop{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px}
         .bb-detail-modal-card{position:relative;width:min(900px,100%);max-height:82vh;overflow-y:auto;margin:0!important;box-shadow:var(--shadow-lg)}
+        .bb-modal-close-top{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:999px;border:1px solid var(--border);background:var(--bg-surface);color:var(--text-primary);display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;cursor:pointer;z-index:2}
+        .bb-modal-close-top:hover{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--bg-surface))}
         .bb-nav-dock{position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb,var(--bg-primary) 93%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -10px 40px rgb(var(--shadow-rgb) / 0.08);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))}
         .bb-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));min-height:70px;align-items:center}
         .bb-nav-btn{border:none;background:transparent;color:var(--text-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.3px;position:relative;cursor:pointer;font:inherit;padding:9px 2px;font-family:'Outfit',sans-serif}
@@ -5804,11 +6113,54 @@ export default function DashboardPage() {
                 {trainerClientsView === "progress" ? (
                   <div className="bb-panel">
                     <span className="bb-inline-label">
-                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{clientProgressFiltered.length}</strong>
+                      CLIENTS · <strong style={{ color: "var(--accent)" }}>{trainerSegmentedClients.length}</strong>
                     </span>
                     <p className="bb-list-row-sub" style={{ marginBottom: 12 }}>
                       Date range (by account created date), search (name, email, phone, city), Apply / Clear, and CSV export.
                     </p>
+                    {trainerAtRiskTop.length ? (
+                      <div
+                        style={{
+                          marginBottom: 12,
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "linear-gradient(135deg, rgba(172,68,102,0.2), rgba(15,20,26,0.9))",
+                          borderRadius: 12,
+                          padding: 10
+                        }}
+                      >
+                        <div style={{ fontSize: 11, letterSpacing: 0.5, color: "var(--text-secondary)", marginBottom: 6 }}>
+                          AT-RISK CLIENTS
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          {trainerAtRiskTop.slice(0, 5).map((x: any, idx: number) => (
+                            <button
+                              key={String(x.u?.id || x.u?.email || `risk-${idx}`)}
+                              type="button"
+                              onClick={() => openClientDetail(x.u)}
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: 8,
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                borderRadius: 10,
+                                padding: "8px 10px",
+                                background: "rgba(0,0,0,0.25)",
+                                color: "inherit",
+                                cursor: "pointer"
+                              }}
+                            >
+                              <span style={{ textAlign: "left", fontWeight: 600 }}>
+                                {[x.u?.first_name, x.u?.last_name].filter(Boolean).join(" ") || x.u?.email || "Client"}
+                              </span>
+                              <span style={{ fontSize: 11, color: "#ffd2de" }}>
+                                {(x.i?.riskBadges || []).slice(0, 2).join(" · ") || "Needs attention"}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                     <AdminListFiltersBar
                       filter={clientProgressFilterDraft}
                       onPatch={(p) => setClientProgressFilterDraft((prev) => ({ ...prev, ...p }))}
@@ -5843,23 +6195,78 @@ export default function DashboardPage() {
                       }
                       searchPlaceholder="Name, email, phone, or city"
                     />
-                    {clientProgressFiltered.length ? (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+                      {[
+                        ["all", "All", trainerSegmentCounts.all],
+                        ["onTrack", "On Track", trainerSegmentCounts.onTrack],
+                        ["needsAttention", "Needs Attention", trainerSegmentCounts.needsAttention],
+                        ["highRisk", "High Risk", trainerSegmentCounts.highRisk],
+                        ["new", "New", trainerSegmentCounts.new]
+                      ].map(([id, lbl, count]) => {
+                        const active = trainerProgressSegment === id;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setTrainerProgressSegment(id as "all" | "onTrack" | "needsAttention" | "highRisk" | "new")}
+                            style={{
+                              borderRadius: 999,
+                              border: active ? "1px solid rgba(111,247,218,0.65)" : "1px solid rgba(255,255,255,0.14)",
+                              background: active ? "linear-gradient(135deg, rgba(111,247,218,0.25), rgba(102,153,255,0.2))" : "rgba(255,255,255,0.04)",
+                              color: "inherit",
+                              padding: "7px 11px",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer"
+                            }}
+                          >
+                            {lbl} ({Number(count)})
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {trainerSegmentedClients.length ? (
                       <ul className="bb-list-rows">
-                        {clientProgressFiltered.slice(0, 250).map((u: any) => (
+                        {trainerSegmentedClients.slice(0, 250).map((u: any) => {
+                          const insight = trainerClientInsightsById.get(String(u?.id || ""));
+                          return (
                           <li key={u.id} className="bb-list-row" onClick={() => openClientDetail(u)} role="presentation">
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                               <div>
                                 <div className="bb-list-row-title">{[u.first_name, u.last_name].filter(Boolean).join(" ") || u.email}</div>
-                                <p className="bb-list-row-sub">Open for progress report and share link</p>
+                                <p className="bb-list-row-sub" style={{ marginTop: 2 }}>
+                                  Last workout {insight?.lastActive?.workout || "—"} · Last check-in {insight?.lastActive?.checkin || "—"} · Contact {insight?.lastActive?.contact || "—"}
+                                </p>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                                  {(insight?.riskBadges || []).slice(0, 3).map((b: string) => (
+                                    <span
+                                      key={b}
+                                      style={{
+                                        fontSize: 10,
+                                        borderRadius: 999,
+                                        border: "1px solid rgba(255,145,166,0.45)",
+                                        background: "rgba(255,145,166,0.12)",
+                                        color: "#ffd2de",
+                                        padding: "2px 7px"
+                                      }}
+                                    >
+                                      {b}
+                                    </span>
+                                  ))}
+                                  <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                                    Δ Steps {trendArrow(insight?.deltas?.steps)} {insight?.deltas?.steps ?? "—"} · Δ WO {trendArrow(insight?.deltas?.workouts)} {insight?.deltas?.workouts ?? "—"}
+                                  </span>
+                                </div>
                               </div>
                               <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 12 }}>VIEW</span>
                             </div>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className="bb-live-empty">
-                        {activeClients.length === 0 ? "No clients to show." : "No clients match these filters."}
+                        {activeClients.length === 0 ? "No clients to show." : "No clients match these filters/segment."}
                       </p>
                     )}
                   </div>
@@ -7776,44 +8183,14 @@ export default function DashboardPage() {
             }}
           >
           <div className="bb-panel bb-detail-panel bb-detail-modal-card" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              aria-label="Close details"
-              onClick={() => {
-                setSelectedClient(null);
-                setSelectedCheckin(null);
-                setSelectedWorkout(null);
-                setSelectedMeeting(null);
-                setSelectedSunday(null);
-                setSelectedPart2(null);
-                setClientProgress(null);
-                setClientProgressShareUrl("");
-              }}
-              style={{
-                position: "absolute",
-                top: 10,
-                right: 10,
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--bg-surface)",
-                color: "var(--text-primary)",
-                fontSize: 18,
-                lineHeight: 1,
-                cursor: "pointer"
-              }}
-            >
-              ×
-            </button>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 12, alignItems: "center" }}>
               <span className="bb-section-h2" style={{ fontSize: 20, margin: 0 }}>
                 DETAIL
               </span>
               <button
                 type="button"
-                className="bb-back-btn"
-                style={{ marginBottom: 0, minHeight: 36, padding: "6px 12px" }}
+                className="bb-modal-close-top"
+                aria-label="Close details"
                 onClick={() => {
                   setSelectedClient(null);
                   setSelectedCheckin(null);
@@ -7825,7 +8202,7 @@ export default function DashboardPage() {
                   setClientProgressShareUrl("");
                 }}
               >
-                Close
+                ×
               </button>
             </div>
             {selectedClient ? (
@@ -7849,6 +8226,56 @@ export default function DashboardPage() {
                     {selectedClient._coachEmail ? ` (${selectedClient._coachEmail})` : ""}
                   </div>
                 ) : null}
+                {(() => {
+                  const insight = trainerClientInsightsById.get(String(selectedClient?.id || ""));
+                  if (!insight) return null;
+                  return (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: 10,
+                        borderRadius: 12,
+                        border: "1px solid rgba(255,255,255,0.12)",
+                        background: "rgba(255,255,255,0.03)"
+                      }}
+                    >
+                      <div style={{ fontSize: 11, letterSpacing: 0.5, color: "var(--text-secondary)", marginBottom: 8 }}>
+                        PHASE 1 + PHASE 2 SNAPSHOT
+                      </div>
+                      <div style={{ display: "grid", gap: 6, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+                        <div className="bb-list-row-sub"><strong>Last workout:</strong> {insight.lastActive.workout}</div>
+                        <div className="bb-list-row-sub"><strong>Last check-in:</strong> {insight.lastActive.checkin}</div>
+                        <div className="bb-list-row-sub"><strong>Last contact:</strong> {insight.lastActive.contact}</div>
+                        <div className="bb-list-row-sub"><strong>Workouts:</strong> {insight.compliance.workoutsDone}/{insight.compliance.workoutsTarget}</div>
+                        <div className="bb-list-row-sub"><strong>Check-in completion:</strong> {insight.compliance.checkinCompletionPct}%</div>
+                        <div className="bb-list-row-sub"><strong>Active streak:</strong> {insight.compliance.streak} days</div>
+                        <div className="bb-list-row-sub"><strong>Δ Steps:</strong> {trendArrow(insight.deltas.steps)} {insight.deltas.steps ?? "—"}</div>
+                        <div className="bb-list-row-sub"><strong>Δ Protein:</strong> {trendArrow(insight.deltas.protein)} {insight.deltas.protein ?? "—"}</div>
+                        <div className="bb-list-row-sub"><strong>Δ Sleep:</strong> {trendArrow(insight.deltas.sleep)} {insight.deltas.sleep ?? "—"}</div>
+                        <div className="bb-list-row-sub"><strong>Δ Workouts:</strong> {trendArrow(insight.deltas.workouts)} {insight.deltas.workouts ?? "—"}</div>
+                      </div>
+                      {(insight.riskBadges || []).length ? (
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                          {insight.riskBadges.map((b: string) => (
+                            <span
+                              key={b}
+                              style={{
+                                fontSize: 11,
+                                borderRadius: 999,
+                                border: "1px solid rgba(255,145,166,0.45)",
+                                background: "rgba(255,145,166,0.12)",
+                                color: "#ffd2de",
+                                padding: "3px 8px"
+                              }}
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()}
                 {clientProgress && typeof clientProgress === "object" && (clientProgress as { error?: string }).error ? (
                   <p className="bb-list-row-sub" style={{ marginTop: 8, color: "var(--red)" }}>
                     {(clientProgress as { error?: string }).error}
@@ -8212,22 +8639,9 @@ export default function DashboardPage() {
           >
             <button
               type="button"
+              className="bb-modal-close-top"
               aria-label="Close details"
               onClick={() => setSuperadminRequestDetailModal(null)}
-              style={{
-                position: "absolute",
-                top: 10,
-                right: 10,
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--bg-surface)",
-                color: "var(--text-primary)",
-                fontSize: 18,
-                lineHeight: 1,
-                cursor: "pointer"
-              }}
             >
               ×
             </button>
@@ -8293,14 +8707,6 @@ export default function DashboardPage() {
                 </button>
               </div>
             ) : null}
-            <button
-              type="button"
-              className="bb-back-btn"
-              style={{ marginBottom: 0, marginTop: 14, width: "100%", justifyContent: "center" }}
-              onClick={() => setSuperadminRequestDetailModal(null)}
-            >
-              Close details
-            </button>
           </div>
         </div>
           );
@@ -8327,6 +8733,7 @@ export default function DashboardPage() {
           <div
             className="bb-card"
             style={{
+              position: "relative",
               maxWidth: 440,
               width: "100%",
               background: "var(--bg-card)",
@@ -8337,6 +8744,14 @@ export default function DashboardPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              type="button"
+              className="bb-modal-close-top"
+              aria-label="Close credentials modal"
+              onClick={() => setSuperadminTrainerCredModal(null)}
+            >
+              ×
+            </button>
             <h2 id="sa-cred-title" style={{ margin: "0 0 8px", fontSize: 18, color: "var(--text-primary)" }}>
               Trainer approved
             </h2>
