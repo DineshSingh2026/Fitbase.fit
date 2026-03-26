@@ -90,9 +90,20 @@ export async function ensureTrainersTableQueries(pool: {
 
   await pool.query(`
     INSERT INTO trainers (id, full_name, email, phone, gym_name, city, message, status, created_at)
-    SELECT tr.id, tr.full_name, tr.email, tr.phone, tr.gym_name, tr.city, tr.message, tr.status, tr.created_at
+    SELECT
+      CASE
+        WHEN tr.id::text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN tr.id::uuid
+        ELSE (
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),1,8) || '-' ||
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),9,4) || '-' ||
+          '4' || substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),14,3) || '-' ||
+          '8' || substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),18,3) || '-' ||
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),21,12)
+        )::uuid
+      END,
+      tr.full_name, tr.email, tr.phone, tr.gym_name, tr.city, tr.message, tr.status, tr.created_at
     FROM trainer_requests tr
-    WHERE NOT EXISTS (SELECT 1 FROM trainers t WHERE t.id = tr.id)
+    WHERE NOT EXISTS (SELECT 1 FROM trainers t WHERE LOWER(t.email) = LOWER(tr.email))
       AND tr.status IN ('pending', 'rejected')
   `);
 
@@ -101,11 +112,22 @@ export async function ensureTrainersTableQueries(pool: {
       id, full_name, email, phone, gym_name, city, message, status, created_at,
       approved_at, password_hash, must_change_password, trainer_code, temp_password
     )
-    SELECT tr.id, tr.full_name, tr.email, tr.phone, tr.gym_name, tr.city, tr.message, 'approved', tr.created_at,
+    SELECT
+      CASE
+        WHEN tr.id::text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN tr.id::uuid
+        ELSE (
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),1,8) || '-' ||
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),9,4) || '-' ||
+          '4' || substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),14,3) || '-' ||
+          '8' || substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),18,3) || '-' ||
+          substr(md5(lower(coalesce(tr.email,'')) || '|' || coalesce(tr.created_at::text,'')),21,12)
+        )::uuid
+      END,
+      tr.full_name, tr.email, tr.phone, tr.gym_name, tr.city, tr.message, 'approved', tr.created_at,
       tr.reviewed_at, u.password, false, u.referral_code, NULL
     FROM trainer_requests tr
     JOIN users u ON u.id::text = tr.trainer_user_id
     WHERE tr.status = 'approved'
-      AND NOT EXISTS (SELECT 1 FROM trainers t WHERE t.id = tr.id)
+      AND NOT EXISTS (SELECT 1 FROM trainers t WHERE LOWER(t.email) = LOWER(tr.email))
   `);
 }

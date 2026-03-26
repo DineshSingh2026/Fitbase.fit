@@ -65,6 +65,10 @@ export default function FitBaseLandingPage() {
   const [clientSubmitted, setClientSubmitted] = useState(false);
   const [clientSubmitting, setClientSubmitting] = useState(false);
   const [clientError, setClientError] = useState("");
+  const [submitNotice, setSubmitNotice] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
   const [clientForm, setClientForm] = useState({
     full_name: "",
     email: "",
@@ -1715,8 +1719,7 @@ export default function FitBaseLandingPage() {
               Tell us about your goals. Our team reviews every request, assigns the right trainer, and your coach will send you a secure link to complete signup.
             </p>
           </div>
-          {!clientSubmitted ? (
-            <form
+          <form
               className="reveal stack-2"
               data-reveal
               onSubmit={async (e) => {
@@ -1742,7 +1745,22 @@ export default function FitBaseLandingPage() {
                   if (!r.ok || data?.error) {
                     throw new Error(data?.error || "Could not submit your request.");
                   }
-                  setClientSubmitted(true);
+                  setClientSubmitted(false);
+                  setClientForm({
+                    full_name: "",
+                    email: "",
+                    phone: "",
+                    city: "",
+                    goal_focus: "",
+                    training_format: "",
+                    message: "",
+                    heard_about: ""
+                  });
+                  setSubmitNotice({
+                    title: "Request Submitted Successfully",
+                    message:
+                      "Thank you for your interest in FitBase coaching. Our team will review your request and connect you with the most suitable trainer shortly."
+                  });
                 } catch (err: unknown) {
                   setClientError(err instanceof Error ? err.message : "Something went wrong.");
                 } finally {
@@ -1855,18 +1873,10 @@ export default function FitBaseLandingPage() {
                   cursor: clientSubmitting ? "wait" : "pointer"
                 }}
               >
-                {clientSubmitting ? "Submitting…" : "Submit request"}
+                {clientSubmitting ? "Sending request…" : "Send Coaching Request"}
               </button>
             </form>
-          ) : (
-            <div className="reveal" data-reveal style={{ background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 24, textAlign: "center" }}>
-              <div style={{ color: "var(--green)", fontSize: 28, marginBottom: 8 }}>✓</div>
-              <strong style={{ fontSize: 18 }}>Request received</strong>
-              <p style={{ margin: "12px 0 0", color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                We&apos;ll review your details and assign a coach. Watch your inbox — your trainer will send you a link to create your account when you&apos;re approved.
-              </p>
-            </div>
-          )}
+          
         </div>
       </section>
 
@@ -1879,8 +1889,7 @@ export default function FitBaseLandingPage() {
           <p className="reveal" data-reveal style={{ margin: "14px 0 0", color: "var(--text-secondary)", fontSize: 16, lineHeight: 1.65, maxWidth: 640 }}>
             We review every application personally. Serious coaches only. If approved, your credentials arrive within 24 hours.
           </p>
-          {!submitted ? (
-            <>
+          <>
               <div className="reveal apply-urgency-bar" data-reveal style={{ marginTop: 22 }}>
                 <div className="apply-urgency-left">
                   <span>⏱ Avg response: under 4 hours</span>
@@ -1907,7 +1916,8 @@ export default function FitBaseLandingPage() {
                           phone: applyForm.phone.trim(),
                           gym_name: applyForm.gym_name.trim(),
                           city: applyForm.city.trim(),
-                          message: applyForm.message.trim()
+                          message: applyForm.message.trim(),
+                          request_type: "individual"
                         }
                       : {
                           full_name: enterpriseForm.your_name.trim(),
@@ -1915,6 +1925,7 @@ export default function FitBaseLandingPage() {
                           phone: enterpriseForm.phone.trim(),
                           gym_name: enterpriseForm.business_name.trim(),
                           city: enterpriseForm.business_type.trim(),
+                          request_type: "enterprise",
                           message: [
                             "Enterprise / Business Request",
                             `Business Type: ${enterpriseForm.business_type.trim() || "—"}`,
@@ -1937,7 +1948,34 @@ export default function FitBaseLandingPage() {
                     throw new Error(data?.error || "Could not submit application.");
                   }
                   setSubmittedJoinType(applyJoinType);
-                  setSubmitted(true);
+                  setSubmitted(false);
+                  setApplyForm({
+                    full_name: "",
+                    email: "",
+                    phone: "",
+                    gym_name: "",
+                    city: "",
+                    message: ""
+                  });
+                  setEnterpriseForm({
+                    business_name: "",
+                    your_name: "",
+                    business_type: "",
+                    trainers_to_onboard: "",
+                    active_clients: "",
+                    white_labeling: "No",
+                    custom_integrations: "No",
+                    work_email: "",
+                    phone: "",
+                    notes: ""
+                  });
+                  setSubmitNotice({
+                    title: applyJoinType === "enterprise" ? "Enterprise Request Submitted" : "Application Submitted Successfully",
+                    message:
+                      applyJoinType === "enterprise"
+                        ? "Thank you for your enterprise interest. Our onboarding team will contact you within 24 hours to schedule your consultation."
+                        : "Thank you for applying to FitBase. Our team will review your profile and get back to you with the next steps shortly."
+                  });
                 } catch (err: unknown) {
                   setApplyError(err instanceof Error ? err.message : "Something went wrong.");
                 } finally {
@@ -2131,7 +2169,7 @@ export default function FitBaseLandingPage() {
                   opacity: applySubmitting ? 0.85 : 1
                 }}
               >
-                {applySubmitting ? "Submitting…" : applyJoinType === "enterprise" ? "Request Enterprise Demo →" : "Submit Application →"}
+                {applySubmitting ? "Submitting…" : applyJoinType === "enterprise" ? "Request Enterprise Consultation" : "Submit Trainer Application"}
               </button>
                 <div
                   style={{
@@ -2156,19 +2194,60 @@ export default function FitBaseLandingPage() {
                 </div>
               </form>
             </>
-          ) : (
-            <div className="reveal" data-reveal style={{ marginTop: 14, background: "var(--bg-card)", border: "1px solid var(--green)", borderRadius: 12, padding: 20, color: "var(--text-primary)" }}>
-              <div style={{ color: "var(--green)", fontSize: 24 }}>✓</div>
-              <strong>{submittedJoinType === "enterprise" ? "Enterprise request received!" : "Application received!"}</strong>
-              {submittedJoinType === "enterprise" ? (
-                <p style={{ margin: "10px 0 0", color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                  Thanks! Your request has been received. Our enterprise team will reach out within 24 hours to schedule your onboarding call.
-                </p>
-              ) : null}
-            </div>
-          )}
         </div>
       </section>
+
+      {submitNotice ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setSubmitNotice(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 300,
+            background: "rgba(0,0,0,.52)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 18
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "min(520px, 100%)",
+              background: "var(--bg-card)",
+              border: "1px solid var(--accent-border)",
+              borderRadius: 14,
+              boxShadow: "0 20px 44px rgba(0,0,0,.24)",
+              padding: 22
+            }}
+          >
+            <div style={{ color: "var(--green)", fontSize: 26, marginBottom: 8 }}>✓</div>
+            <h3 style={{ margin: 0, fontSize: 20, color: "var(--text-primary)" }}>{submitNotice.title}</h3>
+            <p style={{ margin: "10px 0 0", color: "var(--text-secondary)", lineHeight: 1.65 }}>
+              {submitNotice.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSubmitNotice(null)}
+              style={{
+                marginTop: 16,
+                border: "none",
+                borderRadius: 10,
+                background: "var(--accent)",
+                color: "var(--on-accent)",
+                padding: "11px 16px",
+                fontWeight: 700,
+                cursor: "pointer"
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* 13. FOOTER */}
       <footer className="pad" style={{ padding: "30px 36px", background: "var(--bg-surface)", borderTop: "1px solid var(--border)" }}>

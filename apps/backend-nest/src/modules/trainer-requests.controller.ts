@@ -39,6 +39,9 @@ export class TrainerRequestsController {
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS trainer_user_id text`);
+    await this.pool.query(
+      `ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS request_type text NOT NULL DEFAULT 'individual'`
+    );
   }
 
   @Post("trainer-requests")
@@ -51,6 +54,7 @@ export class TrainerRequestsController {
       gym_name?: string;
       city?: string;
       message?: string;
+      request_type?: string;
     },
     @Res() res: Response
   ) {
@@ -101,11 +105,14 @@ export class TrainerRequestsController {
       const gym = String(body?.gym_name || "").trim();
       const city = String(body?.city || "").trim();
       const message = String(body?.message || "").trim();
+      const requestType = String(body?.request_type || "individual").trim().toLowerCase() === "enterprise"
+        ? "enterprise"
+        : "individual";
 
       await this.pool.query(
-        `INSERT INTO trainer_requests (id, full_name, email, phone, gym_name, city, message, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')`,
-        [id, name, emailNorm, phone, gym, city, message]
+        `INSERT INTO trainer_requests (id, full_name, email, phone, gym_name, city, message, request_type, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')`,
+        [id, name, emailNorm, phone, gym, city, message, requestType]
       );
 
       await this.pool.query(
@@ -120,7 +127,9 @@ export class TrainerRequestsController {
         message:
           "Request submitted. Superadmin will review and share your credentials."
       });
-    } catch {
+    } catch (err) {
+      // Keep API response generic, but log internals for production debugging.
+      console.error("[trainer-requests create]", err);
       return res.status(500).json({ error: "Failed to submit trainer request" });
     }
   }

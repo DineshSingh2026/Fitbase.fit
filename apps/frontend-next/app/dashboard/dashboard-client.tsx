@@ -139,9 +139,11 @@ function rosterClientMonogram(client: { first_name?: string; last_name?: string;
 
 function superadminRosterStatusClass(approvalStatus: unknown): string {
   const s = String(approvalStatus || "").trim().toLowerCase();
-  if (s === "approved") return "bb-sa-roster-status bb-sa-roster-status--approved";
-  if (s === "pending") return "bb-sa-roster-status bb-sa-roster-status--pending";
-  return "bb-sa-roster-status";
+  if (s === "approved") return "bb-sa-slim-pill bb-sa-slim-pill-active";
+  if (s === "pending") return "bb-sa-slim-pill bb-sa-slim-pill-pending";
+  if (s === "rejected" || s === "denied") return "bb-sa-slim-pill bb-sa-slim-pill-rejected";
+  if (s === "suspended") return "bb-sa-slim-pill bb-sa-slim-pill-suspended";
+  return "bb-sa-slim-pill";
 }
 
 function superadminFormatShortDate(iso: string | null | undefined): string {
@@ -433,6 +435,7 @@ export default function DashboardPage() {
     "hub" | "roster" | "pending" | "progress" | "addClient" | "coachPortfolio"
   >("hub");
   const [superadminPortfolioTrainerId, setSuperadminPortfolioTrainerId] = useState<string | null>(null);
+  const [saTab, setSaTab] = useState<"overview" | "applications" | "trainers" | "members" | "enterprise">("overview");
   const [trainerFormsView, setTrainerFormsView] = useState<"hub" | "part2" | "sunday" | "daily">("hub");
   const [trainerMessagesView, setTrainerMessagesView] = useState<"hub" | "threads" | "meetings">("hub");
   const [sundayCheckinsApi, setSundayCheckinsApi] = useState<any[]>([]);
@@ -449,12 +452,17 @@ export default function DashboardPage() {
   }>({ loading: false, lastLoadedLabel: null, issues: [] });
   const [superadminSyncOpen, setSuperadminSyncOpen] = useState(false);
   const [superadminRosterQ, setSuperadminRosterQ] = useState("");
+  const [superadminTrainersQ, setSuperadminTrainersQ] = useState("");
   const [superadminTrainerCredModal, setSuperadminTrainerCredModal] = useState<{
     full_name: string;
     email: string;
     temp_password: string;
     trainer_code: string;
     login_url: string;
+  } | null>(null);
+  const [superadminRequestDetailModal, setSuperadminRequestDetailModal] = useState<{
+    kind: "trainer" | "client";
+    data: any;
   } | null>(null);
   const [assignTrainerForClient, setAssignTrainerForClient] = useState<Record<string, string>>({});
   type StaffOverlay = null | "workouts" | "programs" | "analytics" | "insights" | "campaigns";
@@ -752,6 +760,30 @@ export default function DashboardPage() {
       return cn.includes(q) || ce.includes(q) || tn.includes(q) || te.includes(q);
     });
   }, [superadminRosterRows, superadminRosterQ]);
+
+  const superadminEnterpriseRequests = useMemo(() => {
+    return trainerRequests.filter((r: any) => {
+      const rt = String(r?.request_type || "").trim().toLowerCase();
+      if (rt === "enterprise") return true;
+      const msg = String(r?.message || "").toLowerCase();
+      return (
+        msg.includes("enterprise / business request") ||
+        msg.includes("business type:") ||
+        msg.includes("need white-labeling") ||
+        msg.includes("need custom integrations")
+      );
+    });
+  }, [trainerRequests]);
+
+  const superadminTrainersFiltered = useMemo(() => {
+    const q = superadminTrainersQ.trim().toLowerCase();
+    if (!q) return superadminTrainers;
+    return superadminTrainers.filter((t: any) => {
+      const n = [t.first_name, t.last_name].filter(Boolean).join(" ").toLowerCase();
+      const e = String(t.email || "").toLowerCase();
+      return n.includes(q) || e.includes(q);
+    });
+  }, [superadminTrainers, superadminTrainersQ]);
 
   const microAlreadyFilled = useMemo(() => {
     const c = userToday?.checkin;
@@ -2474,6 +2506,27 @@ export default function DashboardPage() {
     setActiveTab(id);
   }
 
+  /** Navigate the Super Admin to a specific SA tab. */
+  function goSaTab(tab: "overview" | "applications" | "trainers" | "members" | "enterprise") {
+    setSaTab(tab);
+    setStaffAiOpen(false);
+    setStaffOverlay(null);
+    setTrainerMessagesView("hub");
+    if (tab === "trainers") {
+      setActiveTab("clients");
+      setTrainerClientsView("coachPortfolio");
+      setSuperadminPortfolioTrainerId(null);
+    } else if (tab === "members") {
+      setActiveTab("clients");
+      setTrainerClientsView("roster");
+      setSuperadminPortfolioTrainerId(null);
+    } else {
+      setActiveTab("home");
+      setTrainerClientsView("roster");
+      setSuperadminPortfolioTrainerId(null);
+    }
+  }
+
   function userNavigateDesktop(target: UserDesktopNavTarget) {
     switch (target) {
       case "workout":
@@ -3534,6 +3587,81 @@ export default function DashboardPage() {
         .bb-sa-portfolio-back-inline{padding:9px 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--border));background:color-mix(in srgb,var(--accent) 8%,transparent);color:var(--accent);font-weight:700;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;font:inherit}
         .bb-sa-portfolio-back-inline:hover{filter:brightness(1.05)}
         .bb-sa-portfolio-empty{text-align:center;padding:40px 20px;color:var(--text-secondary);font-size:14px;line-height:1.55}
+        /* ── SA Quick Access Strip ── */
+        .bb-sa-qac-strip{display:flex;flex-wrap:nowrap;gap:10px;align-items:center;padding:0 0 12px;margin:0 0 8px;min-height:42px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+        .bb-sa-qac-strip::-webkit-scrollbar{display:none}
+        .bb-sa-qac-chip{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;min-height:38px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.3px;cursor:pointer;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--bg-surface) 88%,var(--accent) 12%),var(--bg-card));color:var(--text-primary);font-family:inherit;transition:all .18s ease;text-decoration:none;position:relative;box-shadow:0 2px 8px rgb(var(--shadow-rgb)/.06),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 10%,transparent)}
+        .bb-sa-qac-chip:hover{border-color:rgb(var(--accent-rgb)/.45);background:linear-gradient(180deg,rgb(var(--accent-rgb)/.12),rgb(var(--accent-rgb)/.04));color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgb(var(--accent-rgb)/.12)}
+        .bb-sa-qac-chip:disabled{opacity:.55;cursor:not-allowed;transform:none}
+        .bb-sa-qac-chip-primary{border-color:rgb(var(--accent-rgb)/.4);background:linear-gradient(145deg,var(--accent-light),var(--accent) 52%,var(--accent-dark));color:var(--on-accent);box-shadow:0 4px 14px rgb(var(--accent-rgb)/.28)}
+        .bb-sa-qac-chip-primary:hover{filter:brightness(1.05);transform:translateY(-1px)}
+        .bb-sa-qac-chip-stat{cursor:default;background:rgb(var(--accent-rgb)/.06);border-color:rgb(var(--accent-rgb)/.18)}
+        .bb-sa-qac-chip-stat:hover{transform:none;color:var(--text-primary);border-color:rgb(var(--accent-rgb)/.18)}
+        .bb-sa-welcome-chip{background:linear-gradient(112deg,color-mix(in srgb,var(--bg-card) 88%,var(--accent) 12%),color-mix(in srgb,var(--bg-surface) 86%,var(--accent-bright) 14%));border-color:color-mix(in srgb,var(--accent) 32%,var(--border));box-shadow:0 8px 22px rgb(var(--accent-rgb)/.12),inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 18%,transparent)}
+        .bb-sa-welcome-text{font-family:'Bebas Neue',sans-serif;font-size:clamp(24px,4.3vw,34px);letter-spacing:1.4px;line-height:1;background:linear-gradient(96deg,var(--olive) 0%,var(--accent) 48%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .bb-sa-qac-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700;padding:0 4px;margin-left:2px}
+        /* ── SA QA grid (6-col) ── */
+        .bb-sa-qa-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:18px}
+        @media(min-width:480px){.bb-sa-qa-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+        @media(min-width:700px){.bb-sa-qa-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+        /* ── SA bottom nav (5 tabs) ── */
+        .bb-nav-inner-sa{grid-template-columns:repeat(5,minmax(0,1fr))}
+        /* ── SA clients sub-nav ── */
+        .bb-sa-clients-subnav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+        .bb-sa-clients-subnav-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.3px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-family:inherit;transition:all .18s ease;position:relative}
+        .bb-sa-clients-subnav-btn:hover{border-color:var(--accent-border);color:var(--accent);background:rgb(var(--accent-rgb)/.06)}
+        .bb-sa-clients-subnav-btn-active{border-color:var(--accent)!important;background:rgb(var(--accent-rgb)/.12)!important;color:var(--accent)!important;box-shadow:0 2px 10px rgb(var(--accent-rgb)/.15)}
+        .bb-sa-clients-subnav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700;padding:0 4px;margin-left:4px}
+        /* ── SA Enterprise tab ── */
+        .bb-sa-ent-shell{padding:0 0 8px}
+        .bb-sa-ent-hero{margin-bottom:16px}
+        .bb-sa-ent-empty{border-radius:22px;padding:clamp(24px,5vw,40px);border:1px dashed color-mix(in srgb,var(--accent) 30%,var(--border));background:radial-gradient(ellipse 80% 60% at 50% 0%,rgb(var(--accent-rgb)/.05),transparent 65%),var(--bg-surface);text-align:center}
+        .bb-sa-ent-empty-icon{font-size:52px;line-height:1;margin-bottom:18px;opacity:.7}
+        .bb-sa-ent-empty-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text-primary);margin:0 0 10px;letter-spacing:.5px}
+        .bb-sa-ent-empty-sub{font-size:13px;color:var(--text-secondary);line-height:1.65;max-width:52ch;margin:0 auto 28px}
+        .bb-sa-ent-pipeline{display:flex;flex-direction:column;gap:0;text-align:left;max-width:420px;margin:0 auto 28px;position:relative}
+        .bb-sa-ent-pipeline::before{content:"";position:absolute;left:9px;top:20px;bottom:20px;width:2px;background:linear-gradient(180deg,rgb(var(--accent-rgb)/.35),rgb(var(--accent-rgb)/.05));border-radius:2px}
+        .bb-sa-ent-stage{display:flex;gap:16px;align-items:flex-start;padding:12px 0;position:relative;z-index:1}
+        .bb-sa-ent-stage-dot{flex-shrink:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(148deg,rgb(var(--accent-rgb)/.35),rgb(var(--accent-rgb)/.08));border:2px solid rgb(var(--accent-rgb)/.35);margin-top:1px}
+        .bb-sa-ent-stage-name{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
+        .bb-sa-ent-stage-desc{font-size:11px;color:var(--text-secondary);line-height:1.4}
+        .bb-sa-ent-cta{padding:12px 24px;border-radius:14px;border:1px solid rgb(var(--accent-rgb)/.38);background:linear-gradient(145deg,var(--accent-light),var(--accent) 50%,var(--accent-dark));color:var(--on-accent);font-weight:700;font-size:13px;letter-spacing:.8px;cursor:pointer;font-family:inherit;box-shadow:0 8px 22px rgb(var(--accent-rgb)/.25)}
+        .bb-sa-ent-cta:hover{filter:brightness(1.04)}
+        .bb-sa-luxe-shell{position:relative;padding:14px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));background:radial-gradient(120% 95% at 8% -5%,rgb(var(--accent-rgb)/.10),transparent 42%),linear-gradient(180deg,color-mix(in srgb,var(--bg-surface) 94%,var(--accent) 6%),var(--bg-card));box-shadow:0 8px 24px rgb(var(--shadow-rgb)/.08)}
+        .bb-sa-slim-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+        .bb-sa-slim-title{font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:.3px;background:linear-gradient(95deg,var(--olive) 0%,var(--accent) 45%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .bb-sa-slim-count{font-size:12px;color:var(--text-secondary);font-weight:600}
+        .bb-sa-slim-search{display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,color-mix(in srgb,var(--bg-card) 92%,var(--accent) 8%),var(--bg-card));border:1px solid color-mix(in srgb,var(--accent) 26%,var(--border));border-radius:10px;padding:0 12px;margin-bottom:14px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text-on-accent) 8%,transparent)}
+        .bb-sa-slim-search-icon{flex-shrink:0;width:16px;height:16px;stroke:var(--text-secondary);fill:none;stroke-width:2;stroke-linecap:round}
+        .bb-sa-slim-search-input{flex:1;border:none;background:transparent;padding:10px 0;font-size:13px;color:var(--text-primary);font-family:inherit;outline:none}
+        .bb-sa-slim-search-input::placeholder{color:var(--text-secondary)}
+        .bb-sa-slim-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:color-mix(in srgb,var(--bg-card) 94%,var(--accent) 6%);border:1px solid color-mix(in srgb,var(--accent) 18%,var(--border));border-radius:12px;overflow:hidden}
+        .bb-sa-slim-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--accent);background:linear-gradient(180deg,rgb(var(--accent-rgb)/.10),rgb(var(--accent-rgb)/.04));border-bottom:1px solid color-mix(in srgb,var(--accent) 28%,var(--border));white-space:nowrap}
+        .bb-sa-slim-table td{padding:11px 10px;border-bottom:1px solid color-mix(in srgb,var(--border) 55%,transparent);color:var(--text-primary);vertical-align:middle;background:transparent}
+        .bb-sa-slim-table tr:last-child td{border-bottom:none}
+        .bb-sa-slim-tr-click{cursor:pointer}
+        .bb-sa-slim-tr-click:hover td{background:linear-gradient(90deg,rgb(var(--accent-rgb)/.11),rgb(var(--accent-rgb)/.03))}
+        .bb-sa-slim-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+        .bb-sa-slim-pill-active{background:rgb(34 197 94/.12);color:#16a34a}
+        .bb-sa-slim-pill-pending{background:rgb(var(--accent-rgb)/.1);color:var(--accent)}
+        .bb-sa-slim-pill-suspended{background:rgb(239 68 68/.1);color:#dc2626}
+        .bb-sa-slim-pill-rejected{background:rgb(200 83 83/.1);color:#b91c1c}
+        .bb-sa-slim-arrow{font-size:16px;color:var(--accent);line-height:1}
+        .bb-sa-slim-empty{padding:32px 0;text-align:center;color:var(--text-secondary);font-size:13px}
+        .bb-sa-slim-back{display:inline-flex;align-items:center;gap:6px;padding:6px 0;font-size:13px;font-weight:600;color:var(--text-secondary);background:none;border:none;cursor:pointer;font-family:inherit;margin-bottom:12px;transition:color .15s}
+        .bb-sa-slim-back:hover{color:var(--text-primary)}
+        .bb-sa-slim-scrollwrap{position:relative;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}
+        .bb-sa-slim-scrollhint{position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;background:color-mix(in srgb,var(--bg-card) 82%,transparent);border:1px solid color-mix(in srgb,var(--border) 70%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:999px;padding:7px 8px;display:flex;align-items:center;justify-content:center;opacity:.92}
+        .bb-sa-slim-scrollhint-icon{width:14px;height:14px;stroke:var(--text-secondary);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+        .bb-sa-req-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+        .bb-sa-req-actions .bb-sa-queue-select{min-width:140px;height:34px;padding:0 10px}
+        .bb-sa-modal-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+        .bb-sa-modal-actions .bb-sa-queue-select{min-width:180px;height:36px;padding:0 10px}
+        @media(max-width:640px){.bb-sa-req-actions{flex-direction:column;align-items:stretch}.bb-sa-req-actions .bb-btn-view,.bb-sa-req-actions .bb-sa-btn-approve,.bb-sa-req-actions .bb-sa-btn-reject{width:100%}}
+        @media(max-width:640px){.bb-sa-modal-actions{flex-direction:column;align-items:stretch}.bb-sa-modal-actions .bb-sa-queue-select,.bb-sa-modal-actions .bb-sa-btn-approve,.bb-sa-modal-actions .bb-sa-btn-reject{width:100%}}
+        .bb-sa-slim-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+        .bb-sa-slim-detail-name{font-size:16px;font-weight:700;color:var(--text-primary);margin:0 0 3px;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+        .bb-sa-slim-detail-meta{font-size:12px;color:var(--text-secondary);margin:0}
         .bb-admin-la-list-wrap{display:flex;flex-direction:column;gap:0}
         .bb-admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text-secondary);margin:0 0 10px}
         .bb-section-page{padding:4px 0 8px}
@@ -3593,6 +3721,8 @@ export default function DashboardPage() {
         .bb-msg-bubble-user{align-self:end;max-width:88%;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:10px;padding:10px}
         .bb-msg-bubble-client{align-self:start;max-width:88%;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:10px}
         .bb-detail-panel{border-color:var(--accent-border)!important;border-width:1.5px!important}
+        .bb-detail-modal-backdrop{position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px}
+        .bb-detail-modal-card{position:relative;width:min(900px,100%);max-height:82vh;overflow-y:auto;margin:0!important;box-shadow:var(--shadow-lg)}
         .bb-nav-dock{position:fixed;left:0;right:0;bottom:0;z-index:30;background:color-mix(in srgb,var(--bg-primary) 93%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);box-shadow:0 -10px 40px rgb(var(--shadow-rgb) / 0.08);padding-bottom:max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))}
         .bb-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));min-height:70px;align-items:center}
         .bb-nav-btn{border:none;background:transparent;color:var(--text-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.3px;position:relative;cursor:pointer;font:inherit;padding:9px 2px;font-family:'Outfit',sans-serif}
@@ -4136,7 +4266,7 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            {!(role === "superadmin" && activeTab === "home") ? (
+            {!(isSuperadminViewer && (activeTab === "home" || activeTab === "clients")) ? (
               <h1
                 className={`bb-dashboard-title${activeTab === "home" ? "" : " bb-admin-section-page-title"}`}
               >
@@ -4470,26 +4600,79 @@ export default function DashboardPage() {
               </div>
             ) : role === "superadmin" ? (
               <>
+                {/* ── SA QUICK ACCESS STRIP ─────────────────────────── */}
+                <div className="bb-sa-qac-strip">
+                  {saTab === "overview" && (
+                    <div
+                      className="bb-sa-qac-chip bb-sa-qac-chip-stat bb-sa-welcome-chip"
+                      style={{ width: "100%", padding: "12px 16px" }}
+                    >
+                      <span className="bb-sa-welcome-text">
+                        Welcome back, {displayName || "Super Admin"}
+                      </span>
+                    </div>
+                  )}
+                  {saTab === "applications" && (
+                    <>
+                      <span className="bb-sa-qac-chip bb-sa-qac-chip-stat">
+                        <span aria-hidden>🧑‍💼</span> Trainer apps: <strong>{trainerRequests.filter((r:any) => String(r.status) === "pending").length} pending</strong>
+                      </span>
+                      <span className="bb-sa-qac-chip bb-sa-qac-chip-stat">
+                        <span aria-hidden>👤</span> Client reqs: <strong>{clientLeadRequests.filter((c:any) => String(c.status) === "pending").length} pending</strong>
+                      </span>
+                    </>
+                  )}
+                  {saTab === "trainers" && (
+                    <>
+                      <span className="bb-sa-qac-chip bb-sa-qac-chip-stat">
+                        <span aria-hidden>👤</span> Active coaches: <strong>{superadminTrainers.filter((t:any) => !t.suspended).length}</strong>
+                      </span>
+                      <button type="button" className="bb-sa-qac-chip" onClick={() => goSaTab("applications")}>
+                        <span aria-hidden>📥</span> View requests
+                      </button>
+                    </>
+                  )}
+                  {saTab === "members" && (
+                    <>
+                      <span className="bb-sa-qac-chip bb-sa-qac-chip-stat">
+                        <span aria-hidden>👥</span> Members linked: <strong>{superadminRosterRows.length}</strong>
+                      </span>
+                      <button type="button" className="bb-sa-qac-chip" onClick={() => { goSaTab("applications"); setTrainerClientsView("pending"); }}>
+                        <span aria-hidden>⏳</span> Pending sign-ups
+                      </button>
+                    </>
+                  )}
+                  {saTab === "enterprise" && (
+                    <>
+                      <span className="bb-sa-qac-chip bb-sa-qac-chip-stat">
+                        <span aria-hidden>🏢</span> Enterprise requests: <strong>{superadminEnterpriseRequests.length}</strong>
+                      </span>
+                      <button type="button" className="bb-sa-qac-chip" onClick={() => goSaTab("applications")}>
+                        <span aria-hidden>{String.fromCodePoint(0x1f4e5)}</span> View Applications
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* ── OVERVIEW TAB ─────────────────────────────────── */}
+                {saTab === "overview" && (
                 <div className="bb-sa-home">
                   <div className="bb-sa-home-top-bento">
                     <div className="bb-sa-home-hero">
                       <p className="bb-sa-home-kicker">Command suite</p>
-                      <h1 className="bb-sa-home-hero-title">Super admin</h1>
+                      <h1 className="bb-sa-home-hero-title">Overview</h1>
                       <p className="bb-sa-home-hero-line">
-                        Trainers, clients, onboarding queues, and live signals — distilled on one canvas.
+                        Trainers, clients, onboarding queues — all on one canvas.
                       </p>
                       <p className="bb-sa-home-hero-date" suppressHydrationWarning>
                         {todayLabel || "\u00a0"}
                       </p>
-                </div>
+                    </div>
                     <div className="bb-sa-home-metrics">
                       <button
                         type="button"
                         className="bb-sa-metric"
-                        onClick={() => {
-                          goTab("clients");
-                          setTrainerClientsView("roster");
-                        }}
+                        onClick={() => goSaTab("members")}
                       >
                         <span className="bb-sa-metric-lbl">Members</span>
                         <span className="bb-sa-metric-num num-gold">
@@ -4499,21 +4682,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="bb-sa-metric"
-                        onClick={() => {
-                          goTab("clients");
-                          setTrainerClientsView("pending");
-                        }}
-                      >
-                        <span className="bb-sa-metric-lbl">Pending sign-ups</span>
-                        <span className="bb-sa-metric-num num-orange">{Number(stats?.pending_signups ?? pendingUsers.length ?? 0)}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="bb-sa-metric"
-                        onClick={() => {
-                          const el = typeof document !== "undefined" ? document.getElementById("sa-trainer-onboarding") : null;
-                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }}
+                        onClick={() => goSaTab("applications")}
                       >
                         <span className="bb-sa-metric-lbl">Trainer apps</span>
                         <span className="bb-sa-metric-num num-green">
@@ -4523,10 +4692,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="bb-sa-metric"
-                        onClick={() => {
-                          const el = typeof document !== "undefined" ? document.getElementById("sa-client-onboarding") : null;
-                          el?.scrollIntoView({ behavior: "smooth", block: "start" });
-                        }}
+                        onClick={() => goSaTab("applications")}
                       >
                         <span className="bb-sa-metric-lbl">Client requests</span>
                         <span className="bb-sa-metric-num num-green">
@@ -4549,10 +4715,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="bb-sa-metric"
-                        onClick={() => {
-                          goTab("messages");
-                          setTrainerMessagesView("threads");
-                        }}
+                        onClick={() => { goTab("messages"); setTrainerMessagesView("threads"); }}
                       >
                         <span className="bb-sa-metric-lbl">Messages</span>
                         <span className="bb-sa-metric-num num-pink">{Number(stats?.messages ?? threads.length ?? 0)}</span>
@@ -4560,11 +4723,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         className="bb-sa-metric"
-                        onClick={() => {
-                          goTab("clients");
-                          setTrainerClientsView("coachPortfolio");
-                          setSuperadminPortfolioTrainerId(null);
-                        }}
+                        onClick={() => goSaTab("trainers")}
                       >
                         <span className="bb-sa-metric-lbl">Coach portfolio</span>
                         <span className="bb-sa-metric-num num-gold">{superadminTrainers.filter((t: any) => !t.suspended).length}</span>
@@ -4574,7 +4733,7 @@ export default function DashboardPage() {
 
                   <div className={`bb-sa-sync-shell${superadminSync.issues.length ? " bb-sa-sync--warn" : ""}`}>
                     <button type="button" className="bb-sa-sync-trigger" onClick={() => setSuperadminSyncOpen((o) => !o)}>
-                      <span className="bb-sa-sync-trigger-lbl">API &amp; data sync {superadminSyncOpen ? "▾" : "▸"}</span>
+                      <span className="bb-sa-sync-trigger-lbl">System sync {superadminSyncOpen ? "▾" : "▸"}</span>
                       <span className="bb-sa-sync-trigger-meta">
                         {superadminSync.lastLoadedLabel || "—"}
                         {superadminSync.loading ? " · …" : ""}
@@ -4585,18 +4744,9 @@ export default function DashboardPage() {
                         <p className="bb-list-row-sub" style={{ marginTop: 0, wordBreak: "break-word" }}>
                           Endpoint <strong>{apiBase}</strong>
                         </p>
-                        <button
-                          type="button"
-                          className="bb-sa-sync-reload"
-                          disabled={superadminSync.loading}
-                          onClick={() => void loadSuperadminDashboard()}
-                        >
-                          {superadminSync.loading ? "Loading…" : "Reload all data"}
-                        </button>
                         {!superadminSync.issues.length ? (
                           <p style={{ margin: "10px 0 0", fontSize: 12, color: "var(--green)", lineHeight: 1.5 }}>
-                            All super admin endpoints responded OK. If counts stay at zero, confirm public forms post to this same
-                            site URL.
+                            All endpoints OK. If counts stay zero, confirm forms post to this site URL.
                           </p>
                         ) : (
                           <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--red)", fontSize: 12, lineHeight: 1.55 }}>
@@ -4605,111 +4755,114 @@ export default function DashboardPage() {
                             ))}
                           </ul>
                         )}
-                  </div>
+                      </div>
                     ) : null}
+                  </div>
                 </div>
+                )}
+
+                {/* ── APPLICATIONS TAB ─────────────────────────────── */}
+                {saTab === "applications" && (
+                <div className="bb-sa-home">
                   <div className="bb-sa-home-queues">
                     <div className="bb-sa-queue-col">
-                      <h3 id="sa-trainer-onboarding" className="bb-sa-sec-head">
-                        Trainer access · pending{" "}
-                        <strong>{trainerRequests.filter((r: any) => String(r.status) === "pending").length}</strong>
-                        <span style={{ fontWeight: 500, color: "var(--text-secondary)", marginLeft: 6 }}>
-                          · {trainerRequests.length} on file
+                      <div className="bb-sa-slim-hdr" style={{ marginBottom: 8 }}>
+                        <h3 id="sa-trainer-onboarding" className="bb-sa-sec-head" style={{ margin: 0 }}>
+                          Trainer requests
+                        </h3>
+                        <span className="bb-sa-slim-count">
+                          {trainerRequests.filter((r: any) => String(r.status) === "pending").length} pending · {trainerRequests.length} total
                         </span>
-                      </h3>
-                      <p style={{ margin: "0 0 10px", fontSize: 13 }}>
+                      </div>
+                      <p style={{ margin: "0 0 12px", fontSize: 13 }}>
                         <a href="/admin/trainers" style={{ color: "var(--accent)", fontWeight: 600 }}>
                           Open trainer management (tables &amp; credentials) →
                         </a>
                       </p>
                       <div className="bb-sa-queue-panel">
-                        {trainerRequests.filter((r: any) => String(r.status) === "pending").length ? (
-                          <ul className="bb-list-rows">
-                            {trainerRequests
-                              .filter((req: any) => String(req.status) === "pending")
-                              .map((req: any) => {
-                                const rid = String(req.id || "");
-                                const busyTa = superadminQueueBusy === `${rid}-ta`;
-                                const busyTr = superadminQueueBusy === `${rid}-tr`;
-                                const busy = busyTa || busyTr;
-                                return (
-                                  <li
-                                    key={rid || req.email}
-                                    className="bb-list-row bb-list-row-static"
-                                    style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}
-                                  >
-                                    <div>
-                                      <div className="bb-list-row-title">{req.full_name || "Trainer applicant"}</div>
-                                      <p className="bb-list-row-sub">{req.email}</p>
-                                      <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                        {[req.phone && `Phone: ${req.phone}`, req.gym_name && `Gym: ${req.gym_name}`, req.city && `City: ${req.city}`]
-                                          .filter(Boolean)
-                                          .join(" · ") || "—"}
-                                      </p>
-                                      {req.message ? (
-                                        <p className="bb-list-row-sub" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>
-                                          {req.message}
-                                        </p>
-                                      ) : null}
-                                    </div>
-                                    <div className="bb-sa-btn-row">
-                                      <button
-                                        type="button"
-                                        className="bb-sa-btn-approve"
-                                        onClick={() => void superadminApproveTrainerRequestRow(rid)}
-                                        disabled={busy}
+                        {trainerRequests.length ? (
+                          <div className="bb-sa-slim-scrollwrap">
+                            <table className="bb-sa-slim-table">
+                              <thead>
+                                <tr>
+                                  <th>Name</th>
+                                  <th>Email</th>
+                                  <th>Status</th>
+                                  <th>Submitted</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[...trainerRequests]
+                                  .sort((a: any, b: any) => {
+                                    const pa = String(a.status) === "pending" ? 0 : 1;
+                                    const pb = String(b.status) === "pending" ? 0 : 1;
+                                    if (pa !== pb) return pa - pb;
+                                    return String(b.created_at || "").localeCompare(String(a.created_at || ""));
+                                  })
+                                  .slice(0, 50)
+                                  .map((req: any) => {
+                                    const rid = String(req.id || "");
+                                    return (
+                                      <tr
+                                        key={rid || req.email}
+                                        className="bb-sa-slim-tr-click"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setSuperadminRequestDetailModal({ kind: "trainer", data: req })}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setSuperadminRequestDetailModal({ kind: "trainer", data: req });
+                                          }
+                                        }}
                                       >
-                                        {busyTa ? "…" : "Approve & create login"}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="bb-sa-btn-reject"
-                                        onClick={() => void superadminRejectTrainerRequestRow(rid)}
-                                        disabled={busy}
-                                      >
-                                        {busyTr ? "…" : "Reject"}
-                                      </button>
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                          </ul>
-                        ) : (
-                          <p className="bb-live-empty">No pending trainer applications.</p>
-                        )}
-                        {trainerRequests.some((r: any) => String(r.status) !== "pending") ? (
-                          <>
-                            <p className="bb-inline-label">Recent decisions (trainer applications)</p>
-                            <ul className="bb-list-rows">
-                              {trainerRequests
-                                .filter((r: any) => String(r.status) !== "pending")
-                                .slice(0, 25)
-                                .map((req: any) => (
-                                  <li key={String(req.id)} className="bb-list-row bb-list-row-static">
-                                    <div className="bb-list-row-title">{req.full_name || req.email}</div>
-                                    <p className="bb-list-row-sub">
-                                      {req.email} · <span style={{ color: "var(--accent)" }}>{req.status}</span>
-                                      {req.created_at ? ` · ${String(req.created_at).slice(0, 10)}` : ""}
-                                    </p>
-                                  </li>
-                                ))}
-                            </ul>
-                          </>
-                        ) : null}
+                                        <td style={{ fontWeight: 600 }}>{req.full_name || "Trainer applicant"}</td>
+                                        <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{req.email || "—"}</td>
+                                        <td>
+                                          <span className={superadminRosterStatusClass(req.status)}>{String(req.status || "pending").toUpperCase()}</span>
+                                        </td>
+                                        <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{superadminFormatShortDate(req.created_at)}</td>
+                                        <td>
+                                          <div className="bb-sa-req-actions">
+                                            <button type="button" className="bb-btn-view" onClick={() => setSuperadminRequestDetailModal({ kind: "trainer", data: req })}>
+                                              View
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : <p className="bb-live-empty">No trainer requests yet.</p>}
                       </div>
                     </div>
 
                     <div className="bb-sa-queue-col">
-                      <h3 id="sa-client-onboarding" className="bb-sa-sec-head">
-                        Website coaching requests · pending{" "}
-                        <strong>{clientLeadRequests.filter((c: any) => String(c.status) === "pending").length}</strong>
-                        <span style={{ fontWeight: 500, color: "var(--text-secondary)", marginLeft: 6 }}>
-                          · recent {Math.min(clientLeadRequests.length, 50)}
+                      <div className="bb-sa-slim-hdr" style={{ marginBottom: 8 }}>
+                        <h3 id="sa-client-onboarding" className="bb-sa-sec-head" style={{ margin: 0 }}>
+                          Client requests
+                        </h3>
+                        <span className="bb-sa-slim-count">
+                          {clientLeadRequests.filter((c: any) => String(c.status) === "pending").length} pending · {Math.min(clientLeadRequests.length, 50)} recent
                         </span>
-                      </h3>
+                      </div>
                       <div className="bb-sa-queue-panel">
                         {clientLeadRequests.length ? (
-                          <ul className="bb-list-rows">
+                          <div className="bb-sa-slim-scrollwrap">
+                            <table className="bb-sa-slim-table">
+                              <thead>
+                                <tr>
+                                  <th>Name</th>
+                                  <th>Email</th>
+                                  <th>Status</th>
+                                  <th>Submitted</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
                             {[...clientLeadRequests]
                               .sort((a: any, b: any) => {
                                 const pa = String(a.status) === "pending" ? 0 : 1;
@@ -4720,292 +4873,205 @@ export default function DashboardPage() {
                               .slice(0, 50)
                               .map((c: any) => {
                                 const cid = String(c.id || "");
-                                const pending = String(c.status) === "pending";
-                                const busyCa = superadminQueueBusy === `${cid}-ca`;
-                                const busyCr = superadminQueueBusy === `${cid}-cr`;
-                                const busy = busyCa || busyCr;
-                                const pick = assignTrainerForClient[cid] || "";
                                 return (
-                                  <li
+                                  <tr
                                     key={cid || c.email}
-                                    className="bb-list-row bb-list-row-static"
-                                    style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}
+                                    className="bb-sa-slim-tr-click"
+                                    role="button"
+                                    tabIndex={0}
+                                    onClick={() => setSuperadminRequestDetailModal({ kind: "client", data: c })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        setSuperadminRequestDetailModal({ kind: "client", data: c });
+                                      }
+                                    }}
                                   >
-                                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
-                                      <div>
-                                        <div className="bb-list-row-title">{c.full_name || "Client"}</div>
-                                        <p className="bb-list-row-sub">{c.email}</p>
+                                    <td style={{ fontWeight: 600 }}>{c.full_name || "Client"}</td>
+                                    <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{c.email || "—"}</td>
+                                    <td>
+                                      <span className={superadminRosterStatusClass(c.status)}>{String(c.status || "pending").toUpperCase()}</span>
+                                    </td>
+                                    <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{superadminFormatShortDate(c.created_at)}</td>
+                                    <td>
+                                      <div className="bb-sa-req-actions">
+                                        <button type="button" className="bb-btn-view" onClick={() => setSuperadminRequestDetailModal({ kind: "client", data: c })}>
+                                          View
+                                        </button>
                                       </div>
-                                      <span
-                                        style={{
-                                          fontSize: 10,
-                                          fontWeight: 700,
-                                          letterSpacing: 1,
-                                          textTransform: "uppercase",
-                                          color:
-                                            c.status === "approved"
-                                              ? "var(--green)"
-                                              : c.status === "rejected"
-                                                ? "var(--red)"
-                                                : "var(--accent)"
-                                        }}
-                                      >
-                                        {c.status || "pending"}
-                                      </span>
-                                    </div>
-                                    <p className="bb-list-row-sub">
-                                      {[
-                                        c.phone && `Phone: ${c.phone}`,
-                                        c.city && `City: ${c.city}`,
-                                        c.goal_focus && `Goal: ${c.goal_focus}`,
-                                        c.training_format && `Format: ${c.training_format}`
-                                      ]
-                                        .filter(Boolean)
-                                        .join(" · ") || "—"}
-                                    </p>
-                                    {c.message ? (
-                                      <p className="bb-list-row-sub" style={{ whiteSpace: "pre-wrap" }}>
-                                        {c.message}
-                                      </p>
-                                    ) : null}
-                                    {c.heard_about ? <p className="bb-list-row-sub">Heard about: {c.heard_about}</p> : null}
-                                    {!pending && c.trainer_email ? (
-                                      <p className="bb-list-row-sub" style={{ marginTop: 4 }}>
-                                        Assigned coach: {[c.trainer_first_name, c.trainer_last_name].filter(Boolean).join(" ") || c.trainer_email}
-                                      </p>
-                                    ) : null}
-                                    {pending ? (
-                                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                        <label className="bb-list-row-sub" style={{ margin: 0 }}>
-                                          Assign trainer
-                                        </label>
-                                        <select
-                                          className="bb-sa-queue-select"
-                                          value={pick}
-                                          onChange={(e) => setAssignTrainerForClient((p) => ({ ...p, [cid]: e.target.value }))}
-                                        >
-                                          <option value="">Choose trainer…</option>
-                                          {superadminTrainers.map((t: any) => (
-                                            <option key={t.id} value={t.id}>
-                                              {[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email}
-                                              {t.suspended ? " (suspended)" : ""}
-                                            </option>
-                                          ))}
-                                        </select>
-                                        <div className="bb-sa-btn-row">
-                                          <button
-                                            type="button"
-                                            className="bb-sa-btn-approve"
-                                            onClick={() => void superadminApproveClientRequestRow(cid, pick)}
-                                            disabled={busy}
-                                          >
-                                            {busyCa ? "…" : "Approve & get invite link"}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="bb-sa-btn-reject"
-                                            onClick={() => void superadminRejectClientRequestRow(cid)}
-                                            disabled={busy}
-                                          >
-                                            {busyCr ? "…" : "Reject"}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ) : null}
-                                  </li>
+                                    </td>
+                                  </tr>
                                 );
                               })}
-                          </ul>
+                              </tbody>
+                            </table>
+                          </div>
                         ) : (
                           <p className="bb-live-empty">No client coaching requests yet.</p>
                         )}
                       </div>
                     </div>
                   </div>
+                </div>
+                )}
 
-                  <div className="bb-sa-roster-snap-section">
-                    <h3 className="bb-sa-sec-head">Coach portfolio · roster health</h3>
-                    <p className="bb-list-row-sub" style={{ margin: "0 0 12px", maxWidth: "56ch", lineHeight: 1.5 }}>
-                      Every coach you onboarded — live client counts, approval mix, and tenure. Open a coach to see join dates,
-                      tenure weeks, workouts, and daily check-ins.
-                    </p>
-                    <div className="bb-sa-queue-panel bb-sa-roster-snap-panel">
-                      {superadminTrainers.length ? (
-                        <div className="bb-sa-portfolio-table-wrap">
-                          <table className="bb-sa-portfolio-table">
-                            <thead>
-                              <tr>
-                                <th>Coach</th>
-                                <th>Onboarded</th>
-                                <th>Active</th>
-                                <th>Pending</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {superadminTrainers.slice(0, 8).map((t: any) => {
-                                const tid = String(t.id || "");
-                                const name = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
-                                const ap = Number(t.clients_approved ?? 0);
-                                const pe = Number(t.clients_pending ?? 0);
-                                const tot = Number(t.clients_total ?? ap + pe);
-                                return (
-                                  <tr
-                                    key={tid || t.email}
-                                    className="bb-sa-portfolio-tr-click"
-                                    onClick={() => {
-                                      goTab("clients");
-                                      setTrainerClientsView("coachPortfolio");
-                                      setSuperadminPortfolioTrainerId(tid || null);
-                                    }}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
-                                        e.preventDefault();
-                                        goTab("clients");
-                                        setTrainerClientsView("coachPortfolio");
-                                        setSuperadminPortfolioTrainerId(tid || null);
-                                      }
-                                    }}
-                                  >
-                                    <td>
-                                      <strong style={{ fontWeight: 700 }}>{name}</strong>
-                                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{t.email || "—"}</div>
-                                    </td>
-                                    <td>{superadminFormatShortDate(t.created_at)}</td>
-                                    <td>{ap}</td>
-                                    <td>{pe}</td>
-                                    <td>{tot}</td>
-                                    <td>
-                                      {t.suspended ? (
-                                        <span className="bb-sa-roster-badge-warn" style={{ fontSize: 10 }}>
-                                          Suspended
-                      </span>
-                                      ) : (
-                                        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "var(--green)" }}>
-                                          Active
-                                        </span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                {/* OVERVIEW shortcuts + live activity */}
+                {saTab === "overview" && (
+                <>
+                  <h3 className="bb-admin-qa-title">QUICK ACCESS</h3>
+                  <div className="bb-sa-qa-grid">
+                    {[
+                      { label: "Trainers", icon: String.fromCodePoint(0x1f464), onClick: () => goSaTab("trainers") },
+                      { label: "Members", icon: String.fromCodePoint(0x1f46a), onClick: () => goSaTab("members") },
+                      { label: "Applications", icon: String.fromCodePoint(0x1f4e5), onClick: () => goSaTab("applications") },
+                      { label: "Messages", icon: String.fromCodePoint(0x1f4ac), onClick: () => { goTab("messages"); setTrainerMessagesView("threads"); } },
+                      { label: "AI Assist", icon: String.fromCodePoint(0x1f4a1), onClick: () => setStaffAiOpen(true) },
+                      { label: "Trainer Mgmt", icon: String.fromCodePoint(0x1f4bc), href: "/admin/trainers" as const },
+                      { label: "Forms", icon: String.fromCodePoint(0x1f4cb), onClick: () => { goTab("forms"); setTrainerFormsView("daily"); } },
+                      { label: "Enterprise", icon: String.fromCodePoint(0x1f3e2), onClick: () => goSaTab("enterprise") }
+                    ].map((x) =>
+                      "href" in x ? (
+                        <a key={x.label} href={x.href} className="bb-admin-qa-btn" style={{ textDecoration: "none" }}>
+                          <span className="bb-admin-qa-ic">{x.icon}</span>
+                          <span>{x.label}</span>
+                        </a>
                       ) : (
-                        <p className="bb-live-empty">No coaches on file yet.</p>
-                      )}
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-                        <button
-                          type="button"
-                          className="bb-sa-roster-open-btn"
-                          onClick={() => {
-                            goTab("clients");
-                            setTrainerClientsView("coachPortfolio");
-                            setSuperadminPortfolioTrainerId(null);
-                          }}
-                        >
-                          Open coach portfolio (full ledger)
+                        <button key={x.label} type="button" className="bb-admin-qa-btn" onClick={x.onClick}>
+                          <span className="bb-admin-qa-ic">{x.icon}</span>
+                          <span>{x.label}</span>
                         </button>
-                        <button
-                          type="button"
-                          className="bb-sa-roster-open-btn"
-                          style={{
-                            background: "color-mix(in srgb,var(--bg-card) 88%,var(--accent) 12%)",
-                            color: "var(--accent)",
-                            border: "1px solid rgb(var(--accent-rgb) / 0.35)",
-                            boxShadow: "none"
-                          }}
-                          onClick={() => {
-                            goTab("clients");
-                            setTrainerClientsView("roster");
-                            setSuperadminPortfolioTrainerId(null);
-                          }}
-                        >
-                          Platform roster · all members (search &amp; 360°)
-                        </button>
+                      )
+                    )}
+                  </div>
+                  <h3 className="bb-admin-la-title">LIVE ACTIVITY</h3>
+                  <div className="bb-admin-la-list-wrap">
+                    {activity.length ? (
+                      <ul className="bb-live-list">
+                        {activity.slice(0, 8).map((a, i) => {
+                          const type = String(a?.type || "").toLowerCase();
+                          const status = type.includes("workout") ? "DONE" : type.includes("check") ? "NEW" : "LIVE";
+                          const text = `${a?.name || a?.user_name || "User"} — ${a?.type || "Update"}`;
+                          return (
+                            <li key={i} className="bb-live-row" style={{ borderBottom: i === 7 ? "none" : undefined }}>
+                              <span className="bb-live-dot" />
+                              <span>{text}</span>
+                              <span className="bb-live-pill">{status}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="bb-live-empty">No recent activity yet. Data appears once members start logging check-ins and workouts.</p>
+                    )}
+                  </div>
+                </>
+                )}
+
+                {/* ── ENTERPRISE TAB ─────────────────────────────────── */}
+                {saTab === "enterprise" && (
+                <div className="bb-sa-ent-shell">
+                  <div className="bb-sa-ent-hero">
+                    <p className="bb-sa-home-kicker">Enterprise Pipeline</p>
+                    <h1 className="bb-sa-home-hero-title">Enterprise</h1>
+                    <p className="bb-sa-home-hero-line">
+                      Gym chains, corporate wellness, and sports academies applying for white-label access will appear here.
+                    </p>
+                  </div>
+                  {superadminEnterpriseRequests.length ? (
+                    <div className="bb-sa-luxe-shell">
+                      <div className="bb-sa-slim-hdr" style={{ marginBottom: 8 }}>
+                        <span className="bb-sa-slim-title">Enterprise Requests</span>
+                        <span className="bb-sa-slim-count">
+                          {superadminEnterpriseRequests.filter((r: any) => String(r.status) === "pending").length} pending
+                        </span>
+                      </div>
+                      <div className="bb-sa-slim-scrollwrap">
+                        <table className="bb-sa-slim-table">
+                          <thead>
+                            <tr>
+                              <th>Business</th>
+                              <th>Contact</th>
+                              <th>Status</th>
+                              <th>Submitted</th>
+                              <th>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {superadminEnterpriseRequests.slice(0, 100).map((r: any) => (
+                              <tr
+                                key={String(r.id || r.email)}
+                                className="bb-sa-slim-tr-click"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => setSuperadminRequestDetailModal({ kind: "trainer", data: r })}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setSuperadminRequestDetailModal({ kind: "trainer", data: r });
+                                  }
+                                }}
+                              >
+                                <td style={{ fontWeight: 600 }}>{r.gym_name || "Enterprise / Business"}</td>
+                                <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                                  {r.full_name || "—"}
+                                  {r.email ? ` · ${r.email}` : ""}
+                                </td>
+                                <td>
+                                  <span className={superadminRosterStatusClass(r.status)}>
+                                    {String(r.status || "pending").toUpperCase()}
+                                  </span>
+                                </td>
+                                <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                                  {superadminFormatShortDate(r.created_at)}
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="bb-btn-view"
+                                    onClick={() => setSuperadminRequestDetailModal({ kind: "trainer", data: r })}
+                                  >
+                                    View
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <h3 className="bb-admin-qa-title">SHORTCUTS</h3>
-                <div className="bb-admin-qa-grid">
-                  {[
-                    {
-                      label: "Coach portfolio",
-                      icon: String.fromCodePoint(0x1f4bc),
-                      onClick: () => {
-                        goTab("clients");
-                        setTrainerClientsView("coachPortfolio");
-                        setSuperadminPortfolioTrainerId(null);
-                      }
-                    },
-                    {
-                      label: "Roster",
-                      icon: String.fromCodePoint(0x1f46a),
-                      onClick: () => {
-                        goTab("clients");
-                        setTrainerClientsView("roster");
-                        setSuperadminPortfolioTrainerId(null);
-                      }
-                    },
-                    {
-                      label: "Sign-ups",
-                      icon: String.fromCodePoint(0x1f464),
-                      onClick: () => {
-                        goTab("clients");
-                        setTrainerClientsView("pending");
-                        setSuperadminPortfolioTrainerId(null);
-                      }
-                    },
-                    {
-                      label: "Forms hub",
-                      icon: String.fromCodePoint(0x1f4cb),
-                      onClick: () => {
-                        goTab("forms");
-                        setTrainerFormsView("daily");
-                      }
-                    },
-                    {
-                      label: "Messages",
-                      icon: String.fromCodePoint(0x1f4ac),
-                      onClick: () => {
-                        goTab("messages");
-                        setTrainerMessagesView("threads");
-                      }
-                    }
-                  ].map((x) => (
-                    <button key={x.label} type="button" className="bb-admin-qa-btn" onClick={x.onClick}>
-                      <span className="bb-admin-qa-ic">{x.icon}</span>
-                      <span>{x.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <h3 className="bb-admin-la-title">LIVE ACTIVITY</h3>
-                <div className="bb-admin-la-list-wrap">
-                  {activity.length ? (
-                    <ul className="bb-live-list">
-                      {activity.slice(0, 6).map((a, i) => {
-                        const type = String(a?.type || "").toLowerCase();
-                        const status = type.includes("workout") ? "DONE" : type.includes("check") ? "NEW" : "LIVE";
-                        const text = `${a?.name || a?.user_name || "User"} — ${a?.type || "Update"}`;
-                        return (
-                          <li key={i} className="bb-live-row" style={{ borderBottom: i === 5 ? "none" : undefined }}>
-                            <span className="bb-live-dot" />
-                            <span>{text}</span>
-                            <span className="bb-live-pill">{status}</span>
-                          </li>
-                        );
-                      })}
-                    </ul>
                   ) : (
-                    <p className="bb-live-empty">No recent activity</p>
+                    <div className="bb-sa-ent-empty">
+                      <div className="bb-sa-ent-empty-icon" aria-hidden>{String.fromCodePoint(0x1f3e2)}</div>
+                      <p className="bb-sa-ent-empty-title">No enterprise applications yet</p>
+                      <p className="bb-sa-ent-empty-sub">
+                        When businesses submit an enterprise inquiry from the website, their request will appear here for review and
+                        onboarding. You&apos;ll be able to assign a dedicated onboarding call, configure white-label settings, and
+                        provision team access.
+                      </p>
+                      <div className="bb-sa-ent-pipeline">
+                        {[
+                          { stage: "Inquiry", desc: "Business submits enterprise form", active: false },
+                          { stage: "Review", desc: "SA reviews fit & scale", active: false },
+                          { stage: "Demo Call", desc: "Schedule onboarding call", active: false },
+                          { stage: "Provisioning", desc: "Configure white-label access", active: false },
+                          { stage: "Live", desc: "Business goes live on FitBase", active: false }
+                        ].map((s, i) => (
+                          <div key={i} className="bb-sa-ent-stage">
+                            <div className="bb-sa-ent-stage-dot" />
+                            <div>
+                              <div className="bb-sa-ent-stage-name">{s.stage}</div>
+                              <div className="bb-sa-ent-stage-desc">{s.desc}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" className="bb-sa-ent-cta" onClick={() => goSaTab("applications")}>
+                        View Individual Applications →
+                      </button>
+                    </div>
                   )}
                 </div>
+                )}
               </>
             ) : (
               <>
@@ -5259,6 +5325,7 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
+                {role !== "superadmin" ? (
                 <button
                   type="button"
                   className="bb-back-btn"
@@ -5267,58 +5334,11 @@ export default function DashboardPage() {
                       setActiveTab("home");
                       return;
                     }
-                    if (role === "superadmin") {
-                      if (superadminPortfolioTrainerId) {
-                        setSuperadminPortfolioTrainerId(null);
-                        return;
-                      }
-                      if (trainerClientsView === "coachPortfolio") {
-                        setActiveTab("home");
-                        return;
-                      }
-                      if (trainerClientsView === "roster") setActiveTab("home");
-                      else setTrainerClientsView("roster");
-                      return;
-                    }
                     setTrainerClientsView("hub");
                   }}
                 >
                   ← Back
                 </button>
-                {role === "superadmin" ? (
-                  <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                    {(
-                      [
-                        ["coachPortfolio", "Coach portfolio"],
-                        ["roster", "Platform roster"],
-                        ["pending", "Pending sign-ups"]
-                      ] as const
-                    ).map(([id, label]) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => {
-                          setSuperadminPortfolioTrainerId(null);
-                          setTrainerClientsView(id);
-                        }}
-                        style={{
-                          borderRadius: 999,
-                          padding: "8px 14px",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          letterSpacing: 0.04,
-                          textTransform: "uppercase",
-                          cursor: "pointer",
-                          border:
-                            trainerClientsView === id ? "1px solid var(--accent)" : "1px solid var(--border)",
-                          background: trainerClientsView === id ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "transparent",
-                          color: "var(--text-primary)"
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
                 ) : null}
                 {trainerClientsView === "hub" ? (
                   <div className="bb-admin-hub-cards">
@@ -5383,156 +5403,175 @@ export default function DashboardPage() {
                   </div>
                 ) : null}
                 {trainerClientsView === "roster" && role === "superadmin" ? (
-                  <div className="bb-sa-roster-shell">
-                    <header className="bb-sa-roster-hero">
-                      <p className="bb-sa-roster-kicker">Concierge directory</p>
-                      <h2 className="bb-sa-roster-title">Platform roster</h2>
-                      <p className="bb-sa-roster-sub">
-                        Curated view of every member under a coach. Select a card for the full client profile, progress intelligence, and secure share links.
-                      </p>
-                      <div className="bb-sa-roster-stats">
-                        <div className="bb-sa-roster-stat">
-                          <span className="bb-sa-roster-stat-num">{superadminRosterFiltered.length}</span>
-                          <span className="bb-sa-roster-stat-lbl">
-                            {superadminRosterQ.trim() ? "Matches" : "Members"}
-                          </span>
-                        </div>
-                        {superadminRosterQ.trim() ? (
-                          <div className="bb-sa-roster-stat">
-                            <span className="bb-sa-roster-stat-num">{superadminRosterRows.length}</span>
-                            <span className="bb-sa-roster-stat-lbl">Linked total</span>
-                          </div>
-                        ) : null}
-                      </div>
-                    </header>
-                    <div className="bb-sa-roster-search-wrap">
-                      <span className="bb-sa-roster-search-icon" aria-hidden>
-                        <svg viewBox="0 0 24 24" aria-hidden>
-                          <circle cx="11" cy="11" r="7" />
-                          <path d="M20 20l-4.2-4.2" />
-                        </svg>
+                  <div className="bb-sa-luxe-shell">
+                    <div className="bb-sa-slim-hdr">
+                      <span className="bb-sa-slim-title">Members</span>
+                      <span className="bb-sa-slim-count">
+                        {superadminRosterFiltered.length}{superadminRosterQ.trim() ? " matches" : " total"}
                       </span>
+                    </div>
+                    <div className="bb-sa-slim-search">
+                      <svg className="bb-sa-slim-search-icon" viewBox="0 0 24 24" aria-hidden>
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M20 20l-4.2-4.2" />
+                      </svg>
                       <input
-                        className="bb-sa-roster-input"
+                        className="bb-sa-slim-search-input"
                         value={superadminRosterQ}
                         onChange={(e) => setSuperadminRosterQ(e.target.value)}
-                        placeholder="Refine by client name, email, or coach…"
-                        aria-label="Search platform roster"
+                        placeholder="Search by name, email or coach…"
                         autoComplete="off"
                       />
                     </div>
                     {superadminRosterFiltered.length ? (
-                      <ul className="bb-sa-roster-grid">
-                        {superadminRosterFiltered.slice(0, 200).map(({ client: u, trainer: t }) => {
-                          const tname = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
-                          const displayName = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Client";
-                          const statusText = u.approval_status
-                            ? String(u.approval_status).replace(/\b\w/g, (c) => c.toUpperCase())
-                            : "—";
-                          const open = () => openClientDetail(u);
-                          return (
-                            <li
-                              key={`${t.id}-${u.id}`}
-                              className="bb-sa-roster-card"
-                              onClick={open}
-                              role="button"
-                              tabIndex={0}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  open();
-                                }
-                              }}
-                            >
-                              <div className="bb-sa-roster-card-inner">
-                                <div className="bb-sa-roster-mono" aria-hidden>
-                                  {rosterClientMonogram(u)}
-                                </div>
-                                <div className="bb-sa-roster-body">
-                                  <h3 className="bb-sa-roster-name">{displayName}</h3>
-                                  <p className="bb-sa-roster-email">{u.email || "—"}</p>
-                                  <div className="bb-sa-roster-meta">
-                                    <span className="bb-sa-roster-coach">
-                                      Coach <strong>{tname}</strong>
-                                      {t.suspended ? (
-                                        <span className="bb-sa-roster-badge-warn"> · suspended</span>
-                                      ) : null}
-                                    </span>
+                      <div className="bb-sa-slim-scrollwrap">
+                        <div className="bb-sa-slim-scrollhint" aria-hidden>
+                          <svg className="bb-sa-slim-scrollhint-icon" viewBox="0 0 24 24">
+                            <path d="M9 6l6 6-6 6" />
+                            <path d="M15 6l-6 6 6 6" />
+                          </svg>
+                        </div>
+                        <table className="bb-sa-slim-table">
+                          <thead>
+                            <tr>
+                              <th>Member</th>
+                              <th>Coach</th>
+                              <th>Status</th>
+                              <th>Joined</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {superadminRosterFiltered.slice(0, 200).map(({ client: u, trainer: t }) => {
+                              const tname = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
+                              const dname = [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "Member";
+                              const statusText = u.approval_status
+                                ? String(u.approval_status).replace(/\b\w/g, (c) => c.toUpperCase())
+                                : "—";
+                              const open = () => openClientDetail(u);
+                              return (
+                                <tr
+                                  key={`${t.id}-${u.id}`}
+                                  className="bb-sa-slim-tr-click"
+                                  onClick={open}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
+                                >
+                                  <td>
+                                    <div style={{ fontWeight: 600 }}>{dname}</div>
+                                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 1 }}>{u.email || ""}</div>
+                                  </td>
+                                  <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                                    {tname}
+                                    {t.suspended ? <span style={{ color: "var(--red)", marginLeft: 4 }}>· suspended</span> : null}
+                                  </td>
+                                  <td>
                                     <span className={superadminRosterStatusClass(u.approval_status)}>{statusText}</span>
-                                  </div>
-                                </div>
-                                <div className="bb-sa-roster-cta">
-                                  <span className="bb-sa-roster-cta-pill">Profile</span>
-                                </div>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <div className="bb-sa-roster-empty">
-                        <div className="bb-sa-roster-empty-line" />
-                        <p>
-                          {superadminRosterRows.length
-                            ? "No profiles match this refinement. Adjust your search to continue."
-                            : "No members are linked to coaches yet. Assignments will appear here as the platform grows."}
-                        </p>
+                                  </td>
+                                  <td style={{ color: "var(--text-secondary)", fontSize: 12, whiteSpace: "nowrap" }}>
+                                    {superadminFormatShortDate(u.created_at)}
+                                  </td>
+                                  <td style={{ textAlign: "right" }}>
+                                    <span className="bb-sa-slim-arrow">›</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
+                    ) : (
+                      <p className="bb-sa-slim-empty">
+                        {superadminRosterRows.length
+                          ? "No matches. Try a different search."
+                          : "No members linked to coaches yet."}
+                      </p>
                     )}
                   </div>
                 ) : null}
                 {trainerClientsView === "coachPortfolio" && role === "superadmin" ? (
-                  <div className="bb-sa-portfolio-shell">
+                  <div className="bb-sa-luxe-shell">
                     {!superadminPortfolioTrainerId ? (
                       <>
-                        <p className="bb-sa-portfolio-kicker">Concierge ledger</p>
-                        <h2 className="bb-sa-portfolio-title">Coach portfolio</h2>
-                        <p className="bb-sa-portfolio-sub">
-                          Every trainer you onboarded — live roster counts, approval mix, and account status. Open a coach to review
-                          each member&apos;s join date, tenure, logged workouts, and daily check-ins.
-                        </p>
-                        {superadminTrainers.length ? (
-                          <div className="bb-sa-portfolio-coach-grid">
-                            {superadminTrainers.map((t: any) => {
-                              const tid = String(t.id || "");
-                              const name = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
-                              const ap = Number(t.clients_approved ?? 0);
-                              const pe = Number(t.clients_pending ?? 0);
-                              const tot = Number(t.clients_total ?? ap + pe);
-                              return (
-                                <button
-                                  key={tid || String(t.email)}
-                                  type="button"
-                                  className="bb-sa-portfolio-coach-card"
-                                  onClick={() => setSuperadminPortfolioTrainerId(tid || null)}
-                                >
-                                  <h3 className="bb-sa-portfolio-coach-name">{name}</h3>
-                                  <p className="bb-sa-portfolio-coach-meta">{t.email || "—"}</p>
-                                  <div className="bb-sa-portfolio-coach-stats">
-                                    <span className="bb-sa-portfolio-stat-pill">
-                                      <strong>{ap}</strong> active
-                                    </span>
-                                    <span className="bb-sa-portfolio-stat-pill">
-                                      <strong>{pe}</strong> pending
-                                    </span>
-                                    <span className="bb-sa-portfolio-stat-pill">
-                                      <strong>{tot}</strong> total
-                                    </span>
-                                    <span className="bb-sa-portfolio-stat-pill">
-                                      Since <strong>{superadminFormatShortDate(t.created_at)}</strong>
-                                    </span>
-                                    {t.suspended ? (
-                                      <span className="bb-sa-portfolio-stat-pill" style={{ borderColor: "var(--red)", color: "var(--red)" }}>
-                                        <strong>!</strong> suspended
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </button>
-                              );
-                            })}
+                        <div className="bb-sa-slim-hdr">
+                          <span className="bb-sa-slim-title">Trainers</span>
+                          <span className="bb-sa-slim-count">
+                            {superadminTrainersFiltered.length}
+                            {superadminTrainersQ.trim() ? " matches" : " coaches"}
+                          </span>
+                        </div>
+                        <div className="bb-sa-slim-search">
+                          <svg className="bb-sa-slim-search-icon" viewBox="0 0 24 24" aria-hidden>
+                            <circle cx="11" cy="11" r="7" />
+                            <path d="M20 20l-4.2-4.2" />
+                          </svg>
+                          <input
+                            className="bb-sa-slim-search-input"
+                            value={superadminTrainersQ}
+                            onChange={(e) => setSuperadminTrainersQ(e.target.value)}
+                            placeholder="Search by name or email…"
+                            autoComplete="off"
+                          />
+                        </div>
+                        {superadminTrainersFiltered.length ? (
+                          <div className="bb-sa-slim-scrollwrap">
+                            <div className="bb-sa-slim-scrollhint" aria-hidden>
+                              <svg className="bb-sa-slim-scrollhint-icon" viewBox="0 0 24 24">
+                                <path d="M9 6l6 6-6 6" />
+                                <path d="M15 6l-6 6 6 6" />
+                              </svg>
+                            </div>
+                            <table className="bb-sa-slim-table">
+                              <thead>
+                                <tr>
+                                  <th>Coach</th>
+                                  <th>Email</th>
+                                  <th style={{ textAlign: "center" }}>Active</th>
+                                  <th style={{ textAlign: "center" }}>Pending</th>
+                                  <th>Status</th>
+                                  <th>Since</th>
+                                  <th></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {superadminTrainersFiltered.map((t: any) => {
+                                  const tid = String(t.id || "");
+                                  const name = [t.first_name, t.last_name].filter(Boolean).join(" ") || t.email || "Coach";
+                                  const ap = Number(t.clients_approved ?? 0);
+                                  const pe = Number(t.clients_pending ?? 0);
+                                  return (
+                                    <tr
+                                      key={tid || String(t.email)}
+                                      className="bb-sa-slim-tr-click"
+                                      onClick={() => setSuperadminPortfolioTrainerId(tid || null)}
+                                      role="button"
+                                      tabIndex={0}
+                                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSuperadminPortfolioTrainerId(tid || null); } }}
+                                    >
+                                      <td style={{ fontWeight: 600 }}>{name}</td>
+                                      <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{t.email || "—"}</td>
+                                      <td style={{ textAlign: "center" }}>{ap}</td>
+                                      <td style={{ textAlign: "center", color: pe > 0 ? "var(--accent)" : undefined }}>{pe}</td>
+                                      <td>
+                                        <span className={t.suspended ? "bb-sa-slim-pill bb-sa-slim-pill-suspended" : "bb-sa-slim-pill bb-sa-slim-pill-active"}>
+                                          {t.suspended ? "Suspended" : "Active"}
+                                        </span>
+                                      </td>
+                                      <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{superadminFormatShortDate(t.created_at)}</td>
+                                      <td style={{ textAlign: "right" }}><span className="bb-sa-slim-arrow">›</span></td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
-                          <p className="bb-sa-portfolio-empty">No coaches on the platform yet. Approve trainer applications to populate this ledger.</p>
+                          <p className="bb-sa-slim-empty">
+                            {superadminTrainers.length
+                              ? "No matches. Try a different search."
+                              : "No coaches on the platform yet. Approve trainer applications to see them here."}
+                          </p>
                         )}
                       </>
                     ) : (
@@ -5545,59 +5584,48 @@ export default function DashboardPage() {
                             const raw = row.clients;
                             if (Array.isArray(raw)) clientsParsed = raw;
                             else if (typeof raw === "string") clientsParsed = JSON.parse(raw || "[]");
-                          } catch {
-                            clientsParsed = [];
-                          }
+                          } catch { clientsParsed = []; }
                         }
                         const coachName =
                           [row?.first_name, row?.last_name].filter(Boolean).join(" ") ||
                           [tMeta?.first_name, tMeta?.last_name].filter(Boolean).join(" ") ||
-                          row?.email ||
-                          tMeta?.email ||
-                          "Coach";
+                          row?.email || tMeta?.email || "Coach";
                         const coachEmail = row?.email || tMeta?.email || "—";
-                        const coachSince = superadminFormatShortDate(row?.trainer_onboarded_at || tMeta?.created_at);
+                        const isSuspended = row?.suspended || tMeta?.suspended;
                         return (
                           <>
-                            <div className="bb-sa-portfolio-detail-head">
+                            <button type="button" className="bb-sa-slim-back" onClick={() => setSuperadminPortfolioTrainerId(null)}>
+                              ← All Trainers
+                            </button>
+                            <div className="bb-sa-slim-detail-head">
                               <div>
-                                <p className="bb-sa-portfolio-kicker">Coach roster</p>
-                                <h2 className="bb-sa-portfolio-title" style={{ fontSize: "clamp(22px,5vw,36px)", letterSpacing: 3 }}>
+                                <p className="bb-sa-slim-detail-name">
                                   {coachName}
-                                </h2>
-                                <p className="bb-sa-portfolio-sub" style={{ marginBottom: 0 }}>
-                                  {coachEmail}
-                                  {coachSince !== "—" ? (
-                                    <>
-                                      {" "}
-                                      · Coach since {coachSince}
-                                      {row?.suspended || tMeta?.suspended ? (
-                                        <span className="bb-sa-roster-badge-warn" style={{ marginLeft: 8 }}>
-                                          {" "}
-                                          suspended
-                                        </span>
-                                      ) : null}
-                                    </>
+                                  {isSuspended ? (
+                                    <span className="bb-sa-slim-pill bb-sa-slim-pill-suspended" style={{ marginLeft: 10, fontSize: 11 }}>Suspended</span>
                                   ) : null}
                                 </p>
+                                <p className="bb-sa-slim-detail-meta">{coachEmail}</p>
                               </div>
-                              <button type="button" className="bb-sa-portfolio-back-inline" onClick={() => setSuperadminPortfolioTrainerId(null)}>
-                                All coaches
-                              </button>
+                              <span className="bb-sa-slim-count">{clientsParsed.length} clients</span>
                             </div>
                             {clientsParsed.length ? (
-                              <div className="bb-sa-portfolio-table-wrap">
-                                <table className="bb-sa-portfolio-table">
+                              <div className="bb-sa-slim-scrollwrap">
+                                <div className="bb-sa-slim-scrollhint" aria-hidden>
+                                  <svg className="bb-sa-slim-scrollhint-icon" viewBox="0 0 24 24">
+                                    <path d="M9 6l6 6-6 6" />
+                                    <path d="M15 6l-6 6 6 6" />
+                                  </svg>
+                                </div>
+                                <table className="bb-sa-slim-table">
                                   <thead>
                                     <tr>
                                       <th>Member</th>
                                       <th>Status</th>
-                                      <th>Joined</th>
                                       <th>Week #</th>
-                                      <th>WO 7d</th>
-                                      <th>CI 7d</th>
-                                      <th>Last workout</th>
-                                      <th>Last check-in</th>
+                                      <th style={{ textAlign: "center" }}>WO / CI (7d)</th>
+                                      <th>Joined</th>
+                                      <th></th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -5611,39 +5639,27 @@ export default function DashboardPage() {
                                       return (
                                         <tr
                                           key={uid || u.email}
-                                          className="bb-sa-portfolio-tr-click"
+                                          className="bb-sa-slim-tr-click"
                                           onClick={open}
                                           role="button"
                                           tabIndex={0}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                              e.preventDefault();
-                                              open();
-                                            }
-                                          }}
+                                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
                                         >
                                           <td>
-                                            <strong style={{ fontWeight: 700 }}>{displayName}</strong>
-                                            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>{u.email || "—"}</div>
+                                            <div style={{ fontWeight: 600 }}>{displayName}</div>
+                                            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 1 }}>{u.email || ""}</div>
                                           </td>
-                                          <td>
-                                            <span className={superadminRosterStatusClass(u.approval_status)}>{st}</span>
+                                          <td><span className={superadminRosterStatusClass(u.approval_status)}>{st}</span></td>
+                                          <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>{superadminWeeksOnPlatform(u.created_at) || "—"}</td>
+                                          <td style={{ textAlign: "center", fontSize: 13 }}>
+                                            <span style={{ fontWeight: 600 }}>{Number(u.workouts_7d ?? 0)}</span>
+                                            <span style={{ color: "var(--text-secondary)", margin: "0 3px" }}>/</span>
+                                            <span style={{ fontWeight: 600 }}>{Number(u.daily_checkins_7d ?? 0)}</span>
                                           </td>
-                                          <td>{superadminFormatShortDate(u.created_at)}</td>
-                                          <td>{superadminWeeksOnPlatform(u.created_at) || "—"}</td>
-                                          <td>{Number(u.workouts_7d ?? 0)}</td>
-                                          <td>{Number(u.daily_checkins_7d ?? 0)}</td>
-                                          <td style={{ fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                                            {u.last_workout_at
-                                              ? new Date(String(u.last_workout_at)).toLocaleDateString(undefined, {
-                                                  month: "short",
-                                                  day: "numeric"
-                                                })
-                                              : "—"}
+                                          <td style={{ color: "var(--text-secondary)", fontSize: 12, whiteSpace: "nowrap" }}>
+                                            {superadminFormatShortDate(u.created_at)}
                                           </td>
-                                          <td style={{ fontSize: 12, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
-                                            {u.last_checkin_date ? String(u.last_checkin_date).slice(0, 10) : "—"}
-                                          </td>
+                                          <td style={{ textAlign: "right" }}><span className="bb-sa-slim-arrow">›</span></td>
                                         </tr>
                                       );
                                     })}
@@ -5651,7 +5667,7 @@ export default function DashboardPage() {
                                 </table>
                               </div>
                             ) : (
-                              <p className="bb-sa-portfolio-empty">No clients are assigned to this coach yet.</p>
+                              <p className="bb-sa-slim-empty">No clients assigned to this coach yet.</p>
                             )}
                           </>
                         );
@@ -6275,7 +6291,7 @@ export default function DashboardPage() {
                       return;
                     }
                     if (role === "superadmin") {
-                      setActiveTab("home");
+                      goSaTab("overview");
                       return;
                     }
                     setTrainerFormsView("hub");
@@ -6427,14 +6443,33 @@ export default function DashboardPage() {
                           </thead>
                           <tbody>
                             {part2Submissions.slice(0, 250).map((p: any) => (
-                              <tr key={p.id}>
+                              <tr
+                                key={p.id}
+                                className="bb-sa-slim-tr-click"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => void openPart2Detail(p)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void openPart2Detail(p);
+                                  }
+                                }}
+                              >
                                 <td>{p.name || "—"}</td>
                                 <td>{p.email || "—"}</td>
                                 <td>{p.mobile || "—"}</td>
                                 <td>{p.activity_level || "—"}</td>
                                 <td>{p.created_at ? new Date(p.created_at).toLocaleString() : "—"}</td>
                                 <td className="bb-admin-actions-col">
-                                  <button type="button" className="bb-btn-view" onClick={() => void openPart2Detail(p)}>
+                                  <button
+                                    type="button"
+                                    className="bb-btn-view"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void openPart2Detail(p);
+                                    }}
+                                  >
                                     View
                                   </button>
                                 </td>
@@ -6501,7 +6536,19 @@ export default function DashboardPage() {
                           </thead>
                           <tbody>
                             {sundayCheckinsApi.slice(0, 250).map((c: any) => (
-                              <tr key={c.id}>
+                              <tr
+                                key={c.id}
+                                className="bb-sa-slim-tr-click"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => void openSundayDetail(c)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void openSundayDetail(c);
+                                  }
+                                }}
+                              >
                                 <td>{c.full_name || [c.first_name, c.last_name].filter(Boolean).join(" ") || c.reply_email || "—"}</td>
                                 <td>{c.reply_email || c.email || "—"}</td>
                                 <td>{c.total_weight_loss != null ? String(c.total_weight_loss) : "—"}</td>
@@ -6512,7 +6559,14 @@ export default function DashboardPage() {
                                 ) : null}
                                 <td>{c.created_at ? new Date(c.created_at).toLocaleString() : "—"}</td>
                                 <td className="bb-admin-actions-col">
-                                  <button type="button" className="bb-btn-view" onClick={() => void openSundayDetail(c)}>
+                                  <button
+                                    type="button"
+                                    className="bb-btn-view"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void openSundayDetail(c);
+                                    }}
+                                  >
                                     View
                                   </button>
                                 </td>
@@ -6579,7 +6633,19 @@ export default function DashboardPage() {
                           </thead>
                           <tbody>
                             {dailyCheckins.slice(0, 250).map((c: any) => (
-                              <tr key={c.id}>
+                              <tr
+                                key={c.id}
+                                className="bb-sa-slim-tr-click"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => void openCheckinDetail(c)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void openCheckinDetail(c);
+                                  }
+                                }}
+                              >
                                 <td>{[c.first_name, c.last_name].filter(Boolean).join(" ") || "—"}</td>
                                 <td>{c.email || "—"}</td>
                                 <td>{c.checkin_date || "—"}</td>
@@ -6592,7 +6658,14 @@ export default function DashboardPage() {
                                   </td>
                                 ) : null}
                                 <td className="bb-admin-actions-col">
-                                  <button type="button" className="bb-btn-view" onClick={() => void openCheckinDetail(c)}>
+                                  <button
+                                    type="button"
+                                    className="bb-btn-view"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void openCheckinDetail(c);
+                                    }}
+                                  >
                                     View
                                   </button>
                                 </td>
@@ -7687,7 +7760,52 @@ export default function DashboardPage() {
           selectedMeeting ||
           selectedSunday ||
           selectedPart2) ? (
-          <div className="bb-panel bb-detail-panel" style={{ marginTop: 14 }}>
+          <div
+            className="bb-detail-modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => {
+              setSelectedClient(null);
+              setSelectedCheckin(null);
+              setSelectedWorkout(null);
+              setSelectedMeeting(null);
+              setSelectedSunday(null);
+              setSelectedPart2(null);
+              setClientProgress(null);
+              setClientProgressShareUrl("");
+            }}
+          >
+          <div className="bb-panel bb-detail-panel bb-detail-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              aria-label="Close details"
+              onClick={() => {
+                setSelectedClient(null);
+                setSelectedCheckin(null);
+                setSelectedWorkout(null);
+                setSelectedMeeting(null);
+                setSelectedSunday(null);
+                setSelectedPart2(null);
+                setClientProgress(null);
+                setClientProgressShareUrl("");
+              }}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                fontSize: 18,
+                lineHeight: 1,
+                cursor: "pointer"
+              }}
+            >
+              ×
+            </button>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 12, alignItems: "center" }}>
               <span className="bb-section-h2" style={{ fontSize: 20, margin: 0 }}>
                 DETAIL
@@ -7980,6 +8098,7 @@ export default function DashboardPage() {
               </div>
             ) : null}
           </div>
+          </div>
         ) : null}
       </section>
       </div>
@@ -8046,6 +8165,146 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+      ) : null}
+
+      {superadminRequestDetailModal ? (
+        (() => {
+          const modalData = superadminRequestDetailModal.data || {};
+          const reqId = String(modalData?.id || "");
+          const isTrainerReq = superadminRequestDetailModal.kind === "trainer";
+          const isPending = String(modalData?.status || "").toLowerCase() === "pending";
+          const busyApprove = isTrainerReq ? superadminQueueBusy === `${reqId}-ta` : superadminQueueBusy === `${reqId}-ca`;
+          const busyReject = isTrainerReq ? superadminQueueBusy === `${reqId}-tr` : superadminQueueBusy === `${reqId}-cr`;
+          const busy = busyApprove || busyReject;
+          const assignedTrainer = assignTrainerForClient[reqId] || "";
+          return (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sa-request-detail-title"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+          onClick={() => setSuperadminRequestDetailModal(null)}
+        >
+          <div
+            className="bb-card"
+            style={{
+              position: "relative",
+              maxWidth: 560,
+              width: "100%",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: 20,
+              boxShadow: "var(--shadow-lg)",
+              maxHeight: "82vh",
+              overflowY: "auto"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Close details"
+              onClick={() => setSuperadminRequestDetailModal(null)}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                fontSize: 18,
+                lineHeight: 1,
+                cursor: "pointer"
+              }}
+            >
+              ×
+            </button>
+            <h2 id="sa-request-detail-title" style={{ margin: "0 0 6px", fontSize: 18, color: "var(--text-primary)" }}>
+              {superadminRequestDetailModal.kind === "trainer" ? "Trainer request details" : "Client request details"}
+            </h2>
+            <p style={{ margin: "0 0 14px", fontSize: 12, color: "var(--text-secondary)" }}>
+              Submitted {superadminFormatShortDate(superadminRequestDetailModal.data?.created_at)} · Status{" "}
+              <strong>{String(superadminRequestDetailModal.data?.status || "pending").toUpperCase()}</strong>
+            </p>
+            <div className="bb-form-view-grid">
+              {Object.entries(modalData)
+                .filter(([k, v]) => !["_coachName", "_coachEmail"].includes(k) && v != null && String(v).trim() !== "")
+                .map(([k, v]) => (
+                  <div key={k} className="bb-form-view-row">
+                    <div className="bb-fv-lbl">{k.replace(/_/g, " ")}</div>
+                    <div className="bb-fv-val" style={{ whiteSpace: "pre-wrap" }}>{String(v)}</div>
+                  </div>
+                ))}
+            </div>
+            {isPending ? (
+              <div className="bb-sa-modal-actions">
+                {!isTrainerReq ? (
+                  <select
+                    className="bb-sa-queue-select"
+                    value={assignedTrainer}
+                    onChange={(e) => setAssignTrainerForClient((p) => ({ ...p, [reqId]: e.target.value }))}
+                  >
+                    <option value="">Assign trainer…</option>
+                    {superadminTrainers.map((t: any) => (
+                      <option key={t.id} value={t.id}>
+                        {[t.first_name, t.last_name].filter(Boolean).join(" ") || t.email}
+                        {t.suspended ? " (suspended)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <button
+                  type="button"
+                  className="bb-sa-btn-approve"
+                  disabled={busy || !reqId || (!isTrainerReq && !assignedTrainer)}
+                  onClick={() => {
+                    if (!reqId) return;
+                    setSuperadminRequestDetailModal(null);
+                    if (isTrainerReq) void superadminApproveTrainerRequestRow(reqId);
+                    else void superadminApproveClientRequestRow(reqId, assignedTrainer);
+                  }}
+                >
+                  {busyApprove ? "…" : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  className="bb-sa-btn-reject"
+                  disabled={busy || !reqId}
+                  onClick={() => {
+                    if (!reqId) return;
+                    setSuperadminRequestDetailModal(null);
+                    if (isTrainerReq) void superadminRejectTrainerRequestRow(reqId);
+                    else void superadminRejectClientRequestRow(reqId);
+                  }}
+                >
+                  {busyReject ? "…" : "Reject"}
+                </button>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              className="bb-back-btn"
+              style={{ marginBottom: 0, marginTop: 14, width: "100%", justifyContent: "center" }}
+              onClick={() => setSuperadminRequestDetailModal(null)}
+            >
+              Close details
+            </button>
+          </div>
+        </div>
+          );
+        })()
       ) : null}
 
       {superadminTrainerCredModal ? (
@@ -8165,22 +8424,47 @@ Change your password on first login.
       ) : null}
 
       <nav className="bb-nav-dock">
-        <div className="bb-nav-inner">
+        <div className={isSuperadminViewer ? "bb-nav-inner bb-nav-inner-sa" : "bb-nav-inner"}>
           {role === "user" ? (
             <>
-          {tabButton("home", "Home", "\u2605")}
+              {tabButton("home", "Home", "\u2605")}
               {tabButton("clients", "Workout", "\uD83D\uDCAA")}
               {tabButton("programs", "Programs", "\uD83C\uDFAF")}
               {tabButton("forms", "Check-in", "\u2705")}
               {tabButton("messages", "Messages", "\uD83D\uDCAC")}
+            </>
+          ) : isSuperadminViewer ? (
+            <>
+              {(["overview","applications","trainers","members","enterprise"] as const).map((t) => {
+                const labels: Record<string,string> = {overview:"Overview",applications:"Requests",trainers:"Trainers",members:"Members",enterprise:"Biz"};
+                const icons: Record<string,string> = {overview:"\u2605",applications:"\uD83D\uDCE5",trainers:"\uD83D\uDC64",members:"\uD83D\uDC65",enterprise:"\uD83C\uDFE2"};
+                const isActive = (() => {
+                  if (t === "trainers") return activeTab === "clients" && (trainerClientsView === "coachPortfolio");
+                  if (t === "members") return activeTab === "clients" && trainerClientsView !== "coachPortfolio";
+                  return activeTab !== "clients" && saTab === t;
+                })();
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`bb-nav-btn${isActive ? " bb-nav-btn-active" : ""}`}
+                    onClick={() => goSaTab(t)}
+                    aria-label={labels[t]}
+                  >
+                    {isActive && <span className="bb-nav-tabbar" aria-hidden />}
+                    <span aria-hidden style={{fontSize:20,lineHeight:1}}>{icons[t]}</span>
+                    <span>{labels[t]}</span>
+                  </button>
+                );
+              })}
             </>
           ) : (
             <>
               {tabButton("home", "Home", "\u2605")}
               {tabButton("clients", "Clients", String.fromCodePoint(0x1f46a))}
               {tabButton("forms", "Forms", String.fromCodePoint(0x1f4cb))}
-          {tabButton("messages", "Messages", String.fromCodePoint(0x1f4ac))}
-          {tabButton("ai", "AI", String.fromCodePoint(0x1f4a1))}
+              {tabButton("messages", "Messages", String.fromCodePoint(0x1f4ac))}
+              {tabButton("ai", "AI", String.fromCodePoint(0x1f4a1))}
             </>
           )}
         </div>

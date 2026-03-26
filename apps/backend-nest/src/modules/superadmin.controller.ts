@@ -108,6 +108,9 @@ export class SuperadminController {
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz`);
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS reviewed_by text`);
     await this.pool.query(`ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS trainer_user_id text`);
+    await this.pool.query(
+      `ALTER TABLE trainer_requests ADD COLUMN IF NOT EXISTS request_type text NOT NULL DEFAULT 'individual'`
+    );
   }
 
   private async safeRows(sql: string, params: any[] = []) {
@@ -370,7 +373,7 @@ export class SuperadminController {
     try {
       await this.ensureTrainerRequestsSchema();
       const status = String(req.query?.status || "pending").trim().toLowerCase();
-      let sql = `SELECT id, full_name, email, phone, gym_name, city, message, status, created_at, reviewed_at, reviewed_by, trainer_user_id
+      let sql = `SELECT id, full_name, email, phone, gym_name, city, message, request_type, status, created_at, reviewed_at, reviewed_by, trainer_user_id
          FROM trainer_requests
          WHERE 1=1`;
       const params: string[] = [];

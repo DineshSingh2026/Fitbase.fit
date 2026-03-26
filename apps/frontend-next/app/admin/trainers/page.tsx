@@ -37,6 +37,7 @@ export default function AdminTrainersPage() {
   } | null>(null);
   const [rejectModal, setRejectModal] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [pendingDetail, setPendingDetail] = useState<any | null>(null);
 
   const [token, setToken] = useState("");
   const [role, setRole] = useState("");
@@ -259,64 +260,50 @@ export default function AdminTrainersPage() {
               On a phone, scroll sideways inside the table to see all columns.
             </p>
             <div style={tableScrollWrap}>
-            <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
+            <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ textAlign: "left", borderBottom: "1px solid var(--border)" }}>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Name</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 160 }}>Email</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Phone</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 120 }}>City / Gym</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", minWidth: 200 }}>Email</th>
                   <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Applied</th>
-                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>Actions</th>
+                  <th style={{ padding: "12px 14px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>View</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: "1px solid var(--border)", verticalAlign: "top" }}>
+                  <tr
+                    key={r.id}
+                    style={{ borderBottom: "1px solid var(--border)", verticalAlign: "top", cursor: "pointer" }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setPendingDetail(r)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setPendingDetail(r);
+                      }
+                    }}
+                  >
                     <td style={{ padding: "12px 14px", color: "var(--text-primary)", whiteSpace: "nowrap" }}>{r.full_name || "—"}</td>
                     <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word", maxWidth: 220 }}>{r.email || "—"}</td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{r.phone || "—"}</td>
-                    <td style={{ padding: "12px 14px", color: "var(--text-secondary)", wordBreak: "break-word" }}>
-                      {[r.city, r.gym_name].filter(Boolean).join(" · ") || "—"}
-                    </td>
                     <td style={{ padding: "12px 14px", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{formatAppliedAgo(r.created_at)}</td>
-                    <td style={{ padding: "12px 14px", minWidth: 200 }}>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <td style={{ padding: "12px 14px", minWidth: 90 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
-                          disabled={busy === r.id}
-                          onClick={() => void approve(String(r.id))}
+                          onClick={() => setPendingDetail(r)}
                           style={{
                             padding: "6px 12px",
                             borderRadius: 8,
-                            border: "none",
-                            background: "var(--accent)",
-                            color: "var(--on-accent)",
+                            border: "1px solid var(--accent-border)",
+                            background: "color-mix(in srgb,var(--accent) 12%,transparent)",
+                            color: "var(--accent)",
                             fontWeight: 700,
                             cursor: "pointer",
                             fontSize: 12
                           }}
                         >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          disabled={busy === r.id}
-                          onClick={() => {
-                            setRejectModal({ id: String(r.id) });
-                            setRejectReason("");
-                          }}
-                          style={{
-                            padding: "6px 12px",
-                            borderRadius: 8,
-                            border: "1px solid var(--border)",
-                            background: "var(--bg-surface)",
-                            color: "var(--text-primary)",
-                            cursor: "pointer",
-                            fontSize: 12
-                          }}
-                        >
-                          Reject
+                          View
                         </button>
                       </div>
                     </td>
@@ -429,6 +416,104 @@ export default function AdminTrainersPage() {
           </div>
         )}
       </div>
+
+      {pendingDetail ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100000,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+          onClick={() => !busy && setPendingDetail(null)}
+        >
+          <div
+            style={{
+              maxWidth: 560,
+              width: "100%",
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+              borderRadius: 14,
+              padding: 20,
+              maxHeight: "82vh",
+              overflowY: "auto"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 10px", fontSize: 18, color: "var(--text-primary)" }}>Trainer application details</h3>
+            <div style={{ display: "grid", gap: 8, fontSize: 13 }}>
+              <div><strong>Name:</strong> {pendingDetail.full_name || "—"}</div>
+              <div><strong>Email:</strong> {pendingDetail.email || "—"}</div>
+              <div><strong>Phone:</strong> {pendingDetail.phone || "—"}</div>
+              <div><strong>City:</strong> {pendingDetail.city || "—"}</div>
+              <div><strong>Gym / Business:</strong> {pendingDetail.gym_name || "—"}</div>
+              <div><strong>Applied:</strong> {pendingDetail.created_at ? new Date(String(pendingDetail.created_at)).toLocaleString() : "—"}</div>
+              <div><strong>Message:</strong> {pendingDetail.message || "—"}</div>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 16 }}>
+              <button
+                type="button"
+                disabled={busy === pendingDetail.id}
+                onClick={() => {
+                  setPendingDetail(null);
+                  void approve(String(pendingDetail.id));
+                }}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "var(--accent)",
+                  color: "var(--on-accent)",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                {busy === pendingDetail.id ? "…" : "Approve"}
+              </button>
+              <button
+                type="button"
+                disabled={busy === pendingDetail.id}
+                onClick={() => {
+                  setPendingDetail(null);
+                  setRejectModal({ id: String(pendingDetail.id) });
+                  setRejectReason("");
+                }}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-surface)",
+                  color: "var(--text-primary)",
+                  cursor: "pointer"
+                }}
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={() => setPendingDetail(null)}
+                style={{
+                  padding: "8px 14px",
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "var(--text-secondary)",
+                  cursor: "pointer"
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {credModal ? (
         <div
