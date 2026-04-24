@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
+import "../coach-surfaces.css";
 
 export type UserDesktopNavTarget =
   | "workout"
@@ -387,9 +388,17 @@ export function UserMemberDesktopDashboard({
           <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
             Log meals and macros alongside your steps, water, and protein on mobile.
           </p>
-          <button type="button" className="udesk-qbtn" style={{ width: "100%", maxWidth: 280 }} onClick={() => onNavigate("nutrition")}>
-            <span aria-hidden>🥗</span> Open Nutrition AI
-          </button>
+          <a href="/nutrition" className="fc-pill-launch" style={{ width: "100%", maxWidth: 280, justifyContent: "center" }}>
+            <span className="fc-pill-icon" aria-hidden>
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 2C8 4 6 8 6 12c0 4 3 8 6 10 3-2 6-6 6-10 0-4-2-8-6-10zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            Nutrition AI
+          </a>
         </div>
 
         <div className="udesk-table-card">
@@ -444,9 +453,17 @@ export function UserMemberDesktopDashboard({
           <button type="button" className="udesk-qbtn" onClick={() => onNavigate("workout")}>
             <span aria-hidden>🏋️</span> Log Workout
           </button>
-          <button type="button" className="udesk-qbtn" onClick={() => onNavigate("aiTrainer")}>
-            <span aria-hidden>🎯</span> AI Trainer
-          </button>
+          <a href="/ai-trainer" className="fc-pill-launch">
+            <span className="fc-pill-icon" aria-hidden>
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M12 2a2 2 0 0 1 2 2v1h2a2 2 0 0 1 2 2v2H6V7a2 2 0 0 1 2-2h2V4a2 2 0 0 1 2-2zm-4 9h8v9a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-9zm3 2v5h2v-5h-2z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            AI Trainer
+          </a>
           <button type="button" className="udesk-qbtn" onClick={() => onNavigate("progress")}>
             <span aria-hidden>📈</span> My Progress
           </button>

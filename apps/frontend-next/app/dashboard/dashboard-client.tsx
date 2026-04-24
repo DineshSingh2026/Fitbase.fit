@@ -22,6 +22,7 @@ import {
 } from "../../lib/fitbase-session";
 import { clearPwaAppBadge, subscribeFitbasePush, syncPwaAppBadge } from "../../lib/pwa-push";
 import { UserMemberDesktopDashboard, type UserDesktopNavTarget } from "./user-member-desktop-dashboard";
+import "../coach-surfaces.css";
 
 type DashboardTab =
   | "home"
@@ -404,6 +405,61 @@ async function fetchFitbaseJson(
     const msg = e instanceof Error ? e.message : "Network error";
     return { ok: false, data: null, error: `${label}: ${msg}` };
   }
+}
+
+function DashNutritionAiPill() {
+  return (
+    <div className="bb-dash-nutrition-ai" style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+      <p
+        style={{
+          margin: "0 0 12px",
+          fontSize: 11,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "var(--text-secondary)"
+        }}
+      >
+        Nutrition AI
+      </p>
+      <a href="/nutrition" className="fc-pill-launch">
+        <span className="fc-pill-icon" aria-hidden>
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C8 4 6 8 6 12c0 4 3 8 6 10 3-2 6-6 6-10 0-4-2-8-6-10zm0 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" fill="currentColor" />
+          </svg>
+        </span>
+        Nutrition AI
+      </a>
+    </div>
+  );
+}
+
+function DashAiTrainerPill() {
+  return (
+    <div className="bb-dash-ai-trainer" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+      <p
+        style={{
+          margin: "0 0 12px",
+          fontSize: 11,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "var(--text-secondary)"
+        }}
+      >
+        AI Trainer
+      </p>
+      <a href="/ai-trainer" className="fc-pill-launch">
+        <span className="fc-pill-icon" aria-hidden>
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 2a2 2 0 0 1 2 2v1h2a2 2 0 0 1 2 2v2H6V7a2 2 0 0 1 2-2h2V4a2 2 0 0 1 2-2zm-4 9h8v9a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-9zm3 2v5h2v-5h-2z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+        AI Trainer
+      </a>
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -4785,26 +4841,7 @@ export default function DashboardPage() {
                           {microAlreadyFilled ? "Already checked in today" : microSaving ? "Saving…" : "Save today"}
                         </button>
                       </form>
-                      <div className="bb-dash-nutrition-ai" style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
-                        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
-                          <strong style={{ color: "var(--text-primary)" }}>Nutrition AI</strong> — log meals and macros for your coach.
-                        </p>
-                        <a
-                          href="/nutrition"
-                          className="bb-dash-secondary-link"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--accent)",
-                            textDecoration: "none"
-                          }}
-                        >
-                          Open Nutrition AI →
-                        </a>
-                      </div>
+                      <DashNutritionAiPill />
                       <div className="weekly-recap">
                         <div className="weekly-recap-item">
                           <span className="lbl">Avg steps</span>
@@ -5636,25 +5673,7 @@ export default function DashboardPage() {
                 <button type="button" className="ud-form-submit" onClick={() => void submitUserWorkout()} disabled={wkSubmitting}>
                   {wkSubmitting ? "Submitting…" : "Submit"}
                 </button>
-                <div className="bb-dash-ai-trainer" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
-                  <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
-                    <strong style={{ color: "var(--text-primary)" }}>AI Trainer</strong> — camera-guided reps and voice coaching.
-                  </p>
-                  <a
-                    href="/ai-trainer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: "var(--accent)",
-                      textDecoration: "none"
-                    }}
-                  >
-                    Open AI Trainer →
-                  </a>
-                </div>
+                <DashAiTrainerPill />
                 <div className="workout-programs-box">
                   <button
                     type="button"
@@ -6459,26 +6478,7 @@ export default function DashboardPage() {
                           {microAlreadyFilled ? "Already checked in today" : microSaving ? "Saving…" : "Save today"}
                         </button>
                       </form>
-                      <div className="bb-dash-nutrition-ai" style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
-                        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
-                          <strong style={{ color: "var(--text-primary)" }}>Nutrition AI</strong> — log meals and macros for your coach.
-                        </p>
-                        <a
-                          href="/nutrition"
-                          className="bb-dash-secondary-link"
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--accent)",
-                            textDecoration: "none"
-                          }}
-                        >
-                          Open Nutrition AI →
-                        </a>
-                      </div>
+                      <DashNutritionAiPill />
                     </div>
                   </div>
                 ) : null}

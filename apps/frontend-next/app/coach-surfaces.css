@@ -1,0 +1,389 @@
+/* Shared “coach” chrome: gold headlines, meal cards, pill CTAs (Nutrition AI + AI Trainer). */
+
+:root {
+  --coach-gold: #c9a84c;
+  --coach-gold-dim: #8a7340;
+  --coach-bg: #000000;
+  --coach-card: #141414;
+  --coach-card-2: #1a1a1a;
+  --coach-border: #2a2a2a;
+  --coach-muted: #8a8a8a;
+  --coach-subtle: #5c5c5c;
+  --coach-green: #3d9a6a;
+  --coach-green-bg: #14261c;
+}
+
+/* ---- Nutrition (FitChef-style cards) ---- */
+.nut-surface {
+  min-height: 100vh;
+  background: var(--coach-bg);
+  color: #f0f0f0;
+  padding: 20px 16px 48px;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+.nut-surface-inner {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.nut-surface a.nut-back {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--coach-gold);
+  text-decoration: none;
+  margin-bottom: 16px;
+  letter-spacing: 0.02em;
+}
+
+.nut-surface a.nut-back:hover {
+  text-decoration: underline;
+}
+
+.fc-brand-head {
+  margin-bottom: 22px;
+}
+
+.fc-brand-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coach-gold);
+}
+
+.fc-brand-badge {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--coach-green-bg);
+  color: #9ee0b8;
+  border: 1px solid rgba(61, 154, 106, 0.45);
+  vertical-align: middle;
+}
+
+.fc-brand-sub {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--coach-muted);
+}
+
+.nut-date-row {
+  margin-bottom: 18px;
+}
+
+.nut-date-row label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--coach-muted);
+  margin-bottom: 6px;
+}
+
+.nut-date-row input {
+  width: 100%;
+  max-width: 200px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--coach-border);
+  background: var(--coach-card);
+  color: #fff;
+  font-size: 14px;
+}
+
+.fc-meal-card {
+  background: var(--coach-card);
+  border: 1px solid var(--coach-border);
+  border-radius: 16px;
+  padding: 16px 16px 14px;
+  margin-bottom: 14px;
+}
+
+.fc-meal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.fc-meal-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.fc-status-pill {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #1f1f1f;
+  color: var(--coach-muted);
+  border: 1px solid #333;
+}
+
+.fc-status-pill.fc-logged {
+  background: var(--coach-green-bg);
+  color: #8fd4a8;
+  border-color: rgba(61, 154, 106, 0.4);
+}
+
+.fc-meal-time {
+  font-size: 12px;
+  color: var(--coach-subtle);
+  margin: 4px 0 14px;
+}
+
+.fc-photo-dash {
+  border: 2px dashed #3a3a3a;
+  border-radius: 12px;
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--coach-muted);
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fc-photo-dash:hover {
+  border-color: var(--coach-gold-dim);
+  background: rgba(201, 168, 76, 0.04);
+}
+
+.fc-photo-dash.fc-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.fc-btn-upload {
+  width: 100%;
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: none;
+  background: #2c2c2c;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.fc-btn-upload:hover {
+  background: #353535;
+}
+
+.fc-btn-upload:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fc-or {
+  text-align: center;
+  font-size: 11px;
+  color: var(--coach-subtle);
+  margin: 8px 0;
+}
+
+.fc-btn-manual {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #454545;
+  background: transparent;
+  color: var(--coach-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fc-btn-manual:hover {
+  border-color: var(--coach-gold-dim);
+  color: var(--coach-gold);
+}
+
+.fc-manual-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--coach-border);
+}
+
+.fc-manual-panel label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--coach-muted);
+  margin-bottom: 6px;
+  margin-top: 10px;
+}
+
+.fc-manual-panel label:first-child {
+  margin-top: 0;
+}
+
+.fc-manual-panel input,
+.fc-manual-panel textarea,
+.fc-manual-panel select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--coach-border);
+  background: #0d0d0d;
+  color: #eee;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.fc-manual-panel textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.fc-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.fc-save-row {
+  margin-top: 14px;
+}
+
+.fc-btn-save {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--coach-gold-dim);
+  background: linear-gradient(165deg, #dcc07a, var(--coach-gold) 55%, #a88b3a);
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.fc-btn-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fc-msg-err {
+  font-size: 13px;
+  color: #f07178;
+  margin: 0 0 10px;
+}
+
+.fc-msg-ok {
+  font-size: 13px;
+  color: #7ec699;
+  margin: 0 0 10px;
+}
+
+.fc-file-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- Pill CTA (AI Trainer chip + dashboard links) ---- */
+.fc-pill-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--coach-gold);
+  background: transparent;
+  color: var(--coach-gold);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.fc-pill-launch:hover {
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.fc-pill-icon {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-pill-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.udesk-quick .fc-pill-launch {
+  min-height: 56px;
+  justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---- AI Trainer page chrome ---- */
+body.ai-trainer-page .at-coach-brand {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 14px 14px 0;
+}
+
+body.ai-trainer-page .at-coach-brand .fc-brand-sub {
+  margin-top: 4px;
+}
+
+body.ai-trainer-page .at-dash-back {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--coach-gold);
+  text-decoration: none;
+  margin-bottom: 10px;
+}
+
+body.ai-trainer-page .at-dash-back:hover {
+  text-decoration: underline;
+}
+
+body.ai-trainer-page .at-header h1 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--coach-gold);
+}
+
+body.ai-trainer-page .at-row button.at-primary {
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 10px 20px;
+  background: linear-gradient(165deg, #dcc07a, var(--coach-gold) 55%, #a88b3a);
+  border: 1px solid var(--coach-gold-dim);
+  color: #111;
+}
+
+body.ai-trainer-page .at-row button.at-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+body.ai-trainer-page .at-row select,
+body.ai-trainer-page .at-row button:not(.at-primary) {
+  border-radius: 10px;
+}

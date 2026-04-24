@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import "../coach-surfaces.css";
 import { CUES, EXERCISES, TIPS, WELCOME_TEXT, type ExerciseId } from "../../lib/ai-trainer/constants";
 import { Detector } from "../../lib/ai-trainer/detector";
 import { drawCoachingOverlay } from "../../lib/ai-trainer/overlay";
@@ -361,8 +363,18 @@ export default function AiTrainerClient() {
 
   return (
     <>
+      <div className="at-coach-brand">
+        <Link href="/dashboard" className="at-dash-back">
+          ← Dashboard
+        </Link>
+        <div className="fc-brand-head" style={{ marginBottom: 0 }}>
+          <span className="fc-brand-title">Fitbase AI Trainer</span>
+          <span className="fc-brand-badge">AI</span>
+          <p className="fc-brand-sub">Co-powered by Fitbase — pose checks &amp; session log.</p>
+        </div>
+      </div>
       <header className="at-header">
-        <h1>AI Trainer</h1>
+        <h1>Session</h1>
         <div className="at-row">
           <label>
             Exercise{" "}

@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
+import "../coach-surfaces.css";
 
 const NutritionClient = dynamic(() => import("./nutrition-client"), { ssr: false });
 

@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
+import "../coach-surfaces.css";
 import "./ai-trainer-globals.css";
 
 const AiTrainerClient = dynamic(() => import("./ai-trainer-client"), { ssr: false });
