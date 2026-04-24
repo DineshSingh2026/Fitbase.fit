@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
 
-export type UserDesktopNavTarget = "workout" | "progress" | "sunday" | "messages" | "contact" | "home" | "formsHub";
+export type UserDesktopNavTarget =
+  | "workout"
+  | "progress"
+  | "sunday"
+  | "messages"
+  | "contact"
+  | "home"
+  | "formsHub"
+  | "nutrition"
+  | "aiTrainer";
 
 type Props = {
   displayName: string;
@@ -249,7 +258,7 @@ export function UserMemberDesktopDashboard({
         .udesk-pill.low{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
         .udesk-pill.medium{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
         .udesk-pill.high{background:color-mix(in srgb,var(--red) 22%,transparent);color:var(--red)}
-        .udesk-quick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:20px}
+        .udesk-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:20px}
         @media(max-width:900px){.udesk-quick{grid-template-columns:repeat(2,minmax(0,1fr))}}
         .udesk-qbtn{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .2s;font:inherit;color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
         .udesk-qbtn:hover{border-color:var(--accent);color:var(--accent);background:rgb(var(--accent-rgb) / 0.06)}
@@ -363,6 +372,26 @@ export function UserMemberDesktopDashboard({
           </div>
         </div>
 
+        <div
+          style={{
+            marginBottom: 20,
+            padding: "16px 18px",
+            borderRadius: 12,
+            border: "1px solid var(--border)",
+            background: "color-mix(in srgb, var(--text-primary) 4%, var(--bg-card))"
+          }}
+        >
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--accent)", marginBottom: 8 }}>
+            Daily check-in · Nutrition AI
+          </div>
+          <p style={{ margin: "0 0 10px", fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+            Log meals and macros alongside your steps, water, and protein on mobile.
+          </p>
+          <button type="button" className="udesk-qbtn" style={{ width: "100%", maxWidth: 280 }} onClick={() => onNavigate("nutrition")}>
+            <span aria-hidden>🥗</span> Open Nutrition AI
+          </button>
+        </div>
+
         <div className="udesk-table-card">
           <h3>Recent Activity</h3>
           <table className="udesk-tbl">
@@ -414,6 +443,9 @@ export function UserMemberDesktopDashboard({
         <div className="udesk-quick">
           <button type="button" className="udesk-qbtn" onClick={() => onNavigate("workout")}>
             <span aria-hidden>🏋️</span> Log Workout
+          </button>
+          <button type="button" className="udesk-qbtn" onClick={() => onNavigate("aiTrainer")}>
+            <span aria-hidden>🎯</span> AI Trainer
           </button>
           <button type="button" className="udesk-qbtn" onClick={() => onNavigate("progress")}>
             <span aria-hidden>📈</span> My Progress

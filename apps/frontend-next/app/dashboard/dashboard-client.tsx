@@ -2827,6 +2827,12 @@ export default function DashboardPage() {
         goTab("forms");
         setUserCheckinView("hub");
         break;
+      case "nutrition":
+        if (typeof window !== "undefined") window.location.assign("/nutrition");
+        break;
+      case "aiTrainer":
+        if (typeof window !== "undefined") window.location.assign("/ai-trainer");
+        break;
       default:
         goTab("home");
     }
@@ -4779,6 +4785,26 @@ export default function DashboardPage() {
                           {microAlreadyFilled ? "Already checked in today" : microSaving ? "Saving…" : "Save today"}
                         </button>
                       </form>
+                      <div className="bb-dash-nutrition-ai" style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+                        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                          <strong style={{ color: "var(--text-primary)" }}>Nutrition AI</strong> — log meals and macros for your coach.
+                        </p>
+                        <a
+                          href="/nutrition"
+                          className="bb-dash-secondary-link"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--accent)",
+                            textDecoration: "none"
+                          }}
+                        >
+                          Open Nutrition AI →
+                        </a>
+                      </div>
                       <div className="weekly-recap">
                         <div className="weekly-recap-item">
                           <span className="lbl">Avg steps</span>
@@ -5610,6 +5636,25 @@ export default function DashboardPage() {
                 <button type="button" className="ud-form-submit" onClick={() => void submitUserWorkout()} disabled={wkSubmitting}>
                   {wkSubmitting ? "Submitting…" : "Submit"}
                 </button>
+                <div className="bb-dash-ai-trainer" style={{ marginTop: 20, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+                  <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                    <strong style={{ color: "var(--text-primary)" }}>AI Trainer</strong> — camera-guided reps and voice coaching.
+                  </p>
+                  <a
+                    href="/ai-trainer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "var(--accent)",
+                      textDecoration: "none"
+                    }}
+                  >
+                    Open AI Trainer →
+                  </a>
+                </div>
                 <div className="workout-programs-box">
                   <button
                     type="button"
@@ -6414,6 +6459,26 @@ export default function DashboardPage() {
                           {microAlreadyFilled ? "Already checked in today" : microSaving ? "Saving…" : "Save today"}
                         </button>
                       </form>
+                      <div className="bb-dash-nutrition-ai" style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid var(--border)" }}>
+                        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.45 }}>
+                          <strong style={{ color: "var(--text-primary)" }}>Nutrition AI</strong> — log meals and macros for your coach.
+                        </p>
+                        <a
+                          href="/nutrition"
+                          className="bb-dash-secondary-link"
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--accent)",
+                            textDecoration: "none"
+                          }}
+                        >
+                          Open Nutrition AI →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 ) : null}
