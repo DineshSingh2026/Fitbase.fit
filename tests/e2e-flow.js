@@ -2,13 +2,26 @@
  * End-to-end test: Sign up → Admin approve → Login → User actions → Admin dashboard & DB check.
  * Run: node tests/e2e-flow.js (Express API on port 3000, DATABASE_URL set).
  * If public signup is disabled (default in server.js), uses POST /api/admin/create-client instead.
+ *
+ * Optional (same DB + JWT secret as Express for Nest login to succeed):
+ *   E2E_NEST_URL — default http://127.0.0.1:3200 — Nest /api/nutrition/* + /api/health
+ *   E2E_NEXT_URL — default http://127.0.0.1:3102 — Next.js GET /ai-trainer HTML smoke test
  */
 require('dotenv').config();
 const http = require('http');
 const { Pool } = require('pg');
 
-const BASE = 'http://localhost:3000';
-const PORT = 3000;
+const BASE = (process.env.E2E_API_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const PORT = (() => {
+  try {
+    const p = new URL(BASE).port;
+    return p ? parseInt(p, 10) : 3000;
+  } catch {
+    return 3000;
+  }
+})();
+const NEST_BASE = (process.env.E2E_NEST_URL || 'http://127.0.0.1:3200').replace(/\/+$/, '');
+const NEXT_BASE = (process.env.E2E_NEXT_URL || process.env.NEXT_BASE || 'http://127.0.0.1:3102').replace(/\/+$/, '');
 
 const testUser = {
   email: `e2e.${Date.now()}@test.fitbase.fit`,
@@ -26,7 +39,8 @@ let usedAdminCreateClient = false;
 
 function request(method, path, body = null, opts = {}) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, BASE);
+    const base = (opts.base || BASE).replace(/\/+$/, '');
+    const url = new URL(path, base);
     const data = body ? JSON.stringify(body) : null;
     const headers = { ...(opts.headers || {}) };
     if (body) {
@@ -34,9 +48,11 @@ function request(method, path, body = null, opts = {}) {
       headers['Content-Length'] = Buffer.byteLength(data);
     }
     if (opts.auth && opts.auth.token) headers['Authorization'] = 'Bearer ' + opts.auth.token;
+    const defaultPort = url.protocol === 'https:' ? 443 : 80;
+    const port = url.port ? parseInt(url.port, 10) : defaultPort;
     const req = http.request({
       hostname: url.hostname,
-      port: url.port || PORT,
+      port,
       path: url.pathname + (opts.qs ? '?' + new URLSearchParams(opts.qs).toString() : ''),
       method,
       headers
@@ -70,6 +86,101 @@ async function queryDb(sql, params = []) {
   } finally {
     await pool.end();
   }
+}
+
+/** Nest /api/nutrition + health; skips if Nest is not running (ECONNREFUSED / non-200 health). */
+async function tryNestNutritionE2e(ctx) {
+  const { userId, testUser, superadminEmail, superadminPass } = ctx;
+  let health;
+  try {
+    health = await request('GET', '/api/health', null, { base: NEST_BASE });
+  } catch (e) {
+    console.log('=== E2E: Nest nutrition (SKIP — Nest not reachable:', e.code || e.message, ') ===');
+    return;
+  }
+  if (health.status !== 200) {
+    console.log('=== E2E: Nest nutrition (SKIP — GET /api/health ->', health.status, ') ===');
+    return;
+  }
+  if (health.body && health.body.db === 'not_configured') {
+    console.log('=== E2E: Nest nutrition (SKIP — Nest has no DATABASE_URL / DB pool) ===');
+    return;
+  }
+  console.log('=== E2E: Nest nutrition (Nest API at', NEST_BASE + ') ===');
+  const nestUser = await request(
+    'POST',
+    '/api/auth/login',
+    { email: testUser.email, password: testUser.password },
+    { base: NEST_BASE }
+  );
+  if (![200, 201].includes(nestUser.status) || !nestUser.body?.token) {
+    failures.push(
+      `Nest user login (use same DATABASE_URL + JWT as Express, or set E2E_NEST_URL empty to skip): ${nestUser.status} ${JSON.stringify(nestUser.body)}`
+    );
+    console.log('  FAIL Nest login');
+    return;
+  }
+  const nt = nestUser.body.token;
+  const ymd = new Date().toISOString().slice(0, 10);
+  const nlog = await request(
+    'POST',
+    '/api/nutrition/log',
+    {
+      mealType: 'breakfast',
+      manualNote: 'E2E manual meal oats and banana',
+      calories: 420,
+      protein: 22,
+      carbs: 55,
+      fat: 9,
+      fiber: 6,
+      date: ymd,
+      triggerNotify: false,
+      autoNotifyOnComplete: false
+    },
+    { auth: { token: nt }, base: NEST_BASE }
+  );
+  assert(
+    [200, 201].includes(nlog.status) && nlog.body?.aiResult,
+    `Nest POST /api/nutrition/log ${nlog.status} ${JSON.stringify(nlog.body)}`
+  );
+  const day = await request('GET', `/api/nutrition/log/${userId}/${ymd}`, null, { auth: { token: nt }, base: NEST_BASE });
+  assert(day.status === 200 && Array.isArray(day.body?.meals), `Nest GET /api/nutrition/log ${day.status}`);
+  const rep = await request('GET', `/api/nutrition/report/${userId}`, null, { auth: { token: nt }, base: NEST_BASE });
+  assert(rep.status === 200 && Array.isArray(rep.body?.days), `Nest GET /api/nutrition/report ${rep.status}`);
+
+  const nestSa = await request(
+    'POST',
+    '/api/auth/login',
+    { email: superadminEmail, password: superadminPass },
+    { base: NEST_BASE }
+  );
+  if ([200, 201].includes(nestSa.status) && nestSa.body?.token) {
+    const sat = nestSa.body.token;
+    const all = await request('GET', `/api/nutrition/admin/all?date=${ymd}`, null, { auth: { token: sat }, base: NEST_BASE });
+    assert(all.status === 200 && Array.isArray(all.body?.users), `Nest GET /api/nutrition/admin/all ${all.status}`);
+    const adminReport = await request('GET', `/api/nutrition/admin/report?date=${ymd}`, null, { auth: { token: sat }, base: NEST_BASE });
+    assert(adminReport.status === 200 && Array.isArray(adminReport.body?.clients), `Nest GET /api/nutrition/admin/report ${adminReport.status}`);
+  }
+  console.log('  OK');
+}
+
+/** Next.js GET /ai-trainer (SSR off; HTML smoke test). */
+async function tryNextAiTrainerE2e() {
+  console.log('=== E2E: Next /ai-trainer (', NEXT_BASE + ') ===');
+  let res;
+  try {
+    res = await request('GET', '/ai-trainer', null, { base: NEXT_BASE });
+  } catch (e) {
+    console.log('=== E2E: Next /ai-trainer (SKIP — Next not reachable:', e.code || e.message, ') ===');
+    return;
+  }
+  if (res.status !== 200) {
+    failures.push(`GET ${NEXT_BASE}/ai-trainer -> ${res.status}`);
+    console.log('  FAIL status', res.status);
+    return;
+  }
+  assert(/AI Trainer/i.test(res.raw || ''), `Next /ai-trainer HTML should mention AI Trainer (got ${(res.raw || '').slice(0, 80)}…)`);
+  console.log('  OK');
 }
 
 async function runTests() {
@@ -214,6 +325,22 @@ async function runTests() {
   assert(workout.status === 200 && workout.body?.id, 'Workout POST');
   createdIds.workoutId = workout.body?.id;
   console.log(workout.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Workout session (JWT, Express) ===');
+  const wsession = await request(
+    'POST',
+    '/api/workouts/session',
+    {
+      date: new Date().toISOString().slice(0, 10),
+      workout_type: 'Squat',
+      duration_seconds: 120,
+      workout_completed: true,
+      notes: 'AI Trainer session — reps: 5, sets: 1'
+    },
+    { auth: { token: userTokenAfterReset } }
+  );
+  assert(wsession.status === 200 && wsession.body?.id, `POST /api/workouts/session ${wsession.status}`);
+  console.log(wsession.status === 200 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Contact message ===');
   const contact = await request('POST', '/api/contact', {
@@ -468,6 +595,9 @@ async function runTests() {
     assert(loginAgain.status === 200, 'Login after re-signup');
     console.log('  OK');
   }
+
+  await tryNestNutritionE2e({ userId, testUser, superadminEmail, superadminPass });
+  await tryNextAiTrainerE2e();
 
   if (failures.length > 0) {
     console.log('\n--- FAILURES ---');

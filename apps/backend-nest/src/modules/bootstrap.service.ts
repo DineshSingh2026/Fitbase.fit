@@ -218,6 +218,7 @@ export class BootstrapService implements OnModuleInit {
 
     await this.ensureTribeMembersTable();
     await this.ensureClientActivityTables();
+    await this.ensureNutritionTables();
   }
 
   /** workout_logs, daily_checkins, progress_logs, sunday_checkins — used by client dashboard APIs. */
@@ -303,6 +304,89 @@ export class BootstrapService implements OnModuleInit {
       )`
     );
     await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_user_goals_user_id ON user_goals (user_id)`);
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS weight_logs (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        weight_kg double precision NOT NULL,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
+    await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_weight_logs_user_id ON weight_logs (user_id)`);
+
+    await this.pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS workout_completed boolean DEFAULT true`);
+    await this.pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS calories_burned integer`);
+    await this.pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS session_date date`);
+    await this.pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS workout_type text`);
+  }
+
+  /** Nutrition meal logging + daily aggregates (Nest /api/nutrition). */
+  private async ensureNutritionTables() {
+    if (!this.pool) return;
+    await this.pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS height_cm double precision`);
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS nutrition_meal_logs (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id text NOT NULL,
+        log_date date NOT NULL,
+        meal_type text NOT NULL,
+        portion_size text DEFAULT 'medium',
+        manual_note text DEFAULT '',
+        photo_data text,
+        photo_mime text,
+        photo_upload_count integer DEFAULT 0,
+        ai_result jsonb DEFAULT '{}'::jsonb,
+        ai_usage jsonb,
+        meal_score integer,
+        meal_confidence text,
+        submitted_at timestamptz DEFAULT now(),
+        notified_at timestamptz
+      )`
+    );
+    await this.pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS nutrition_meal_logs_user_date_meal_idx
+       ON nutrition_meal_logs (user_id, log_date, meal_type)`
+    );
+    await this.pool.query(
+      `CREATE INDEX IF NOT EXISTS nutrition_meal_logs_user_date_idx ON nutrition_meal_logs (user_id, log_date)`
+    );
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS nutrition_daily_stats (
+        user_id text NOT NULL,
+        stats_date date NOT NULL,
+        total_calories integer DEFAULT 0,
+        total_protein integer DEFAULT 0,
+        total_carbs integer DEFAULT 0,
+        total_fat integer DEFAULT 0,
+        total_fiber integer DEFAULT 0,
+        calorie_goal integer DEFAULT 2000,
+        protein_goal integer DEFAULT 150,
+        calories_out integer DEFAULT 0,
+        energy_difference integer DEFAULT 0,
+        rmr_kcal integer,
+        tef_kcal_est integer,
+        total_out_est_kcal integer,
+        energy_balance_est integer,
+        weekly_avg_calories numeric(10,1),
+        weekly_avg_protein numeric(10,1),
+        meal_quality_score numeric(4,1),
+        extra jsonb DEFAULT '{}'::jsonb,
+        updated_at timestamptz DEFAULT now(),
+        PRIMARY KEY (user_id, stats_date)
+      )`
+    );
+
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS nutrition_coin_events (
+        idempotency_key text PRIMARY KEY,
+        user_id text NOT NULL,
+        coins integer NOT NULL,
+        created_at timestamptz DEFAULT now()
+      )`
+    );
   }
 
   /** Matches Express server.js / trainer dashboard; required for approve-user and /api/tribe. */

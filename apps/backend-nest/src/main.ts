@@ -1,8 +1,18 @@
 import "reflect-metadata";
+import { config as dotenvConfig } from "dotenv";
+import { existsSync } from "fs";
+import { join } from "path";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./modules/app.module";
-import { join } from "path";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+
+const nestCwd = process.cwd();
+const rootEnv = join(nestCwd, "../../.env");
+if (existsSync(rootEnv)) {
+  dotenvConfig({ path: rootEnv });
+}
+/** Nest-local keys only; do not override root (repo) DATABASE_URL / JWT already set above. */
+dotenvConfig({ path: join(nestCwd, ".env") });
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });

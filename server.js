@@ -398,6 +398,10 @@ async function initDB() {
     feedback TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS workout_completed BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS calories_burned INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS session_date DATE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS workout_type TEXT`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS contact_messages (
     id TEXT PRIMARY KEY,
@@ -1612,6 +1616,30 @@ app.post('/api/workouts', async (req, res) => {
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
+    res.status(500).json({ error: 'Failed to log workout' });
+  }
+});
+
+app.post('/api/workouts/session', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user && req.user.id;
+    const { date, workout_type, duration_seconds, workout_completed, notes } = req.body || {};
+    if (!workout_type || !String(workout_type).trim()) {
+      return res.status(400).json({ error: 'workout_type is required' });
+    }
+    const id = uuidv4();
+    const name = String(workout_type).trim();
+    const dur = parseInt(String(duration_seconds), 10) || 0;
+    const done = workout_completed !== false && workout_completed !== 0;
+    const feedback = String(notes || '');
+    const sessionDate = date ? String(date).trim().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    await run(
+      'INSERT INTO workout_logs (id,user_id,workout_name,duration_seconds,feedback,workout_completed,workout_type,session_date) VALUES (?,?,?,?,?,?,?,?)',
+      [id, userId, name, dur, feedback, done, name, sessionDate]
+    );
+    res.json({ id, message: 'Workout logged' });
+  } catch (e) {
+    console.error('Workout session error:', e.message);
     res.status(500).json({ error: 'Failed to log workout' });
   }
 });

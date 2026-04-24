@@ -295,6 +295,9 @@ export default function FitBaseLandingPage() {
           <a href="#for-clients" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>For Clients</a>
           <a href="#request-a-coach" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Request a coach</a>
           <a href="#pricing" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Pricing</a>
+          <a href="/ai-trainer" style={{ color: "var(--text-secondary)", textDecoration: "none" }}>
+            AI Trainer
+          </a>
           <a href={loginHref} style={{ color: "var(--text-secondary)", textDecoration: "none" }}>Login</a>
           <button
             type="button"
@@ -2260,8 +2263,32 @@ export default function FitBaseLandingPage() {
         <div style={{ ...sectionBase, display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 16, alignItems: "center" }}>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", letterSpacing: 3, color: "var(--accent)", fontSize: 36 }}>FITBASE</div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            {["Problem", "How it works", "Dashboard", "Client Portal", "For Clients", "Request a coach", "Pricing", "Login"].map((label) => (
-              <a key={label} href={label === "Login" ? loginHref : `#${label.toLowerCase().replace(/\s+/g, "-")}`} style={{ color: "var(--text-secondary)", textDecoration: "none", fontSize: 13 }}>{label}</a>
+            {(
+              [
+                "Problem",
+                "How it works",
+                "Dashboard",
+                "Client Portal",
+                "For Clients",
+                "Request a coach",
+                "Pricing",
+                "AI Trainer",
+                "Login"
+              ] as const
+            ).map((label) => (
+              <a
+                key={label}
+                href={
+                  label === "Login"
+                    ? loginHref
+                    : label === "AI Trainer"
+                      ? "/ai-trainer"
+                      : `#${label.toLowerCase().replace(/\s+/g, "-")}`
+                }
+                style={{ color: "var(--text-secondary)", textDecoration: "none", fontSize: 13 }}
+              >
+                {label}
+              </a>
             ))}
           </div>
           <div style={{ color: "var(--text-secondary)", fontSize: 13 }}>© 2026 FitBase. All rights reserved.</div>

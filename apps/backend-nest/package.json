@@ -13,6 +13,7 @@
     "@nestjs/core": "^10.4.2",
     "@nestjs/platform-express": "^10.4.2",
     "bcryptjs": "^2.4.3",
+    "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.2",
     "node-cron": "^4.2.1",
     "pg": "^8.12.0",

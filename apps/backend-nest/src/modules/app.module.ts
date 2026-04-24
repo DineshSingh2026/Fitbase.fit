@@ -28,6 +28,9 @@ import { CampaignBroadcastService } from "./campaign-broadcast.service";
 import { CampaignSchedulerService } from "./campaign-scheduler.service";
 import { Part2PublicController } from "./part2-public.controller";
 import { ProfileController } from "./profile.controller";
+import { NutritionController } from "./nutrition.controller";
+import { NutritionService } from "./nutrition.service";
+import { NutritionAnthropicService } from "./nutrition-anthropic.service";
 
 @Module({
   imports: [
@@ -56,7 +59,8 @@ import { ProfileController } from "./profile.controller";
     ClientActivityController,
     CampaignsController,
     Part2PublicController,
-    ProfileController
+    ProfileController,
+    NutritionController
   ],
   providers: [
     AuthService,
@@ -65,7 +69,9 @@ import { ProfileController } from "./profile.controller";
     PushNotificationService,
     CampaignBroadcastService,
     CampaignSchedulerService,
-    CampaignService
+    CampaignService,
+    NutritionAnthropicService,
+    NutritionService
   ]
 })
 export class AppModule {}

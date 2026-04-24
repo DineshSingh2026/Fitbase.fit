@@ -274,6 +274,43 @@ export class ClientActivityController {
     }
   }
 
+  /** AI Trainer (and similar clients): JWT user, structured session row. */
+  @Post("workouts/session")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("user")
+  async postWorkoutSession(@Body() body: any, @Req() req: any, @Res() res: Response) {
+    if (!this.pool) return res.status(500).json({ error: "Failed to log workout" });
+    const userId = String(req.user?.id || "");
+    const { date, workout_type, duration_seconds, workout_completed, notes } = body || {};
+    if (!workout_type || !String(workout_type).trim()) {
+      return res.status(400).json({ error: "workout_type is required" });
+    }
+    const name = String(workout_type).trim();
+    const dur = Number(duration_seconds) || 0;
+    const done = workout_completed !== false && workout_completed !== 0;
+    const feedback = String(notes || "");
+    let sessionDate: string | null = null;
+    if (date != null && String(date).trim()) {
+      sessionDate = this.toDateStr(String(date).trim().slice(0, 10));
+    }
+    if (!sessionDate) {
+      sessionDate = new Date().toISOString().slice(0, 10);
+    }
+    try {
+      const id = randomUUID();
+      await this.pool.query(
+        `INSERT INTO workout_logs (
+           id, user_id, workout_name, duration_seconds, feedback,
+           workout_completed, workout_type, session_date
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date)`,
+        [id, userId, name, dur, feedback, done, name, sessionDate]
+      );
+      return res.json({ id, message: "Workout logged" });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || "Failed to log workout" });
+    }
+  }
+
   @Get("progress")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("user")

@@ -9,6 +9,7 @@ const { Pool } = require('pg');
 
 const API_BASE = (process.env.API_BASE || process.env.E2E_API_URL || 'http://127.0.0.1:3000').replace(/\/+$/, '');
 const NEXT_BASE = (process.env.NEXT_BASE || process.env.E2E_NEXT_URL || '').replace(/\/+$/, '');
+const NEST_BASE = (process.env.E2E_NEST_URL || 'http://127.0.0.1:3200').replace(/\/+$/, '');
 
 function get(urlStr) {
   return new Promise((resolve, reject) => {
@@ -76,6 +77,32 @@ async function main() {
       failures.push(`Next: ${e.message}`);
       console.log('  FAIL', e.message);
     }
+    try {
+      const { status, body } = await get(`${NEXT_BASE}/ai-trainer`);
+      if (status !== 200) failures.push(`GET ${NEXT_BASE}/ai-trainer -> ${status}`);
+      else if (!/AI Trainer/i.test(body)) failures.push('/ai-trainer missing AI Trainer marker');
+      console.log(status === 200 ? '  OK /ai-trainer' : `  FAIL /ai-trainer ${status}`);
+    } catch (e) {
+      failures.push(`Next /ai-trainer: ${e.message}`);
+      console.log('  FAIL /ai-trainer', e.message);
+    }
+  }
+
+  console.log('=== Connectivity: Nest (optional) ===');
+  try {
+    const { status, body } = await get(`${NEST_BASE}/api/health`);
+    if (status !== 200) failures.push(`GET ${NEST_BASE}/api/health -> ${status}`);
+    else {
+      try {
+        const j = JSON.parse(body);
+        if (!j.ok) failures.push('Nest /api/health ok !== true');
+      } catch (_) {
+        failures.push('Nest /api/health not JSON');
+      }
+    }
+    console.log(status === 200 ? '  OK Nest /api/health' : `  FAIL Nest ${status}`);
+  } catch (e) {
+    console.log('  SKIP Nest (not running):', e.message);
   }
 
   if (failures.length) {

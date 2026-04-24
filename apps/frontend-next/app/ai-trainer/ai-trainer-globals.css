@@ -1,0 +1,290 @@
+/* AI Trainer page — preserved from legacy ai-trainer.html (scoped by body.ai-trainer-page only). */
+body.ai-trainer-page {
+  --at-bg: #0f1115;
+  --at-panel: #1a1d24;
+  --at-text: #e8eaef;
+  --at-accent: #3de68b;
+  --at-warn: #e4bb5a;
+  --at-bad: #ff4f6a;
+  --at-muted: #8b93a7;
+}
+
+body.ai-trainer-page {
+  margin: 0;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  background: var(--at-bg);
+  color: var(--at-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.ai-trainer-page .at-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--at-panel);
+  border-bottom: 1px solid #2a2f3a;
+  flex-wrap: wrap;
+  gap: 8px;
+  transition: opacity 0.25s;
+}
+
+body.ai-trainer-page.at-in-workout .at-header {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+body.ai-trainer-page .at-header h1 {
+  font-size: 1rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+body.ai-trainer-page .at-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+body.ai-trainer-page .at-row select,
+body.ai-trainer-page .at-row button {
+  accent-color: var(--at-accent);
+  background: #252a35;
+  color: var(--at-text);
+  border: 1px solid #3a4252;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+body.ai-trainer-page .at-row button.at-primary {
+  background: #1f6b4a;
+  border-color: var(--at-accent);
+}
+
+body.ai-trainer-page .at-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+body.ai-trainer-page .at-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 10px;
+  padding: 10px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  body.ai-trainer-page .at-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+body.ai-trainer-page.at-in-workout .at-main {
+  grid-template-columns: 1fr;
+}
+
+body.ai-trainer-page.at-in-workout .at-aside {
+  display: none !important;
+}
+
+body.ai-trainer-page .at-stage-wrap {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid #2a2f3a;
+}
+
+body.ai-trainer-page .at-stage-inner {
+  position: relative;
+  transform: scaleX(-1);
+  width: 100%;
+  max-height: 72vh;
+}
+
+body.ai-trainer-page .at-stage-inner video,
+body.ai-trainer-page .at-stage-inner canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: middle;
+}
+
+body.ai-trainer-page .at-stage-inner canvas.at-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+body.ai-trainer-page .at-banner {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translate(-50%, 0) scaleX(-1);
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 3;
+  display: none;
+}
+
+body.ai-trainer-page .at-banner.at-show {
+  display: block;
+}
+
+body.ai-trainer-page .at-countdown {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 4px 24px #000;
+  z-index: 4;
+  transform: scaleX(-1);
+}
+
+body.ai-trainer-page .at-countdown.at-show {
+  display: flex;
+}
+
+body.ai-trainer-page .at-aside {
+  background: var(--at-panel);
+  border: 1px solid #2a2f3a;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+body.ai-trainer-page .at-aside h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+body.ai-trainer-page .at-tips ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--at-muted);
+}
+
+body.ai-trainer-page .at-meter {
+  height: 10px;
+  background: #2a2f3a;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+body.ai-trainer-page .at-meter > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--at-warn);
+  transition: width 0.12s;
+}
+
+body.ai-trainer-page .at-meter.at-good > i {
+  background: var(--at-accent);
+}
+
+body.ai-trainer-page .at-meter.at-bad > i {
+  background: var(--at-bad);
+}
+
+body.ai-trainer-page .at-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #2a2f3a;
+  margin-top: 6px;
+}
+
+body.ai-trainer-page .at-chip.at-good {
+  background: #153d2c;
+  color: var(--at-accent);
+}
+
+body.ai-trainer-page .at-chip.at-bad {
+  background: #3d1518;
+  color: var(--at-bad);
+}
+
+body.ai-trainer-page.at-in-workout {
+  overflow: hidden;
+}
+
+body.ai-trainer-page.at-in-workout .at-stage-wrap {
+  position: fixed;
+  inset: 0;
+  max-height: none;
+  border-radius: 0;
+  z-index: 20;
+  border: none;
+}
+
+body.ai-trainer-page.at-in-workout .at-stage-inner {
+  max-height: none;
+  height: 100%;
+}
+
+body.ai-trainer-page.at-in-workout .at-stage-inner video,
+body.ai-trainer-page.at-in-workout .at-stage-inner canvas.at-overlay {
+  height: 100%;
+  object-fit: cover;
+}
+
+body.ai-trainer-page .at-modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 16px;
+}
+
+body.ai-trainer-page .at-modal-bg.at-show {
+  display: flex;
+}
+
+body.ai-trainer-page .at-modal {
+  background: var(--at-panel);
+  border-radius: 14px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  border: 1px solid #3a4252;
+}
+
+body.ai-trainer-page .at-modal h3 {
+  margin: 0 0 12px;
+}
+
+body.ai-trainer-page .at-stat {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0;
+  color: var(--at-muted);
+}
+
+body.ai-trainer-page .at-stat b {
+  color: var(--at-text);
+}
